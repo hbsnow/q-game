@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_CONFIG } from '@/config/gameConfig';
 import { TitleScene } from '@/scenes/TitleScene';
+import { GameDebugger } from '@/utils';
 
 // Phaserゲーム設定
 const config: Phaser.Types.Core.GameConfig = {
@@ -36,9 +37,15 @@ const config: Phaser.Types.Core.GameConfig = {
 // ゲーム開始
 const game = new Phaser.Game(config);
 
+// デバッガー初期化
+const debugger = GameDebugger.getInstance();
+debugger.init();
+
 // デバッグ用のグローバル変数（開発時のみ）
 if (process.env.NODE_ENV === 'development') {
   (window as any).game = game;
+  (window as any).debugger = debugger;
   console.log('🌊 さめがめオーシャン - 開発モード');
   console.log('ゲームオブジェクト:', game);
+  console.log('デバッガー: Ctrl+D でデバッグパネル表示');
 }

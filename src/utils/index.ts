@@ -166,3 +166,10 @@ export function debugLog(message: string, data?: any): void {
     console.log(`[DEBUG] ${message}`, data || '');
   }
 }
+
+// 新しいユーティリティクラスをエクスポート
+export { BlockGenerator } from './blockGenerator';
+export { BlockRemover } from './blockRemover';
+export { GravityProcessor } from './gravityProcessor';
+export { AssetGenerator } from './assetGenerator';
+export { GameDebugger } from './debugger';
