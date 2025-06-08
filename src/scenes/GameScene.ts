@@ -1746,7 +1746,7 @@ export class GameScene extends Scene {
   getNormalBlocks(): Block[] {
     return this.currentBlocks.filter(block => block.type === 'normal');
   }
-}
+
   /**
    * アイテム選択モードを終了
    * ItemEffectManagerから呼び出される
@@ -1756,3 +1756,4 @@ export class GameScene extends Scene {
     this.setProcessingState(false);
     console.log('🔄 Exiting item selection mode');
   }
+}
