@@ -1648,7 +1648,15 @@ export class GameScene extends Scene {
                 this.updateScoreDisplay();
               }
               
-              resolve();
+  /**
+   * アイテム選択モードを終了
+   * ItemEffectManagerから呼び出される
+   */
+  exitItemSelectionMode(): void {
+    this.isItemSelectionMode = false;
+    this.setProcessingState(false);
+    console.log('🔄 Exiting item selection mode');
+  }              resolve();
             }
           });
         });
@@ -1698,15 +1706,7 @@ export class GameScene extends Scene {
     const sprite2 = this.blockSprites[block2.y][block2.x];
     
     if (!sprite1 || !sprite2) {
-  /**
-   * アイテム選択モードを終了
-   * ItemEffectManagerから呼び出される
-   */
-  exitItemSelectionMode(): void {
-    this.isItemSelectionMode = false;
-    this.setProcessingState(false);
-    console.log('🔄 Exiting item selection mode');
-  }      return Promise.resolve();
+      return Promise.resolve();
     }
     
     // スプライトの位置を入れ替え

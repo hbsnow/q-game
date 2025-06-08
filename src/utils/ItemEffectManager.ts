@@ -145,7 +145,6 @@ export class ItemEffectManager {
         // キャンセル時の処理
         this.completeItemEffect();
       }
-      }
     );
     
     // 選択開始
