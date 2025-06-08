@@ -799,11 +799,6 @@ export class ItemSelectScene extends Phaser.Scene {
     console.log(`🔧 Toggled ${this.debugElements.length} debug elements`);
   }
 
-  private cancelSelection() {
-    console.log('Cancelling selection...');
-    this.scene.start('MainScene');
-  }
-
   private logDetailedDebugInfo() {
     const { width, height } = this.cameras.main;
     console.log('🔍 === DETAILED DEBUG INFO [ITEM SELECT SCENE] ===');
