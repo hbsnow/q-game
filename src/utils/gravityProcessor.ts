@@ -1,5 +1,4 @@
 import { Block, Position } from '@/types';
-import { GAME_CONFIG } from '@/config/gameConfig';
 
 /**
  * 重力処理結果
@@ -21,30 +20,72 @@ export interface BlockMovement {
 }
 
 /**
- * 重力処理クラス
+ * 重力処理クラス - 正しいさめがめルール実装
  */
 export class GravityProcessor {
   /**
-   * 重力を適用してブロックを落下させる
+   * 重力を適用してブロックを落下させ、左詰めする
+   * さめがめルール：
+   * 1. 各列でブロックを下に落下させる
+   * 2. 空いた列を左に詰める
    */
-  static applyGravity(blocks: Block[]): GravityResult {
-    const { boardWidth, boardHeight } = GAME_CONFIG;
+  static applyGravity(blocks: Block[], boardWidth: number = 10, boardHeight: number = 14): GravityResult {
     const movements: BlockMovement[] = [];
-    const processedBlocks: Block[] = [];
-    const emptyPositions: Position[] = [];
+    let processedBlocks: Block[] = [];
     
-    // 列ごとに処理
+    // ステップ1: 各列でブロックを下に落下させる
+    const columnsWithBlocks: Block[][] = [];
+    
     for (let x = 0; x < boardWidth; x++) {
       const columnBlocks = blocks
         .filter(b => b.x === x)
         .sort((a, b) => b.y - a.y); // 下から上の順
       
-      const { movedBlocks, columnMovements, columnEmptyPositions } = 
-        this.processColumn(columnBlocks, x, boardHeight);
+      if (columnBlocks.length > 0) {
+        const { movedBlocks, columnMovements } = 
+          this.processColumnGravity(columnBlocks, x, boardHeight);
+        
+        columnsWithBlocks.push(movedBlocks);
+        movements.push(...columnMovements);
+      }
+    }
+    
+    // ステップ2: 空いた列を左に詰める
+    let targetX = 0;
+    for (const columnBlocks of columnsWithBlocks) {
+      const leftPackedBlocks = columnBlocks.map(block => {
+        const originalX = block.x;
+        const newBlock = { ...block, x: targetX };
+        
+        // 横移動があった場合は記録
+        if (originalX !== targetX) {
+          movements.push({
+            blockId: block.id,
+            from: { x: originalX, y: block.y },
+            to: { x: targetX, y: block.y },
+            distance: Math.abs(originalX - targetX),
+          });
+        }
+        
+        return newBlock;
+      });
       
-      processedBlocks.push(...movedBlocks);
-      movements.push(...columnMovements);
-      emptyPositions.push(...columnEmptyPositions);
+      processedBlocks.push(...leftPackedBlocks);
+      targetX++;
+    }
+    
+    // 空の位置を計算
+    const emptyPositions: Position[] = [];
+    const occupiedPositions = new Set(
+      processedBlocks.map(b => `${b.x},${b.y}`)
+    );
+    
+    for (let x = 0; x < boardWidth; x++) {
+      for (let y = 0; y < boardHeight; y++) {
+        if (!occupiedPositions.has(`${x},${y}`)) {
+          emptyPositions.push({ x, y });
+        }
+      }
     }
     
     return {
@@ -55,20 +96,18 @@ export class GravityProcessor {
   }
   
   /**
-   * 1列の重力処理
+   * 1列の重力処理（下に落下）
    */
-  private static processColumn(
+  private static processColumnGravity(
     columnBlocks: Block[], 
     x: number, 
     boardHeight: number
   ): {
     movedBlocks: Block[];
     columnMovements: BlockMovement[];
-    columnEmptyPositions: Position[];
   } {
     const movements: BlockMovement[] = [];
     const movedBlocks: Block[] = [];
-    const emptyPositions: Position[] = [];
     
     // 固定ブロック（鋼鉄ブロック）の位置を記録
     const fixedPositions = new Set<number>();
@@ -77,13 +116,15 @@ export class GravityProcessor {
       fixedPositions.add(block.y);
     });
     
-    // 落下可能ブロックを取得（鋼鉄以外）
-    const fallableBlocks = columnBlocks.filter(b => b.type !== 'steel');
+    // 落下可能ブロックを取得（鋼鉄以外）、上から下の順でソート
+    const fallableBlocks = columnBlocks
+      .filter(b => b.type !== 'steel')
+      .sort((a, b) => a.y - b.y); // 上から下の順
     
     // 下から順に配置していく
     let targetY = boardHeight - 1;
     
-    // 落下可能ブロックを下から配置
+    // 落下可能ブロックを下から配置（配列の後ろから処理）
     for (let i = fallableBlocks.length - 1; i >= 0; i--) {
       const block = fallableBlocks[i];
       
@@ -115,17 +156,9 @@ export class GravityProcessor {
     // 鋼鉄ブロックはそのまま追加
     movedBlocks.push(...steelBlocks);
     
-    // 空いた位置を記録（上部の空いた位置）
-    for (let y = 0; y <= targetY; y++) {
-      if (!fixedPositions.has(y)) {
-        emptyPositions.push({ x, y });
-      }
-    }
-    
     return {
       movedBlocks,
       columnMovements: movements,
-      columnEmptyPositions: emptyPositions,
     };
   }
   
@@ -159,11 +192,12 @@ export class GravityProcessor {
   /**
    * 重力処理が必要かチェック
    */
-  static needsGravity(blocks: Block[]): boolean {
-    const { boardWidth, boardHeight } = GAME_CONFIG;
-    
+  static needsGravity(blocks: Block[], boardWidth: number = 10, boardHeight: number = 14): boolean {
+    // 各列で空きがあるかチェック
     for (let x = 0; x < boardWidth; x++) {
       const columnBlocks = blocks.filter(b => b.x === x);
+      
+      if (columnBlocks.length === 0) continue;
       
       // 列に空きがあるかチェック
       const occupiedPositions = new Set(columnBlocks.map(b => b.y));
@@ -179,14 +213,29 @@ export class GravityProcessor {
       }
     }
     
+    // 左詰めが必要かチェック
+    const nonEmptyColumns = [];
+    for (let x = 0; x < boardWidth; x++) {
+      const columnBlocks = blocks.filter(b => b.x === x);
+      if (columnBlocks.length > 0) {
+        nonEmptyColumns.push(x);
+      }
+    }
+    
+    // 連続していない列があれば左詰めが必要
+    for (let i = 0; i < nonEmptyColumns.length; i++) {
+      if (nonEmptyColumns[i] !== i) {
+        return true;
+      }
+    }
+    
     return false;
   }
   
   /**
    * デバッグ用: 重力処理結果を可視化
    */
-  static visualizeGravityResult(result: GravityResult): string {
-    const { boardWidth, boardHeight } = GAME_CONFIG;
+  static visualizeGravityResult(result: GravityResult, boardWidth: number = 10, boardHeight: number = 14): string {
     const grid: string[][] = Array(boardHeight).fill(null).map(() => 
       Array(boardWidth).fill('.')
     );
@@ -197,11 +246,6 @@ export class GravityProcessor {
                     block.type === 'rock' ? 'R' : 
                     block.color.charAt(0).toUpperCase();
       grid[block.y][block.x] = symbol;
-    });
-    
-    // 空の位置をマーク
-    result.emptyPositions.forEach(pos => {
-      grid[pos.y][pos.x] = 'E';
     });
     
     return grid.map(row => row.join(' ')).join('\n');
