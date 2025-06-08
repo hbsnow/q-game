@@ -473,35 +473,75 @@ export class GameScene extends Scene {
         return;
       }
       
-      const animations: Promise<void>[] = [];
-      
       // 位置計算用の定数
+      const boardPixelWidth = this.BOARD_WIDTH * this.BLOCK_SIZE;
+      const startX = (this.scale.width - boardPixelWidth) / 2;
       const startY = this.BOARD_OFFSET_Y;
       
-      movements.forEach(movement => {
+      // 垂直移動と水平移動を分離
+      const verticalMovements = movements.filter(m => m.from.y !== m.to.y);
+      const horizontalMovements = movements.filter(m => m.from.x !== m.to.x);
+      
+      // ステップ1: 垂直移動（落下）を先に実行
+      const verticalAnimations = verticalMovements.map(movement => {
         const sprite = this.blockSprites[movement.from.y][movement.from.x];
         if (sprite) {
-          // 落下アニメーション（最終位置は rebuildSpriteBlockMapping で設定される）
           const targetY = startY + movement.to.y * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
           
-          const animPromise = new Promise<void>((animResolve) => {
+          return new Promise<void>((animResolve) => {
             this.tweens.add({
               targets: sprite,
               y: targetY,
               duration: 300,
-              ease: 'Bounce.easeOut',
+              ease: 'Power2.easeOut',
               onComplete: () => {
                 animResolve();
               }
             });
           });
-          
-          animations.push(animPromise);
         }
+        return Promise.resolve();
       });
       
-      Promise.all(animations).then(() => {
-        resolve();
+      // 垂直移動完了後に水平移動を実行
+      Promise.all(verticalAnimations).then(() => {
+        // 少し間を置いてから水平移動を開始
+        this.time.delayedCall(50, () => {
+          const horizontalAnimations = horizontalMovements.map(movement => {
+            const sprite = this.blockSprites[movement.from.y][movement.from.x];
+            if (sprite) {
+              const targetX = startX + movement.to.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
+              
+              return new Promise<void>((animResolve) => {
+                // 水平移動時に微細な縦揺れを追加（水中感演出）
+                this.tweens.add({
+                  targets: sprite,
+                  x: targetX,
+                  duration: 350,
+                  ease: 'Power2.easeOut',
+                  onComplete: () => {
+                    animResolve();
+                  }
+                });
+                
+                // 微細な縦揺れアニメーション
+                this.tweens.add({
+                  targets: sprite,
+                  y: sprite.y - 2,
+                  duration: 175,
+                  ease: 'Sine.easeInOut',
+                  yoyo: true,
+                  repeat: 1
+                });
+              });
+            }
+            return Promise.resolve();
+          });
+          
+          Promise.all(horizontalAnimations).then(() => {
+            resolve();
+          });
+        });
       });
     });
   }
