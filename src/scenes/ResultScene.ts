@@ -11,6 +11,10 @@ interface ResultData {
 
 export class ResultScene extends Scene {
   private resultData!: ResultData;
+  
+  // デバッグライン管理
+  private debugElements: Phaser.GameObjects.GameObject[] = [];
+  private debugVisible = true; // 初期表示ON
 
   constructor() {
     super({ key: 'ResultScene' });
@@ -22,6 +26,18 @@ export class ResultScene extends Scene {
 
   create() {
     const { width, height } = this.scale;
+    
+    // 🏷️ 画面名をコンソールに表示
+    console.log('🎬 === RESULT SCENE ===');
+    console.log('📍 Current Scene: リザルト画面');
+    console.log('🎯 Purpose: ステージ結果表示画面');
+    console.log('🎮 Stage:', this.resultData.stage);
+    console.log('📊 Score:', this.resultData.score, '/', this.resultData.targetScore);
+    console.log('🏆 All Clear:', this.resultData.isAllClear);
+    console.log('💰 Gold Earned:', this.resultData.gold);
+    
+    // デバッグショートカットキーを設定
+    this.setupDebugShortcut();
     
     // 背景
     this.add.rectangle(width / 2, height / 2, width, height, 0x001122, 0.9);
@@ -139,6 +155,87 @@ export class ResultScene extends Scene {
       color: '#FFFFFF',
       fontStyle: 'bold'
     }).setOrigin(0.5);
+    
+    // デバッグライン追加
+    this.addDebugLines(width, height);
+  }
+  
+  private setupDebugShortcut() {
+    // Dキーでデバッグライン切り替え
+    this.input.keyboard?.on('keydown-D', (event: KeyboardEvent) => {
+      if (event.shiftKey) {
+        // Shift+D: 詳細デバッグ情報出力
+        this.logDetailedDebugInfo();
+      } else {
+        // D: デバッグライン切り替え
+        this.toggleDebugLines();
+      }
+    });
+    
+    console.log('🔧 [RESULT SCENE] Debug shortcut setup:');
+    console.log('  - Press "D" to toggle debug lines');
+    console.log('  - Press "Shift+D" to log detailed debug info');
+  }
+
+  private toggleDebugLines() {
+    this.debugVisible = !this.debugVisible;
+    
+    // 全てのデバッグ要素の表示/非表示を切り替え
+    this.debugElements.forEach(element => {
+      element.setVisible(this.debugVisible);
+    });
+    
+    console.log(`🔧 [RESULT SCENE] Debug lines ${this.debugVisible ? 'SHOWN' : 'HIDDEN'} (Press D to toggle)`);
+  }
+
+  private addDebugLines(width: number, height: number) {
+    console.log('🔧 [RESULT SCENE] Adding debug rectangles for area visualization...');
+    
+    // タイトルエリア（Y=0-150）- 赤色
+    const titleRect = this.add.rectangle(width / 2, 75, width - 4, 146, 0x000000, 0)
+      .setStrokeStyle(3, 0xFF0000);
+    const titleText = this.add.text(10, 5, 'タイトルエリア Y=0-150', {
+      fontSize: '12px',
+      color: '#FF0000',
+      backgroundColor: '#000000',
+      fontStyle: 'bold'
+    });
+    this.debugElements.push(titleRect, titleText);
+    
+    // スコア情報エリア（Y=150-400）- 緑色
+    const scoreRect = this.add.rectangle(width / 2, 275, width - 4, 246, 0x000000, 0)
+      .setStrokeStyle(3, 0x00FF00);
+    const scoreText = this.add.text(10, 155, 'スコア情報エリア Y=150-400', {
+      fontSize: '12px',
+      color: '#00FF00',
+      backgroundColor: '#000000',
+      fontStyle: 'bold'
+    });
+    this.debugElements.push(scoreRect, scoreText);
+    
+    // 報酬・詳細エリア（Y=400-550）- 青色
+    const rewardRect = this.add.rectangle(width / 2, 475, width - 4, 146, 0x000000, 0)
+      .setStrokeStyle(3, 0x0000FF);
+    const rewardText = this.add.text(10, 405, '報酬・詳細エリア Y=400-550', {
+      fontSize: '12px',
+      color: '#0000FF',
+      backgroundColor: '#000000',
+      fontStyle: 'bold'
+    });
+    this.debugElements.push(rewardRect, rewardText);
+    
+    // ボタンエリア（Y=550-710）- 紫色
+    const buttonRect = this.add.rectangle(width / 2, 630, width - 4, 156, 0x000000, 0)
+      .setStrokeStyle(3, 0xFF00FF);
+    const buttonText = this.add.text(10, 555, 'ボタンエリア Y=550-710', {
+      fontSize: '12px',
+      color: '#FF00FF',
+      backgroundColor: '#000000',
+      fontStyle: 'bold'
+    });
+    this.debugElements.push(buttonRect, buttonText);
+    
+    console.log('🔧 [RESULT SCENE] Debug elements count:', this.debugElements.length);
   }
   
   private goToNextStage() {
@@ -152,6 +249,54 @@ export class ResultScene extends Scene {
         { type: 'normal', item: null, used: false }
       ]
     });
+  }
+
+  private logDetailedDebugInfo() {
+    const { width, height } = this.scale;
+    console.log('🔍 === DETAILED DEBUG INFO [RESULT SCENE] ===');
+    console.log('📍 Current Screen:', {
+      sceneName: 'ResultScene',
+      displayName: 'リザルト画面',
+      purpose: 'ステージ結果表示画面',
+      sceneKey: this.scene.key,
+      isActive: this.scene.isActive(),
+      isPaused: this.scene.isPaused(),
+      isVisible: this.scene.isVisible()
+    });
+    console.log('📱 Screen Info:', {
+      width: width,
+      height: height,
+      devicePixelRatio: window.devicePixelRatio
+    });
+    console.log('🏆 Result Data:', {
+      stage: this.resultData.stage,
+      score: this.resultData.score,
+      targetScore: this.resultData.targetScore,
+      isAllClear: this.resultData.isAllClear,
+      gold: this.resultData.gold,
+      isSuccess: this.resultData.score >= this.resultData.targetScore
+    });
+    console.log('📊 Score Analysis:', {
+      scorePercentage: ((this.resultData.score / this.resultData.targetScore) * 100).toFixed(1) + '%',
+      bonusScore: this.resultData.isAllClear ? Math.floor(this.resultData.score * 0.5) : 0,
+      goldEarned: this.resultData.gold
+    });
+    console.log('📦 Mock Items Info:', {
+      totalItems: mockItems.length,
+      itemsByRarity: mockItems.reduce((acc, item) => {
+        acc[item.rarity] = (acc[item.rarity] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
+    });
+    console.log('🎨 Debug Elements:', {
+      count: this.debugElements.length,
+      visible: this.debugVisible
+    });
+    console.log('🔧 Performance:', {
+      fps: this.game.loop.actualFps.toFixed(1),
+      delta: this.game.loop.delta
+    });
+    console.log('=== END DEBUG INFO ===');
   }
   
   private retryStage() {

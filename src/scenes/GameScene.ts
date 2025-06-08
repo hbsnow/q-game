@@ -12,6 +12,10 @@ export class GameScene extends Scene {
   private retireButtonText!: Phaser.GameObjects.Text;
   private isProcessing: boolean = false; // 処理中フラグを追加
   
+  // デバッグライン管理
+  private debugElements: Phaser.GameObjects.GameObject[] = [];
+  private debugVisible = true; // 初期表示ON
+  
   // 盤面設定
   private readonly BOARD_WIDTH = 10;
   private readonly BOARD_HEIGHT = 14;
@@ -53,6 +57,17 @@ export class GameScene extends Scene {
   }
 
   create() {
+    // 🏷️ 画面名をコンソールに表示
+    console.log('🎬 === GAME SCENE ===');
+    console.log('📍 Current Scene: ゲーム画面');
+    console.log('🎯 Purpose: メインゲームプレイ画面');
+    console.log('🎮 Stage:', this.gameState.currentStage);
+    console.log('🎯 Target Score:', this.gameState.targetScore);
+    console.log('📊 Current Score:', this.gameState.score);
+    
+    // デバッグショートカットキーを設定
+    this.setupDebugShortcut();
+    
     // UI作成
     this.createUI();
     
@@ -61,6 +76,9 @@ export class GameScene extends Scene {
     
     // 入力設定
     this.setupInput();
+    
+    // デバッグライン追加
+    this.addDebugLines();
   }
 
   private createUI() {
@@ -942,5 +960,129 @@ export class GameScene extends Scene {
 
   update() {
     // ゲームループ処理（必要に応じて実装）
+  }
+
+  private setupDebugShortcut() {
+    // Dキーでデバッグライン切り替え
+    this.input.keyboard?.on('keydown-D', (event: KeyboardEvent) => {
+      if (event.shiftKey) {
+        // Shift+D: 詳細デバッグ情報出力
+        this.logDetailedDebugInfo();
+      } else {
+        // D: デバッグライン切り替え
+        this.toggleDebugLines();
+      }
+    });
+    
+    console.log('🔧 [GAME SCENE] Debug shortcut setup:');
+    console.log('  - Press "D" to toggle debug lines');
+    console.log('  - Press "Shift+D" to log detailed debug info');
+  }
+
+  private toggleDebugLines() {
+    this.debugVisible = !this.debugVisible;
+    
+    // 全てのデバッグ要素の表示/非表示を切り替え
+    this.debugElements.forEach(element => {
+      element.setVisible(this.debugVisible);
+    });
+    
+    console.log(`🔧 [GAME SCENE] Debug lines ${this.debugVisible ? 'SHOWN' : 'HIDDEN'} (Press D to toggle)`);
+  }
+
+  private addDebugLines() {
+    const { width, height } = this.scale;
+    console.log('🔧 [GAME SCENE] Adding debug rectangles for area visualization...');
+    
+    // ヘッダーエリア（Y=0-75）- 赤色
+    const headerRect = this.add.rectangle(width / 2, 37.5, width - 4, 71, 0x000000, 0)
+      .setStrokeStyle(3, 0xFF0000);
+    const headerText = this.add.text(10, 5, 'ヘッダーエリア Y=0-75', {
+      fontSize: '12px',
+      color: '#FF0000',
+      backgroundColor: '#000000',
+      fontStyle: 'bold'
+    });
+    this.debugElements.push(headerRect, headerText);
+    
+    // ゲーム盤面エリア（Y=75-635）- 緑色
+    const boardRect = this.add.rectangle(width / 2, 355, width - 4, 556, 0x000000, 0)
+      .setStrokeStyle(4, 0x00FF00);
+    const boardText = this.add.text(10, 80, 'ゲーム盤面エリア Y=75-635', {
+      fontSize: '12px',
+      color: '#00FF00',
+      backgroundColor: '#000000',
+      fontStyle: 'bold'
+    });
+    this.debugElements.push(boardRect, boardText);
+    
+    // アイテム・ボタンエリア（Y=635-710）- 青色
+    const buttonRect = this.add.rectangle(width / 2, 672.5, width - 4, 71, 0x000000, 0)
+      .setStrokeStyle(3, 0x0000FF);
+    const buttonText = this.add.text(10, 640, 'アイテム・ボタンエリア Y=635-710', {
+      fontSize: '12px',
+      color: '#0000FF',
+      backgroundColor: '#000000',
+      fontStyle: 'bold'
+    });
+    this.debugElements.push(buttonRect, buttonText);
+    
+    console.log('🔧 [GAME SCENE] Debug elements count:', this.debugElements.length);
+  }
+
+  private logDetailedDebugInfo() {
+    const { width, height } = this.scale;
+    console.log('🔍 === DETAILED DEBUG INFO [GAME SCENE] ===');
+    console.log('📍 Current Screen:', {
+      sceneName: 'GameScene',
+      displayName: 'ゲーム画面',
+      purpose: 'メインゲームプレイ画面',
+      sceneKey: this.scene.key,
+      isActive: this.scene.isActive(),
+      isPaused: this.scene.isPaused(),
+      isVisible: this.scene.isVisible()
+    });
+    console.log('📱 Screen Info:', {
+      width: width,
+      height: height,
+      devicePixelRatio: window.devicePixelRatio
+    });
+    console.log('🎮 Game State:', {
+      currentStage: this.gameState.currentStage,
+      score: this.gameState.score,
+      targetScore: this.gameState.targetScore,
+      isProcessing: this.isProcessing
+    });
+    console.log('🎯 Board Info:', {
+      boardWidth: this.BOARD_WIDTH,
+      boardHeight: this.BOARD_HEIGHT,
+      blockSize: this.BLOCK_SIZE,
+      boardOffsetY: this.BOARD_OFFSET_Y,
+      totalBlocks: this.currentBlocks.length
+    });
+    console.log('🧩 Current Blocks:', {
+      totalCount: this.currentBlocks.length,
+      blocksByColor: this.currentBlocks.reduce((acc, block) => {
+        acc[block.color] = (acc[block.color] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+      blocksByType: this.currentBlocks.reduce((acc, block) => {
+        acc[block.type] = (acc[block.type] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
+    });
+    console.log('🎨 Sprites Info:', {
+      spriteRows: this.blockSprites.length,
+      totalSprites: this.blockSprites.flat().filter(s => s).length
+    });
+    console.log('🎨 Debug Elements:', {
+      count: this.debugElements.length,
+      visible: this.debugVisible
+    });
+    console.log('🔧 Performance:', {
+      fps: this.game.loop.actualFps.toFixed(1),
+      delta: this.game.loop.delta
+    });
+    console.log('=== END DEBUG INFO ===');
   }
 }

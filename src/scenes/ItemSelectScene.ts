@@ -34,7 +34,7 @@ export class ItemSelectScene extends Phaser.Scene {
   
   // デバッグライン管理
   private debugElements: Phaser.GameObjects.GameObject[] = [];
-  private debugVisible = true;
+  private debugVisible = true; // 初期表示ON
 
   constructor() {
     super({ key: 'ItemSelectScene' });
@@ -59,6 +59,13 @@ export class ItemSelectScene extends Phaser.Scene {
 
   create() {
     const { width, height } = this.cameras.main;
+    
+    // 🏷️ 画面名をコンソールに表示
+    console.log('🎬 === ITEM SELECT SCENE ===');
+    console.log('📍 Current Scene: アイテム選択画面');
+    console.log('🎯 Purpose: アイテム装備・選択画面');
+    console.log('📦 Available Items:', this.items.length);
+    console.log('⚔️ Equipment Slots:', this.equipSlots.length);
     
     // デバッグショートカットキーを設定
     this.setupDebugShortcut();
@@ -656,11 +663,19 @@ export class ItemSelectScene extends Phaser.Scene {
 
   private setupDebugShortcut() {
     // Dキーでデバッグライン切り替え
-    this.input.keyboard?.on('keydown-D', () => {
-      this.toggleDebugLines();
+    this.input.keyboard?.on('keydown-D', (event: KeyboardEvent) => {
+      if (event.shiftKey) {
+        // Shift+D: 詳細デバッグ情報出力
+        this.logDetailedDebugInfo();
+      } else {
+        // D: デバッグライン切り替え
+        this.toggleDebugLines();
+      }
     });
     
-    console.log('🔧 Debug shortcut setup: Press "D" key to toggle debug lines');
+    console.log('🔧 [ITEM SELECT SCENE] Debug shortcut setup:');
+    console.log('  - Press "D" to toggle debug lines');
+    console.log('  - Press "Shift+D" to log detailed debug info');
   }
 
   private toggleDebugLines() {
@@ -671,12 +686,65 @@ export class ItemSelectScene extends Phaser.Scene {
       element.setVisible(this.debugVisible);
     });
     
-    console.log(`🔧 Debug lines ${this.debugVisible ? 'SHOWN' : 'HIDDEN'} (Press D to toggle)`);
+    console.log(`🔧 [ITEM SELECT SCENE] Debug lines ${this.debugVisible ? 'SHOWN' : 'HIDDEN'} (Press D to toggle)`);
     console.log(`🔧 Toggled ${this.debugElements.length} debug elements`);
   }
 
   private cancelSelection() {
     console.log('Cancelling selection...');
     this.scene.start('MainScene');
+  }
+
+  private logDetailedDebugInfo() {
+    const { width, height } = this.cameras.main;
+    console.log('🔍 === DETAILED DEBUG INFO [ITEM SELECT SCENE] ===');
+    console.log('📍 Current Screen:', {
+      sceneName: 'ItemSelectScene',
+      displayName: 'アイテム選択画面',
+      purpose: 'アイテム装備・選択画面',
+      sceneKey: this.scene.key,
+      isActive: this.scene.isActive(),
+      isPaused: this.scene.isPaused(),
+      isVisible: this.scene.isVisible()
+    });
+    console.log('📱 Screen Info:', {
+      width: width,
+      height: height,
+      devicePixelRatio: window.devicePixelRatio
+    });
+    console.log('📦 Items Info:', {
+      totalItems: this.items.length,
+      itemsByRarity: this.items.reduce((acc, item) => {
+        acc[item.rarity] = (acc[item.rarity] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>),
+      itemsWithCount: this.items.map(item => ({
+        name: item.name,
+        rarity: item.rarity,
+        count: item.count
+      }))
+    });
+    console.log('⚔️ Equipment Slots:', {
+      totalSlots: this.equipSlots.length,
+      slots: this.equipSlots.map((slot, index) => ({
+        index: index,
+        type: slot.type,
+        hasItem: !!slot.item,
+        itemName: slot.item?.name || 'None'
+      }))
+    });
+    console.log('🎯 Selection State:', {
+      selectedItem: this.selectedItem?.name || 'None',
+      selectedSlotIndex: this.selectedSlotIndex
+    });
+    console.log('🎨 Debug Elements:', {
+      count: this.debugElements.length,
+      visible: this.debugVisible
+    });
+    console.log('🔧 Performance:', {
+      fps: this.game.loop.actualFps.toFixed(1),
+      delta: this.game.loop.delta
+    });
+    console.log('=== END DEBUG INFO ===');
   }
 }
