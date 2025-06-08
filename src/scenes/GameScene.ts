@@ -354,7 +354,26 @@ export class GameScene extends Scene {
   }
 
   private handleBlockClick(sprite: Phaser.GameObjects.Sprite) {
-    // 処理中の場合は無視
+    // アイテム選択モードの場合は、処理中フラグに関わらずブロック選択を許可
+    if (this.isItemSelectionMode) {
+      const row = sprite.getData('row') as number;
+      const col = sprite.getData('col') as number;
+      const actualBlock = this.currentBlocks.find(b => b.x === col && b.y === row);
+      
+      if (actualBlock) {
+        // ItemEffectManagerにブロック選択を委譲
+        const handled = this.itemEffectManager.handleBlockSelection(actualBlock, sprite);
+        if (handled) {
+          return;
+        }
+        
+        // 従来のアイテムターゲット選択処理（互換性のため残す）
+        this.handleItemTargetSelection(actualBlock);
+      }
+      return;
+    }
+    
+    // 通常モードでは処理中の場合は無視
     if (this.isProcessing) {
       console.log('🚫 Processing in progress, ignoring click');
       return;
@@ -377,19 +396,6 @@ export class GameScene extends Scene {
     }
     
     console.log(`📦 Found block at position:`, actualBlock);
-    
-    // アイテム選択モードの場合
-    if (this.isItemSelectionMode) {
-      // ItemEffectManagerにブロック選択を委譲
-      const handled = this.itemEffectManager.handleBlockSelection(actualBlock, sprite);
-      if (handled) {
-        return;
-      }
-      
-      // 従来のアイテムターゲット選択処理（互換性のため残す）
-      this.handleItemTargetSelection(actualBlock);
-      return;
-    }
     
     // 通常ブロック以外はクリック無効
     if (actualBlock.type !== 'normal') {
@@ -981,9 +987,11 @@ export class GameScene extends Scene {
         case 'changeOne':
         case 'miniBomb':
           // 対象選択が必要なアイテムは新しいAPIを使用
+          this.isItemSelectionMode = true; // アイテム選択モードを有効化
           this.itemEffectManager.executeItemEffect(itemType).then(success => {
             if (!success) {
-              // 選択モードに入らなかった場合は処理中フラグを解除
+              // 選択モードに入らなかった場合は処理中フラグとアイテム選択モードを解除
+              this.isItemSelectionMode = false;
               this.setProcessingState(false);
             }
           });
@@ -1011,6 +1019,7 @@ export class GameScene extends Scene {
       }
     } catch (error) {
       console.error(`Error executing item effect ${itemType}:`, error);
+      this.isItemSelectionMode = false;
       this.setProcessingState(false);
     }
   }
@@ -1689,7 +1698,15 @@ export class GameScene extends Scene {
     const sprite2 = this.blockSprites[block2.y][block2.x];
     
     if (!sprite1 || !sprite2) {
-      return Promise.resolve();
+  /**
+   * アイテム選択モードを終了
+   * ItemEffectManagerから呼び出される
+   */
+  exitItemSelectionMode(): void {
+    this.isItemSelectionMode = false;
+    this.setProcessingState(false);
+    console.log('🔄 Exiting item selection mode');
+  }      return Promise.resolve();
     }
     
     // スプライトの位置を入れ替え

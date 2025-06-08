@@ -42,6 +42,8 @@ export class ItemEffectManager {
           } else if (params.length === 2) {
             // 2つのブロックが指定された場合は実行
             result = await this.executeSwap(params[0], params[1]);
+            // 実行完了後に選択モードを終了
+            this.completeItemEffect();
           }
           break;
           
@@ -58,6 +60,8 @@ export class ItemEffectManager {
           } else if (params.length === 2) {
             // ブロックと色が指定された場合は実行
             result = await this.executeChangeOne(params[0], params[1]);
+            // 実行完了後に選択モードを終了
+            this.completeItemEffect();
           }
           break;
           
@@ -70,6 +74,8 @@ export class ItemEffectManager {
           } else if (params.length === 1) {
             // ブロックが指定された場合は実行
             result = await this.executeMiniBomb(params[0]);
+            // 実行完了後に選択モードを終了
+            this.completeItemEffect();
           }
           break;
           
@@ -132,22 +138,13 @@ export class ItemEffectManager {
           this.showColorSelectionUI(blocks[0]);
         } else {
           // その他のアイテムは選択したブロックで実行
-          this.executeItemEffect(itemType, ...blocks).then(() => {
-            // 実行完了後にUIを破棄
-            if (this.blockSelectionUI) {
-              this.blockSelectionUI.destroy();
-              this.blockSelectionUI = null;
-            }
-          });
+          this.executeItemEffect(itemType, ...blocks);
         }
       },
       () => {
         // キャンセル時の処理
-        this.isProcessing = false;
-        if (this.blockSelectionUI) {
-          this.blockSelectionUI.destroy();
-          this.blockSelectionUI = null;
-        }
+        this.completeItemEffect();
+      }
       }
     );
     
@@ -174,17 +171,7 @@ export class ItemEffectManager {
       availableColors,
       (color) => {
         // 色選択完了時の処理
-        this.executeItemEffect('changeOne', block, color).then(() => {
-          // 実行完了後にUIを破棄
-          if (this.colorSelectionUI) {
-            this.colorSelectionUI.destroy();
-            this.colorSelectionUI = null;
-          }
-          if (this.blockSelectionUI) {
-            this.blockSelectionUI.destroy();
-            this.blockSelectionUI = null;
-          }
-        });
+        this.executeItemEffect('changeOne', block, color);
       }
     );
     
@@ -349,5 +336,19 @@ export class ItemEffectManager {
       this.colorSelectionUI = null;
     }
     this.isProcessing = false;
+  }
+  
+  /**
+   * アイテム効果の完了処理
+   * 選択UIの破棄と処理中フラグの解除を行う
+   */
+  completeItemEffect(): void {
+    this.destroyAllUI();
+    this.isProcessing = false;
+    
+    // GameSceneのアイテム選択モードを解除するためのコールバックがあれば呼び出す
+    if (this.gameScene.exitItemSelectionMode) {
+      this.gameScene.exitItemSelectionMode();
+    }
   }
 }
