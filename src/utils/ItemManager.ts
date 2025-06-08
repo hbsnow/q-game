@@ -7,6 +7,7 @@ import { Item, ItemType, ItemRarity, EquipSlot, EquipSlotType } from '../types';
 export class ItemManager {
   private items: Map<string, Item> = new Map();
   private equipSlots: [EquipSlot, EquipSlot];
+  private usedItemIds: Set<string> = new Set(); // 使用済みアイテムのIDを管理
 
   constructor() {
     // 装備スロットを初期化（特殊枠、通常枠）
@@ -128,6 +129,12 @@ export class ItemManager {
     }
 
     slot.used = true;
+    
+    // 使用済みアイテムとして記録
+    if (slot.item) {
+      this.usedItemIds.add(slot.item.id);
+    }
+    
     return true;
   }
 
@@ -151,6 +158,9 @@ export class ItemManager {
       slot.item = null;
       slot.used = false;
     }
+    
+    // 使用済みアイテムリストをクリア
+    this.usedItemIds.clear();
   }
 
   /**
@@ -162,6 +172,27 @@ export class ItemManager {
     } else {
       return !['S', 'A'].includes(item.rarity); // 通常枠にはS・Aレア以外
     }
+  }
+
+  /**
+   * アイテムが使用済みかチェック
+   */
+  isItemUsed(itemId: string): boolean {
+    return this.usedItemIds.has(itemId);
+  }
+
+  /**
+   * アイテムを使用済みとしてマーク
+   */
+  markItemAsUsed(itemId: string): void {
+    this.usedItemIds.add(itemId);
+  }
+
+  /**
+   * 使用済みアイテムリストをリセット
+   */
+  resetUsedItems(): void {
+    this.usedItemIds.clear();
   }
 
   /**
@@ -204,6 +235,7 @@ export class ItemManager {
     console.log('=== ItemManager Debug Info ===');
     console.log('所持アイテム:', Array.from(this.items.entries()));
     console.log('装備スロット:', this.equipSlots);
+    console.log('使用済みアイテム:', Array.from(this.usedItemIds));
     console.log('==============================');
   }
 }

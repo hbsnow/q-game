@@ -23,7 +23,8 @@ export class GameStateManager {
         { type: 'special', item: null, used: false },
         { type: 'normal', item: null, used: false }
       ],
-      isScoreBoosterActive: false
+      isScoreBoosterActive: false,
+      usedItems: [] // 使用済みアイテムのID
     };
 
     // アイテム管理システムを初期化
@@ -102,6 +103,9 @@ export class GameStateManager {
     // スコアブースター状態をリセット
     this.gameState.isScoreBoosterActive = false;
     
+    // 使用済みアイテムリストをリセット
+    this.resetUsedItems();
+    
     console.log(`Stage ${this.gameState.currentStage} cleared! Gold: ${this.gameState.gold}`);
   }
 
@@ -115,6 +119,9 @@ export class GameStateManager {
     // スコアをリセット
     this.gameState.score = 0;
     
+    // 使用済みアイテムリストをリセット
+    this.resetUsedItems();
+    
     console.log(`Advanced to stage ${this.gameState.currentStage}`);
   }
   
@@ -124,6 +131,9 @@ export class GameStateManager {
   public retryCurrentStage(): void {
     // スコアをリセット
     this.gameState.score = 0;
+    
+    // 使用済みアイテムリストをリセット
+    this.resetUsedItems();
     
     console.log(`Retrying stage ${this.gameState.currentStage}`);
   }
@@ -148,6 +158,58 @@ export class GameStateManager {
   public activateScoreBooster(): void {
     this.gameState.isScoreBoosterActive = true;
     console.log('Score booster activated!');
+  }
+
+  /**
+   * 特殊枠にアイテムを装備
+   */
+  public equipSpecialItem(itemId: string): void {
+    this.gameState.equippedItems.special = itemId;
+  }
+  
+  /**
+   * 通常枠にアイテムを装備
+   */
+  public equipNormalItem(itemId: string): void {
+    this.gameState.equippedItems.normal = itemId;
+  }
+  
+  /**
+   * 装備中のアイテムを取得
+   */
+  public getEquippedItems(): { special: string | null, normal: string | null } {
+    return this.gameState.equippedItems;
+  }
+  
+  /**
+   * アイテムが装備されているかチェック
+   */
+  public isItemEquipped(itemId: string): boolean {
+    return this.gameState.equippedItems.special === itemId || 
+           this.gameState.equippedItems.normal === itemId;
+  }
+  
+  /**
+   * アイテムを使用済みとしてマーク
+   */
+  public markItemAsUsed(itemId: string): void {
+    if (!this.gameState.usedItems.includes(itemId)) {
+      this.gameState.usedItems.push(itemId);
+    }
+  }
+  
+  /**
+   * アイテムが使用済みかチェック
+   */
+  public isItemUsed(itemId: string): boolean {
+    return this.gameState.usedItems.includes(itemId);
+  }
+  
+  /**
+   * 使用済みアイテムリストをリセット
+   */
+  public resetUsedItems(): void {
+    this.gameState.usedItems = [];
   }
 
   /**
@@ -177,6 +239,7 @@ export class GameStateManager {
     console.log('Items:', this.gameState.items);
     console.log('Equip Slots:', this.gameState.equipSlots);
     console.log('Score Booster Active:', this.gameState.isScoreBoosterActive);
+    console.log('Used Items:', this.gameState.usedItems);
     console.log('==============================');
     
     // アイテム管理システムのデバッグ情報も出力

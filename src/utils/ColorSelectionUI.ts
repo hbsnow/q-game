@@ -59,7 +59,8 @@ export class ColorSelectionUI {
     // オーバーレイをクリックしても何も起きないようにする
     overlay.setInteractive();
     overlay.on('pointerdown', (event: Phaser.Input.Pointer) => {
-      if (event.stopPropagation) {
+      // stopPropagationが存在する場合のみ呼び出す
+      if (typeof event.stopPropagation === 'function') {
         event.stopPropagation();
       }
     });

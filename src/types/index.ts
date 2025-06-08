@@ -57,6 +57,11 @@ export interface GameState {
   items: Item[];
   equipSlots: [EquipSlot, EquipSlot]; // 特殊枠、通常枠
   isScoreBoosterActive: boolean;
+  usedItems: string[]; // 使用済みアイテムのID
+  equippedItems?: { // 装備中のアイテムID
+    special: string | null;
+    normal: string | null;
+  };
 }
 
 // ステージ設定
