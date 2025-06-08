@@ -28,6 +28,10 @@ export class ItemSelectScene extends Phaser.Scene {
   private normalSlotText!: Phaser.GameObjects.Text;
   private specialSlotLabel!: Phaser.GameObjects.Text;
   private itemListContainer!: Phaser.GameObjects.Container;
+  
+  // 選択カーソル（元の枠線を上書きしない）
+  private specialSlotCursor: Phaser.GameObjects.Rectangle | null = null;
+  private normalSlotCursor: Phaser.GameObjects.Rectangle | null = null;
   private confirmButton!: Phaser.GameObjects.Container;
   private cancelButton!: Phaser.GameObjects.Container;
   private messageText!: Phaser.GameObjects.Text;
@@ -607,7 +611,7 @@ export class ItemSelectScene extends Phaser.Scene {
     // 特殊枠の表示更新
     const specialSlot = this.equipSlots[0];
     if (specialSlot.item) {
-      this.specialSlotText.setText(`${specialSlot.item.name} ×${specialSlot.item.count}`);
+      this.specialSlotText.setText(specialSlot.item.name); // 個数表示を削除
       this.specialSlotText.setColor('#FFFFFF');
     } else {
       this.specialSlotText.setText('未選択');
@@ -617,16 +621,67 @@ export class ItemSelectScene extends Phaser.Scene {
     // 通常枠の表示更新
     const normalSlot = this.equipSlots[1];
     if (normalSlot.item) {
-      this.normalSlotText.setText(`${normalSlot.item.name} ×${normalSlot.item.count}`);
+      this.normalSlotText.setText(normalSlot.item.name); // 個数表示を削除
       this.normalSlotText.setColor('#FFFFFF');
     } else {
       this.normalSlotText.setText('未選択');
       this.normalSlotText.setColor('#CCCCCC');
     }
     
-    // 選択中のスロットをハイライト
-    this.specialSlotBg.setStrokeStyle(2, this.selectedSlotIndex === 0 ? 0xFFFFFF : 0xFFD700);
-    this.normalSlotBg.setStrokeStyle(2, this.selectedSlotIndex === 1 ? 0xFFFFFF : 0x888888);
+    // 選択カーソルの表示（元の枠線は保持）
+    if (this.selectedSlotIndex === 0) {
+      // 特殊枠選択時 - カーソル風の選択表示
+      if (this.specialSlotCursor) this.specialSlotCursor.destroy();
+      this.specialSlotCursor = this.add.rectangle(100, 130, 190, 60, 0x000000, 0)
+        .setStrokeStyle(4, 0xFFFFFF, 0.9); // 白い太い枠でカーソル表現
+      
+      // カーソルの点滅効果
+      this.tweens.add({
+        targets: this.specialSlotCursor,
+        alpha: 0.3,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      
+      // 通常枠のカーソルを削除
+      if (this.normalSlotCursor) {
+        this.normalSlotCursor.destroy();
+        this.normalSlotCursor = null;
+      }
+    } else if (this.selectedSlotIndex === 1) {
+      // 通常枠選択時 - カーソル風の選択表示
+      if (this.normalSlotCursor) this.normalSlotCursor.destroy();
+      this.normalSlotCursor = this.add.rectangle(300, 130, 190, 60, 0x000000, 0)
+        .setStrokeStyle(4, 0xFFFFFF, 0.9); // 白い太い枠でカーソル表現
+      
+      // カーソルの点滅効果
+      this.tweens.add({
+        targets: this.normalSlotCursor,
+        alpha: 0.3,
+        duration: 800,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      
+      // 特殊枠のカーソルを削除
+      if (this.specialSlotCursor) {
+        this.specialSlotCursor.destroy();
+        this.specialSlotCursor = null;
+      }
+    } else {
+      // どちらも選択されていない状態 - カーソルを削除
+      if (this.specialSlotCursor) {
+        this.specialSlotCursor.destroy();
+        this.specialSlotCursor = null;
+      }
+      if (this.normalSlotCursor) {
+        this.normalSlotCursor.destroy();
+        this.normalSlotCursor = null;
+      }
+    }
   }
 
   private showMessage(text: string) {
