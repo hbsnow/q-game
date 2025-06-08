@@ -1793,7 +1793,7 @@ export class GameScene extends Scene {
     this.setProcessingState(false);
     console.log('🔄 Exiting item selection mode');
   }
-}
+
   /**
    * 重力処理を適用（ミニ爆弾用）
    */
@@ -1801,3 +1801,4 @@ export class GameScene extends Scene {
     console.log('Applying gravity after block removal');
     return this.applyGravity();
   }
+}
