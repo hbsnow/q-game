@@ -1,9 +1,8 @@
 import { Scene } from 'phaser';
-import { mockItems } from '../data/mockItems';
+import { GameStateManager } from '../utils/GameStateManager';
 
 export class MainScene extends Scene {
-  private currentStage: number = 1;
-  private gold: number = 1250; // モックデータ
+  private gameStateManager!: GameStateManager;
   
   // デバッグライン管理
   private debugElements: Phaser.GameObjects.GameObject[] = [];
@@ -14,13 +13,9 @@ export class MainScene extends Scene {
   }
 
   init(data: any) {
-    // 他の画面から戻ってきた時のデータを受け取る
-    if (data.currentStage) {
-      this.currentStage = data.currentStage;
-    }
-    if (data.gold !== undefined) {
-      this.gold = data.gold;
-    }
+    // GameStateManagerを受け取る
+    this.gameStateManager = data.gameStateManager || GameStateManager.getInstance();
+    console.log('MainScene initialized with GameStateManager:', this.gameStateManager);
   }
 
   create() {
@@ -30,8 +25,8 @@ export class MainScene extends Scene {
     console.log('🎬 === MAIN SCENE ===');
     console.log('📍 Current Scene: メイン画面');
     console.log('🎯 Purpose: ステージ選択・メニュー画面');
-    console.log('📊 Current Stage:', this.currentStage);
-    console.log('💰 Current Gold:', this.gold);
+    console.log('📊 Current Stage:', this.gameStateManager.getCurrentStage());
+    console.log('💰 Current Gold:', this.gameStateManager.getGold());
 
     // デバッグショートカットキーを設定
     this.setupDebugShortcut();
@@ -46,15 +41,17 @@ export class MainScene extends Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
 
-    // ゴールド表示
-    this.add.text(width - 20, 20, `ゴールド: ${this.gold}`, {
+    // ゴールド表示（実データ使用）
+    const currentGold = this.gameStateManager.getGold();
+    this.add.text(width - 20, 20, `ゴールド: ${currentGold}`, {
       fontSize: '16px',
       color: '#F4D03F',
       fontStyle: 'bold'
     }).setOrigin(1, 0);
 
-    // ステージ情報
-    this.add.text(width / 2, 180, `ステージ ${this.currentStage}`, {
+    // ステージ情報（実データ使用）
+    const currentStage = this.gameStateManager.getCurrentStage();
+    this.add.text(width / 2, 180, `ステージ ${currentStage}`, {
       fontSize: '20px',
       color: '#FFFFFF',
       fontStyle: 'bold'
@@ -64,15 +61,9 @@ export class MainScene extends Scene {
     const playButton = this.add.rectangle(width / 2, 250, 200, 60, 0x7DB9E8, 0.9);
     playButton.setInteractive();
     playButton.on('pointerdown', () => {
-      // アイテム選択画面へ遷移
+      // アイテム選択画面へ遷移（GameStateManagerを渡す）
       this.scene.start('ItemSelectScene', {
-        items: mockItems,
-        currentStage: this.currentStage,
-        gold: this.gold,
-        equipSlots: [
-          { type: 'special', item: null, used: false },
-          { type: 'normal', item: null, used: false }
-        ]
+        gameStateManager: this.gameStateManager
       });
     });
 
@@ -92,8 +83,7 @@ export class MainScene extends Scene {
     itemButton.setInteractive();
     itemButton.on('pointerdown', () => {
       this.scene.start('ItemListScene', {
-        currentStage: this.currentStage,
-        gold: this.gold
+        gameStateManager: this.gameStateManager
       });
     });
 
@@ -107,8 +97,7 @@ export class MainScene extends Scene {
     gachaButton.setInteractive();
     gachaButton.on('pointerdown', () => {
       this.scene.start('GachaScene', {
-        currentStage: this.currentStage,
-        gold: this.gold
+        gameStateManager: this.gameStateManager
       });
     });
 

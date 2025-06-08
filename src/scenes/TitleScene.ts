@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { GameStateManager } from '../utils/GameStateManager';
 
 export class TitleScene extends Scene {
   // デバッグライン管理
@@ -40,9 +41,10 @@ export class TitleScene extends Scene {
     const startButton = this.add.rectangle(width / 2, height / 2 + 50, 200, 60, 0x2E8B57, 0.9);
     startButton.setInteractive();
     startButton.on('pointerdown', () => {
+      // GameStateManagerのシングルトンインスタンスを取得してMainSceneに渡す
+      const gameStateManager = GameStateManager.getInstance();
       this.scene.start('MainScene', {
-        currentStage: 1,
-        gold: 1250 // モックデータ
+        gameStateManager: gameStateManager
       });
     });
     

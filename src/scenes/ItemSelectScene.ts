@@ -1,14 +1,10 @@
 import Phaser from 'phaser';
-import { Item } from '../types/Item';
-import { mockItems } from '../data/mockItems';
-import { getRarityColor, canEquipToSpecialSlot, canEquipToNormalSlot } from '../data/mockItems';
-
-interface EquipSlot {
-  item: Item | null;
-  type: 'special' | 'normal';
-}
+import { Item, EquipSlot } from '../types';
+import { GameStateManager } from '../utils/GameStateManager';
+import { getRarityColor } from '../data/mockItems';
 
 export class ItemSelectScene extends Phaser.Scene {
+  private gameStateManager!: GameStateManager;
   private items: Item[] = [];
   private equipSlots: EquipSlot[] = [];
   private selectedItem: Item | null = null;
@@ -47,14 +43,16 @@ export class ItemSelectScene extends Phaser.Scene {
   init(data: any) {
     console.log('ItemSelectScene initialized with data:', data);
     
-    // モックデータを使用
-    this.items = mockItems;
+    // GameStateManagerを受け取る
+    this.gameStateManager = data.gameStateManager;
+    if (!this.gameStateManager) {
+      console.error('GameStateManager not provided to ItemSelectScene');
+      return;
+    }
     
-    // 装備スロットの初期化
-    this.equipSlots = [
-      { item: null, type: 'special' },
-      { item: null, type: 'normal' }
-    ];
+    // 実データを使用
+    this.items = this.gameStateManager.getItemManager().getAllItems();
+    this.equipSlots = this.gameStateManager.getItemManager().getEquipSlots();
     
     // 選択状態をリセット
     this.selectedItem = null;
@@ -588,23 +586,32 @@ export class ItemSelectScene extends Phaser.Scene {
       return;
     }
     
-    const slot = this.equipSlots[this.selectedSlotIndex];
+    const itemManager = this.gameStateManager.getItemManager();
+    const slotIndex = this.selectedSlotIndex as 0 | 1;
     
-    // 装備制限チェック
-    if (slot.type === 'special' && !canEquipToSpecialSlot(item)) {
-      // 特殊枠は全てのアイテムを装備可能
-    } else if (slot.type === 'normal' && !canEquipToNormalSlot(item)) {
-      this.showMessage('このアイテムは通常枠に装備できません');
+    // 装備制限チェック（ItemManagerの機能を使用）
+    const slotType = slotIndex === 0 ? 'special' : 'normal';
+    const equippableItems = itemManager.getEquippableItems(slotType);
+    
+    if (!equippableItems.some(equippableItem => equippableItem.type === item.type)) {
+      this.showMessage('このアイテムはこの枠に装備できません');
       return;
     }
     
-    // アイテムを装備
-    slot.item = item;
-    this.selectedItem = item;
+    // アイテムを装備（ItemManagerを使用）
+    const success = itemManager.equipItem(item.type, slotIndex);
     
-    console.log(`Equipped ${item.name} to ${slot.type} slot`);
-    this.updateSlotDisplay();
-    this.showMessage(`${item.name}を装備しました`);
+    if (success) {
+      // 装備スロット情報を更新
+      this.equipSlots = itemManager.getEquipSlots();
+      this.selectedItem = item;
+      
+      console.log(`Equipped ${item.name} to ${slotType} slot`);
+      this.updateSlotDisplay();
+      this.showMessage(`${item.name}を装備しました`);
+    } else {
+      this.showMessage('装備に失敗しました');
+    }
   }
 
   private updateSlotDisplay() {
@@ -709,19 +716,14 @@ export class ItemSelectScene extends Phaser.Scene {
   private confirmSelection() {
     console.log('🎯 決定ボタンが押されました');
     
-    // 装備データを準備
-    const equipData = {
-      specialSlot: this.equipSlots[0].item,
-      normalSlot: this.equipSlots[1].item
-    };
+    // GameStateManagerから最新の装備情報を取得
+    const equipSlots = this.gameStateManager.getItemManager().getEquipSlots();
     
-    console.log('📦 装備データ:', equipData);
+    console.log('📦 装備データ:', equipSlots);
     
-    // ゲーム画面に遷移
+    // ゲーム画面に遷移（GameStateManagerを渡す）
     this.scene.start('GameScene', {
-      currentStage: this.currentStage,
-      gold: this.gold,
-      equippedItems: equipData
+      gameStateManager: this.gameStateManager
     });
   }
 
@@ -729,21 +731,9 @@ export class ItemSelectScene extends Phaser.Scene {
   private cancelSelection() {
     console.log('🔙 キャンセルボタンが押されました');
     
-    // メイン画面に戻る
+    // メイン画面に戻る（GameStateManagerを渡す）
     this.scene.start('MainScene', {
-      currentStage: this.currentStage,
-      gold: this.gold
-    });
-  }
-
-  private confirmSelection() {
-    console.log('Confirming selection...');
-    console.log('Equipped items:', this.equipSlots);
-    
-    // ゲーム画面に遷移
-    this.scene.start('GameScene', {
-      stage: 1,
-      equippedItems: this.equipSlots.map(slot => slot.item).filter(item => item !== null)
+      gameStateManager: this.gameStateManager
     });
   }
 

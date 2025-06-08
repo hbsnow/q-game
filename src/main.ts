@@ -10,6 +10,7 @@ import { GameScene } from "./scenes/GameScene";
 import { ResultScene } from "./scenes/ResultScene";
 import { GameCompleteScene } from "./scenes/GameCompleteScene";
 import { GameDebugger } from "@/utils";
+import { GameStateManager } from "./utils/GameStateManager";
 
 // Phaserゲーム設定
 const config: Phaser.Types.Core.GameConfig = {
@@ -52,6 +53,15 @@ const config: Phaser.Types.Core.GameConfig = {
 // ゲーム開始
 const game = new Phaser.Game(config);
 
+// GameStateManagerを初期化
+const gameStateManager = GameStateManager.getInstance();
+
+// デバッグ用のテストアイテムを追加（開発時のみ）
+if (process.env.NODE_ENV === "development") {
+  gameStateManager.debugAddTestItems();
+  console.log("🎒 テスト用アイテムを追加しました");
+}
+
 // デバッガー初期化
 const gameDebugger = GameDebugger.getInstance();
 gameDebugger.init();
@@ -60,9 +70,12 @@ gameDebugger.init();
 if (process.env.NODE_ENV === "development") {
   (window as any).game = game;
   (window as any).debugger = gameDebugger;
+  (window as any).gameStateManager = gameStateManager;
   console.log("🌊 さめがめオーシャン - 開発モード");
   console.log("ゲームオブジェクト:", game);
+  console.log("ゲーム状態管理:", gameStateManager);
   console.log("デバッグ用コマンド:");
   console.log("  debugger.showDebugInfo() - デバッグ情報表示");
   console.log("  debugger.skipToStage(n) - ステージnにスキップ");
+  console.log("  gameStateManager.debugLog() - ゲーム状態表示");
 }

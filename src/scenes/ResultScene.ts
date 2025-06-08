@@ -1,16 +1,9 @@
 import { Scene } from 'phaser';
-import { mockItems } from '../data/mockItems';
-
-interface ResultData {
-  stage: number;
-  score: number;
-  targetScore: number;
-  isAllClear: boolean;
-  gold: number;
-}
+import { GameStateManager } from '../utils/GameStateManager';
 
 export class ResultScene extends Scene {
-  private resultData!: ResultData;
+  private gameStateManager!: GameStateManager;
+  private isAllClear: boolean = false;
   
   // デバッグライン管理
   private debugElements: Phaser.GameObjects.GameObject[] = [];
@@ -20,21 +13,34 @@ export class ResultScene extends Scene {
     super({ key: 'ResultScene' });
   }
 
-  init(data: ResultData) {
-    this.resultData = data;
+  init(data: any) {
+    // GameStateManagerを受け取る
+    this.gameStateManager = data.gameStateManager || GameStateManager.getInstance();
+    this.isAllClear = data.isAllClear || false;
+    
+    console.log('ResultScene initialized with GameStateManager:', this.gameStateManager);
+    console.log('Is all clear:', this.isAllClear);
   }
 
   create() {
     const { width, height } = this.cameras.main;
     
+    // GameStateManagerからデータを取得
+    const gameState = this.gameStateManager.getGameState();
+    const currentStage = this.gameStateManager.getCurrentStage();
+    const currentScore = this.gameStateManager.getScore();
+    const targetScore = this.gameStateManager.getTargetScore();
+    const currentGold = this.gameStateManager.getGold();
+    const isTargetAchieved = this.gameStateManager.isTargetScoreAchieved();
+    
     // 🏷️ 画面名をコンソールに表示
     console.log('🎬 === RESULT SCENE ===');
     console.log('📍 Current Scene: リザルト画面');
     console.log('🎯 Purpose: ステージ結果表示画面');
-    console.log('🎮 Stage:', this.resultData.stage);
-    console.log('📊 Score:', this.resultData.score, '/', this.resultData.targetScore);
-    console.log('🏆 All Clear:', this.resultData.isAllClear);
-    console.log('💰 Gold Earned:', this.resultData.gold);
+    console.log('🎮 Stage:', currentStage);
+    console.log('📊 Score:', currentScore, '/', targetScore);
+    console.log('🏆 All Clear:', this.isAllClear);
+    console.log('💰 Gold Total:', currentGold);
     
     // デバッグショートカットキーを設定
     this.setupDebugShortcut();
@@ -43,11 +49,11 @@ export class ResultScene extends Scene {
     this.add.rectangle(width / 2, height / 2, width, height, 0x001122, 0.9);
     
     // タイトル
-    const titleText = this.resultData.score >= this.resultData.targetScore 
-      ? `ステージ ${this.resultData.stage} クリア！`
-      : `ステージ ${this.resultData.stage} 失敗`;
+    const titleText = isTargetAchieved 
+      ? `ステージ ${currentStage} クリア！`
+      : `ステージ ${currentStage} 失敗`;
     
-    const titleColor = this.resultData.score >= this.resultData.targetScore ? '#00FF00' : '#FF6347';
+    const titleColor = isTargetAchieved ? '#00FF00' : '#FF6347';
     
     this.add.text(width / 2, 100, titleText, {
       fontSize: '24px',
@@ -57,21 +63,21 @@ export class ResultScene extends Scene {
     
     // スコア詳細
     const scoreY = 180;
-    this.add.text(width / 2, scoreY, `スコア: ${this.resultData.score}`, {
+    this.add.text(width / 2, scoreY, `スコア: ${currentScore}`, {
       fontSize: '20px',
       color: '#FFFFFF'
     }).setOrigin(0.5);
     
-    const targetColor = this.resultData.score >= this.resultData.targetScore ? '#00FF00' : '#FF6347';
-    const targetSymbol = this.resultData.score >= this.resultData.targetScore ? '✓' : '✗';
+    const targetColor = isTargetAchieved ? '#00FF00' : '#FF6347';
+    const targetSymbol = isTargetAchieved ? '✓' : '✗';
     
-    this.add.text(width / 2, scoreY + 40, `目標: ${this.resultData.targetScore} ${targetSymbol}`, {
+    this.add.text(width / 2, scoreY + 40, `目標: ${targetScore} ${targetSymbol}`, {
       fontSize: '18px',
       color: targetColor
     }).setOrigin(0.5);
     
     // 全消しボーナス表示
-    if (this.resultData.isAllClear) {
+    if (this.isAllClear) {
       this.add.text(width / 2, scoreY + 80, '🏆 全消しボーナス達成！', {
         fontSize: '16px',
         color: '#FFD700',
@@ -79,9 +85,15 @@ export class ResultScene extends Scene {
       }).setOrigin(0.5);
     }
     
-    // 獲得ゴールド
-    this.add.text(width / 2, scoreY + 120, `獲得ゴールド: ${this.resultData.gold}`, {
+    // 獲得ゴールド（今回のスコア分）
+    this.add.text(width / 2, scoreY + 120, `獲得ゴールド: ${currentScore}`, {
       fontSize: '18px',
+      color: '#FFFF00'
+    }).setOrigin(0.5);
+    
+    // 総ゴールド
+    this.add.text(width / 2, scoreY + 150, `総ゴールド: ${currentGold}`, {
+      fontSize: '16px',
       color: '#FFFF00'
     }).setOrigin(0.5);
     
@@ -92,10 +104,12 @@ export class ResultScene extends Scene {
   private createButtons() {
     const { width, height } = this.cameras.main;
     const buttonY = 450;
+    const currentStage = this.gameStateManager.getCurrentStage();
+    const isTargetAchieved = this.gameStateManager.isTargetScoreAchieved();
     
-    if (this.resultData.score >= this.resultData.targetScore) {
+    if (isTargetAchieved) {
       // クリア時：次のステージまたはメイン画面
-      if (this.resultData.stage < 100) {
+      if (currentStage < 100) {
         // 次のステージボタン
         const nextButton = this.add.rectangle(width / 2 - 80, buttonY, 120, 50, 0x4CAF50, 0.8);
         nextButton.setInteractive();
@@ -114,8 +128,7 @@ export class ResultScene extends Scene {
         gameCompleteButton.setInteractive();
         gameCompleteButton.on('pointerdown', () => {
           this.scene.start('GameCompleteScene', {
-            totalScore: this.resultData.score, // 実際は累計スコアを渡すべき
-            totalGold: this.resultData.gold   // 実際は累計ゴールドを渡すべき
+            gameStateManager: this.gameStateManager
           });
         });
         
@@ -145,8 +158,7 @@ export class ResultScene extends Scene {
     mainButton.setInteractive();
     mainButton.on('pointerdown', () => {
       this.scene.start('MainScene', {
-        currentStage: this.resultData.stage,
-        gold: this.resultData.gold
+        gameStateManager: this.gameStateManager
       });
     });
     
@@ -162,35 +174,32 @@ export class ResultScene extends Scene {
   // 次のステージに進む
   private goToNextStage() {
     console.log('🎯 次のステージに進みます');
-    console.log('📊 現在のステージ:', this.resultData.stage);
-    console.log('📊 次のステージ:', this.resultData.stage + 1);
     
-    // アイテム選択画面に遷移（次のステージ）
+    // 次のステージに進む
+    this.gameStateManager.nextStage();
+    
+    const nextStage = this.gameStateManager.getCurrentStage();
+    console.log('📊 次のステージ:', nextStage);
+    
+    // アイテム選択画面に遷移
     this.scene.start('ItemSelectScene', {
-      items: [], // 実際のアイテムデータは Phase 4 で実装
-      currentStage: this.resultData.stage + 1,
-      gold: this.resultData.gold,
-      equipSlots: [
-        { type: 'special', item: null, used: false },
-        { type: 'normal', item: null, used: false }
-      ]
+      gameStateManager: this.gameStateManager
     });
   }
 
   // ステージをリトライする
   private retryStage() {
     console.log('🔄 ステージをリトライします');
-    console.log('📊 リトライするステージ:', this.resultData.stage);
     
-    // アイテム選択画面に遷移（同じステージ）
+    // リトライ処理
+    this.gameStateManager.retryStage();
+    
+    const currentStage = this.gameStateManager.getCurrentStage();
+    console.log('📊 リトライするステージ:', currentStage);
+    
+    // アイテム選択画面に遷移
     this.scene.start('ItemSelectScene', {
-      items: [], // 実際のアイテムデータは Phase 4 で実装
-      currentStage: this.resultData.stage,
-      gold: this.resultData.gold,
-      equipSlots: [
-        { type: 'special', item: null, used: false },
-        { type: 'normal', item: null, used: false }
-      ]
+      gameStateManager: this.gameStateManager
     });
   }
   
@@ -271,19 +280,6 @@ export class ResultScene extends Scene {
     
     console.log('🔧 [RESULT SCENE] Debug elements count:', this.debugElements.length);
   }
-  
-  private goToNextStage() {
-    // 次のステージのアイテム選択画面へ
-    this.scene.start('ItemSelectScene', {
-      items: mockItems,
-      currentStage: this.resultData.stage + 1,
-      gold: this.resultData.gold,
-      equipSlots: [
-        { type: 'special', item: null, used: false },
-        { type: 'normal', item: null, used: false }
-      ]
-    });
-  }
 
   private logDetailedDebugInfo() {
     const { width, height } = this.cameras.main;
@@ -302,25 +298,26 @@ export class ResultScene extends Scene {
       height: height,
       devicePixelRatio: window.devicePixelRatio
     });
+    
+    const gameState = this.gameStateManager.getGameState();
+    const currentStage = this.gameStateManager.getCurrentStage();
+    const currentScore = this.gameStateManager.getScore();
+    const targetScore = this.gameStateManager.getTargetScore();
+    const currentGold = this.gameStateManager.getGold();
+    const isTargetAchieved = this.gameStateManager.isTargetScoreAchieved();
+    
     console.log('🏆 Result Data:', {
-      stage: this.resultData.stage,
-      score: this.resultData.score,
-      targetScore: this.resultData.targetScore,
-      isAllClear: this.resultData.isAllClear,
-      gold: this.resultData.gold,
-      isSuccess: this.resultData.score >= this.resultData.targetScore
+      stage: currentStage,
+      score: currentScore,
+      targetScore: targetScore,
+      isAllClear: this.isAllClear,
+      gold: currentGold,
+      isSuccess: isTargetAchieved
     });
     console.log('📊 Score Analysis:', {
-      scorePercentage: ((this.resultData.score / this.resultData.targetScore) * 100).toFixed(1) + '%',
-      bonusScore: this.resultData.isAllClear ? Math.floor(this.resultData.score * 0.5) : 0,
-      goldEarned: this.resultData.gold
-    });
-    console.log('📦 Mock Items Info:', {
-      totalItems: mockItems.length,
-      itemsByRarity: mockItems.reduce((acc, item) => {
-        acc[item.rarity] = (acc[item.rarity] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>)
+      scorePercentage: ((currentScore / targetScore) * 100).toFixed(1) + '%',
+      bonusScore: this.isAllClear ? Math.floor(currentScore * 0.5) : 0,
+      goldEarned: currentScore
     });
     console.log('🎨 Debug Elements:', {
       count: this.debugElements.length,
@@ -331,18 +328,5 @@ export class ResultScene extends Scene {
       delta: this.game.loop.delta
     });
     console.log('=== END DEBUG INFO ===');
-  }
-  
-  private retryStage() {
-    // 同じステージのアイテム選択画面へ
-    this.scene.start('ItemSelectScene', {
-      items: mockItems,
-      currentStage: this.resultData.stage,
-      gold: this.resultData.gold,
-      equipSlots: [
-        { type: 'special', item: null, used: false },
-        { type: 'normal', item: null, used: false }
-      ]
-    });
   }
 }

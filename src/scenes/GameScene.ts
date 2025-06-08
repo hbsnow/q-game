@@ -1,8 +1,12 @@
 import { Scene } from 'phaser';
 import { Block, BlockColor, GameState } from '@/types';
 import { BlockGenerator, AssetGenerator, BlockRemover, GravityProcessor, getConnectedBlocks } from '@/utils';
+import { GameStateManager } from '../utils/GameStateManager';
+import { ItemManager } from '../utils/ItemManager';
+import { ItemEffectManager } from '../utils/ItemEffectManager';
 
 export class GameScene extends Scene {
+  private gameStateManager!: GameStateManager;
   private gameState!: GameState;
   private blockSprites: Phaser.GameObjects.Sprite[][] = [];
   private currentBlocks: Block[] = [];
@@ -11,6 +15,14 @@ export class GameScene extends Scene {
   private retireButton!: Phaser.GameObjects.Rectangle;
   private retireButtonText!: Phaser.GameObjects.Text;
   private isProcessing: boolean = false; // 処理中フラグを追加
+  
+  // アイテム関連
+  private itemManager!: ItemManager;
+  private itemEffectManager!: ItemEffectManager;
+  private itemButtons: Phaser.GameObjects.Container[] = [];
+  private isItemSelectionMode: boolean = false;
+  private selectedItemType: string | null = null;
+  private selectedItemSlotIndex: number | null = null;
   
   // デバッグライン管理
   private debugElements: Phaser.GameObjects.GameObject[] = [];
@@ -26,20 +38,18 @@ export class GameScene extends Scene {
     super({ key: 'GameScene' });
   }
 
-  init(data: { stage: number; equippedItems: string[] }) {
-    // ゲーム状態の初期化
-    this.gameState = {
-      currentStage: data.stage || 1,
-      score: 0,
-      targetScore: 500,
-      gold: 0,
-      items: [],
-      equipSlots: [
-        { type: 'special', item: null, used: false },
-        { type: 'normal', item: null, used: false }
-      ],
-      isScoreBoosterActive: false
-    };
+  init(data: any) {
+    // GameStateManagerを受け取る
+    this.gameStateManager = data.gameStateManager || GameStateManager.getInstance();
+    this.gameState = this.gameStateManager.getGameState();
+    
+    // ItemManagerとItemEffectManagerを初期化
+    this.itemManager = this.gameStateManager.getItemManager();
+    this.itemEffectManager = new ItemEffectManager(this);
+    
+    console.log('GameScene initialized with GameStateManager:', this.gameStateManager);
+    console.log('Current stage:', this.gameState.currentStage);
+    console.log('Equipped items:', this.gameState.equipSlots);
   }
 
   preload() {
@@ -110,12 +120,8 @@ export class GameScene extends Scene {
     const footerY = height - 37.5;
     this.add.rectangle(width / 2, footerY, width, 75, 0x2E8B57, 0.8);
 
-    // アイテムスロット（プレースホルダー）
-    this.add.rectangle(50, footerY - 10, 60, 40, 0x7DB9E8, 0.8);
-    this.add.rectangle(120, footerY - 10, 60, 40, 0x7DB9E8, 0.8);
-
-    this.add.text(20, footerY - 20, 'Item1', { fontSize: '12px', color: '#FFFFFF' });
-    this.add.text(90, footerY - 20, 'Item2', { fontSize: '12px', color: '#FFFFFF' });
+    // アイテムスロット（実際の装備アイテムを表示）
+    this.createItemButtons(footerY);
 
     // リタイア/クリアボタン（状態に応じて変化）
     this.retireButton = this.add.rectangle(width - 60, footerY - 10, 100, 40, 0xFF6347, 0.8);
@@ -129,6 +135,78 @@ export class GameScene extends Scene {
       color: '#FFFFFF',
       fontStyle: 'bold'
     });
+  }
+
+  private createItemButtons(footerY: number) {
+    const equipSlots = this.gameState.equipSlots;
+    
+    // 特殊枠アイテム（左側）
+    this.createItemButton(equipSlots[0], 50, footerY - 10, 0);
+    
+    // 通常枠アイテム（右側）
+    this.createItemButton(equipSlots[1], 120, footerY - 10, 1);
+  }
+
+  private createItemButton(equipSlot: any, x: number, y: number, slotIndex: number) {
+    const container = this.add.container(x, y);
+    
+    // 背景
+    const bg = this.add.rectangle(0, 0, 60, 40, 0x7DB9E8, 0.8);
+    bg.setStrokeStyle(2, 0xFFFFFF, 0.6);
+    
+    let itemText: Phaser.GameObjects.Text;
+    
+    if (equipSlot.item && !equipSlot.used) {
+      // アイテムが装備されており、未使用の場合
+      itemText = this.add.text(0, 0, equipSlot.item.name, {
+        fontSize: '10px',
+        color: '#FFFFFF',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+      
+      // クリック可能にする
+      container.setSize(60, 40);
+      container.setInteractive();
+      container.on('pointerdown', () => {
+        this.useItem(slotIndex);
+      });
+      
+      // ホバー効果
+      container.on('pointerover', () => {
+        bg.setFillStyle(0x87CEEB, 1.0);
+      });
+      container.on('pointerout', () => {
+        bg.setFillStyle(0x7DB9E8, 0.8);
+      });
+      
+    } else if (equipSlot.item && equipSlot.used) {
+      // アイテムが装備されているが、使用済みの場合
+      itemText = this.add.text(0, 0, equipSlot.item.name, {
+        fontSize: '10px',
+        color: '#888888',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+      
+      // グレーアウト
+      bg.setFillStyle(0x555555, 0.5);
+      
+      // 使用済みマーク
+      const usedMark = this.add.text(20, -15, '✓', {
+        fontSize: '12px',
+        color: '#00FF00'
+      });
+      container.add(usedMark);
+      
+    } else {
+      // アイテムが装備されていない場合
+      itemText = this.add.text(0, 0, '未装備', {
+        fontSize: '10px',
+        color: '#CCCCCC'
+      }).setOrigin(0.5);
+    }
+    
+    container.add([bg, itemText]);
+    this.itemButtons.push(container);
   }
 
   private initializeBoard() {
@@ -300,6 +378,12 @@ export class GameScene extends Scene {
     
     console.log(`📦 Found block at position:`, actualBlock);
     
+    // アイテム選択モードの場合
+    if (this.isItemSelectionMode && this.selectedItemType) {
+      this.handleItemTargetSelection(actualBlock);
+      return;
+    }
+    
     // 通常ブロック以外はクリック無効
     if (actualBlock.type !== 'normal') {
       console.log('Non-normal block clicked, ignoring');
@@ -326,6 +410,83 @@ export class GameScene extends Scene {
       // 処理完了後にフラグをリセット
       this.setProcessingState(false);
     });
+  }
+
+  private async handleItemTargetSelection(block: Block) {
+    if (!this.selectedItemType || this.selectedItemSlotIndex === null) {
+      return;
+    }
+    
+    // 選択可能なブロックかチェック
+    if (!this.isBlockSelectableForItem(block, this.selectedItemType)) {
+      console.log(`Block type ${block.type} is not selectable for item ${this.selectedItemType}`);
+      return;
+    }
+    
+    console.log(`Using ${this.selectedItemType} on block:`, block);
+    
+    // アイテム効果を実行
+    let success = false;
+    
+    try {
+      switch (this.selectedItemType) {
+        case 'miniBomb':
+          success = await this.itemEffectManager.executeItemEffect('miniBomb', block);
+          break;
+        case 'swap':
+          // スワップは2つのブロックを選択する必要がある（簡易実装）
+          // 実際には1つ目のブロックを選択→2つ目のブロックを選択の2段階が必要
+          const randomBlock = this.getRandomDifferentBlock(block);
+          if (randomBlock) {
+            success = await this.itemEffectManager.executeItemEffect('swap', block, randomBlock);
+          }
+          break;
+        case 'changeOne':
+          // 色選択UIが必要（簡易実装）
+          const randomColor = this.getRandomDifferentColor(block.color);
+          success = await this.itemEffectManager.executeItemEffect('changeOne', block, randomColor);
+          break;
+      }
+    } catch (error) {
+      console.error(`Error executing item effect ${this.selectedItemType}:`, error);
+      success = false;
+    }
+    
+    // 選択モードを終了
+    this.exitTargetSelectionMode();
+    
+    // 処理中フラグを解除
+    this.setProcessingState(false);
+    
+    if (success) {
+      console.log(`✅ Item ${this.selectedItemType} used successfully`);
+      // 盤面を更新
+      this.redrawBoard();
+    } else {
+      console.log(`❌ Failed to use item ${this.selectedItemType}`);
+    }
+  }
+
+  private getRandomDifferentBlock(excludeBlock: Block): Block | null {
+    // 選択可能なブロックをフィルタリング
+    const selectableBlocks = this.currentBlocks.filter(block => 
+      block.id !== excludeBlock.id && 
+      block.type !== 'rock' && 
+      block.type !== 'steel'
+    );
+    
+    if (selectableBlocks.length === 0) {
+      return null;
+    }
+    
+    // ランダムに1つ選択
+    return selectableBlocks[Math.floor(Math.random() * selectableBlocks.length)];
+  }
+
+  private getRandomDifferentColor(excludeColor: BlockColor): BlockColor {
+    const colors: BlockColor[] = ['blue', 'lightBlue', 'seaGreen', 'coralRed', 'sandGold', 'pearlWhite'];
+    const availableColors = colors.filter(color => color !== excludeColor);
+    return availableColors[Math.floor(Math.random() * availableColors.length)];
   }
 
   /**
@@ -367,8 +528,9 @@ export class GameScene extends Scene {
       this.gameState.isScoreBoosterActive
     );
     
-    // スコア更新
+    // スコア更新（GameStateManagerにも反映）
     this.gameState.score += removalResult.scoreResult.finalScore;
+    this.gameStateManager.setScore(this.gameState.score);
     this.updateScoreDisplay();
     
     // 視覚的な消去エフェクト
@@ -764,6 +926,291 @@ export class GameScene extends Scene {
     // ボタンの位置を調整（テキストが短くなるため）
     this.retireButtonText.setX(this.retireButton.x - 15);
   }
+
+  private useItem(slotIndex: number) {
+    // 処理中の場合は無視
+    if (this.isProcessing) {
+      console.log('🚫 Processing in progress, ignoring item use');
+      return;
+    }
+
+    const itemManager = this.gameStateManager.getItemManager();
+    const equipSlots = itemManager.getEquipSlots();
+    const equipSlot = equipSlots[slotIndex];
+
+    if (!equipSlot.item || equipSlot.used) {
+      console.log('❌ No item equipped or already used');
+      return;
+    }
+
+    console.log(`🎒 Using item: ${equipSlot.item.name} from slot ${slotIndex}`);
+
+    // アイテムを使用済みにマーク
+    const success = itemManager.useEquippedItem(slotIndex as 0 | 1);
+    
+    if (success) {
+      // アイテム効果を実行
+      this.executeItemEffect(equipSlot.item.type);
+      
+      // ゲーム状態を更新
+      this.gameState = this.gameStateManager.getGameState();
+      
+      // アイテムボタンの表示を更新
+      this.updateItemButtons();
+      
+      console.log(`✅ Item ${equipSlot.item.name} used successfully`);
+    } else {
+      console.log(`❌ Failed to use item ${equipSlot.item.name}`);
+    }
+  }
+
+  private async executeItemEffect(itemType: string) {
+    // 処理中フラグを設定
+    this.setProcessingState(true);
+    
+    try {
+      switch (itemType) {
+        case 'swap':
+          // スワップは対象選択が必要
+          this.enterTargetSelectionMode('swap');
+          break;
+        case 'changeOne':
+          // チェンジワンは対象選択が必要
+          this.enterTargetSelectionMode('changeOne');
+          break;
+        case 'miniBomb':
+          // ミニ爆弾は対象選択が必要
+          this.enterTargetSelectionMode('miniBomb');
+          break;
+        case 'shuffle':
+          // シャッフルは即時実行
+          await this.itemEffectManager.executeItemEffect('shuffle');
+          this.redrawBoard();
+          break;
+        case 'scoreBooster':
+          // スコアブースターは即時実行
+          this.executeScoreBoosterEffect();
+          break;
+        default:
+          console.log(`⚠️ Item effect not implemented: ${itemType}`);
+          // 他のアイテムは後で実装
+          break;
+      }
+    } catch (error) {
+      console.error(`Error executing item effect ${itemType}:`, error);
+    } finally {
+      // 即時実行アイテムの場合は処理完了
+      if (itemType === 'shuffle' || itemType === 'scoreBooster') {
+        this.setProcessingState(false);
+      }
+      // 対象選択アイテムは選択モードに入るので、処理中フラグはそのまま
+    }
+  }
+
+  private executeShuffleEffect() {
+    console.log('🔀 Executing shuffle effect');
+    // 通常ブロックのみをシャッフル
+    const normalBlocks = this.currentBlocks.filter(block => block.type === 'normal');
+    const positions = normalBlocks.map(block => ({ x: block.x, y: block.y }));
+    
+    // 位置をシャッフル
+    for (let i = positions.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [positions[i], positions[j]] = [positions[j], positions[i]];
+    }
+    
+    // 新しい位置を適用
+    normalBlocks.forEach((block, index) => {
+      block.x = positions[index].x;
+      block.y = positions[index].y;
+    });
+    
+    // 盤面を再描画
+    this.redrawBoard();
+  }
+
+  private executeMiniBoombEffect() {
+    console.log('💣 Mini bomb effect - Click a block to destroy it');
+    // ミニ爆弾は対象選択が必要なので、選択モードに入る
+    this.enterTargetSelectionMode('miniBomb');
+  }
+
+  private executeScoreBoosterEffect() {
+    console.log('⚡ Executing score booster effect');
+    this.gameStateManager.activateScoreBooster();
+    
+    // 視覚的フィードバック
+    const { width } = this.cameras.main;
+    const boosterText = this.add.text(width / 2, 200, 'スコアブースター発動！\n獲得スコア1.5倍', {
+      fontSize: '20px',
+      color: '#FFD700',
+      fontStyle: 'bold',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    // 2秒後にテキストを消す
+    this.time.delayedCall(2000, () => {
+      boosterText.destroy();
+    });
+  }
+
+  private enterTargetSelectionMode(itemType: string) {
+    // 対象選択モードに入る
+    this.isItemSelectionMode = true;
+    this.selectedItemType = itemType;
+    
+    // 現在選択中のアイテムスロットを記録
+    const equipSlots = this.itemManager.getEquipSlots();
+    this.selectedItemSlotIndex = equipSlots[0].item?.type === itemType ? 0 : 1;
+    
+    console.log(`🎯 Enter target selection mode for ${itemType}`);
+    
+    // 選択モード表示
+    const { width } = this.cameras.main;
+    const selectionText = this.add.text(width / 2, 50, `${this.getItemNameByType(itemType)}：対象を選択`, {
+      fontSize: '18px',
+      color: '#FFFF00',
+      fontStyle: 'bold',
+      backgroundColor: '#000000',
+      padding: { x: 10, y: 5 }
+    }).setOrigin(0.5);
+    
+    // キャンセルボタン
+    const cancelButton = this.add.rectangle(width - 60, 50, 100, 30, 0xFF6347, 0.8);
+    const cancelText = this.add.text(width - 85, 42, 'キャンセル', {
+      fontSize: '14px',
+      color: '#FFFFFF'
+    });
+    
+    cancelButton.setInteractive();
+    cancelButton.on('pointerdown', () => {
+      // 選択モードをキャンセル
+      this.exitTargetSelectionMode();
+      // テキストとボタンを削除
+      selectionText.destroy();
+      cancelButton.destroy();
+      cancelText.destroy();
+      // 処理中フラグを解除
+      this.setProcessingState(false);
+    });
+    
+    // ブロックのホバー効果を強調
+    this.currentBlocks.forEach(block => {
+      const sprite = this.blockSprites[block.y][block.x];
+      if (sprite) {
+        // アイテムタイプに応じて選択可能なブロックを強調
+        if (this.isBlockSelectableForItem(block, itemType)) {
+          sprite.setTint(0x00FFFF);
+        } else {
+          sprite.setAlpha(0.5);
+        }
+      }
+    });
+  }
+
+  private exitTargetSelectionMode() {
+    // 選択モードを終了
+    this.isItemSelectionMode = false;
+    this.selectedItemType = null;
+    this.selectedItemSlotIndex = null;
+    
+    // ブロックの表示を元に戻す
+    this.currentBlocks.forEach(block => {
+      const sprite = this.blockSprites[block.y][block.x];
+      if (sprite) {
+        sprite.clearTint();
+        sprite.setAlpha(1.0);
+      }
+    });
+  }
+
+  private isBlockSelectableForItem(block: Block, itemType: string): boolean {
+    switch (itemType) {
+      case 'miniBomb':
+        // ミニ爆弾は通常ブロックのみ選択可能
+        return block.type === 'normal';
+      case 'swap':
+      case 'changeOne':
+        // スワップとチェンジワンは岩ブロックと鋼鉄ブロック以外選択可能
+        return block.type !== 'rock' && block.type !== 'steel';
+      default:
+        return false;
+    }
+  }
+
+  private getItemNameByType(itemType: string): string {
+    const itemNames: Record<string, string> = {
+      'swap': 'スワップ',
+      'changeOne': 'チェンジワン',
+      'miniBomb': 'ミニ爆弾',
+      'shuffle': 'シャッフル',
+      'meltingAgent': '溶解剤',
+      'changeArea': 'チェンジエリア',
+      'counterReset': 'カウンター+リセット',
+      'bomb': '爆弾',
+      'addPlus': 'アドプラス',
+      'scoreBooster': 'スコアブースター',
+      'hammer': 'ハンマー',
+      'steelHammer': '鋼鉄ハンマー',
+      'specialHammer': 'スペシャルハンマー'
+    };
+    
+    return itemNames[itemType] || itemType;
+  }
+
+  private updateItemButtons() {
+    // 既存のアイテムボタンを削除
+    this.itemButtons.forEach(button => button.destroy());
+    this.itemButtons = [];
+    
+    // 新しいアイテムボタンを作成
+    const { height } = this.cameras.main;
+    const footerY = height - 37.5;
+    this.createItemButtons(footerY);
+  }
+
+  private redrawBoard() {
+    // 既存のスプライトを削除
+    this.blockSprites.forEach(row => {
+      row.forEach(sprite => {
+        if (sprite) sprite.destroy();
+      });
+    });
+    
+    // 新しいスプライトを作成
+    this.createBlockSprites();
+  }
+
+  private createBlockSprites() {
+    // 盤面の中央配置計算
+    const boardPixelWidth = this.BOARD_WIDTH * this.BLOCK_SIZE;
+    const startX = (this.scale.width - boardPixelWidth) / 2;
+    const startY = this.BOARD_OFFSET_Y;
+
+    // ブロックスプライトの初期化
+    this.blockSprites = [];
+    for (let row = 0; row < this.BOARD_HEIGHT; row++) {
+      this.blockSprites[row] = [];
+    }
+
+    // ブロック配列からスプライトを作成
+    this.currentBlocks.forEach(block => {
+      const x = startX + block.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
+      const y = startY + block.y * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
+      
+      const sprite = this.add.sprite(x, y, this.getBlockTexture(block));
+      sprite.setDisplaySize(this.BLOCK_SIZE - 2, this.BLOCK_SIZE - 2); // 少し隙間を作る
+      sprite.setInteractive();
+      
+      // ブロックデータを保存
+      sprite.setData('block', block);
+      sprite.setData('row', block.y);
+      sprite.setData('col', block.x);
+      
+      this.blockSprites[block.y][block.x] = sprite;
+    });
+  }
+
   private handleRetireOrClearButton() {
     // 処理中の場合は無視
     if (this.isProcessing) {
@@ -776,7 +1223,9 @@ export class GameScene extends Scene {
       this.handleStageComplete();
     } else {
       // 目標未達成時：リタイア処理
-      this.scene.start('MainScene');
+      this.scene.start('MainScene', {
+        gameStateManager: this.gameStateManager
+      });
     }
   }
 
@@ -791,6 +1240,7 @@ export class GameScene extends Scene {
     if (isAllClear) {
       const bonusScore = Math.floor(this.gameState.score * 0.5); // 1.5倍 - 1 = 0.5倍のボーナス
       this.gameState.score += bonusScore;
+      this.gameStateManager.setScore(this.gameState.score);
       this.updateScoreDisplay();
       
       console.log(`All Clear Bonus! +${bonusScore} points`);
@@ -813,17 +1263,19 @@ export class GameScene extends Scene {
    */
   private goToResultScene(isAllClear: boolean) {
     try {
+      // ステージクリア処理
+      this.gameStateManager.onStageClear();
+      
       this.scene.start('ResultScene', {
-        stage: this.gameState.currentStage,
-        score: this.gameState.score,
-        targetScore: this.gameState.targetScore,
-        isAllClear: isAllClear,
-        gold: this.gameState.score // スコア = ゴールド
+        gameStateManager: this.gameStateManager,
+        isAllClear: isAllClear
       });
     } catch (error) {
       console.error('Error in goToResultScene:', error);
       // フォールバック：メイン画面に戻る
-      this.scene.start('MainScene');
+      this.scene.start('MainScene', {
+        gameStateManager: this.gameStateManager
+      });
     }
   }
 
@@ -900,12 +1352,12 @@ export class GameScene extends Scene {
       this.showGameOverInfo();
       
       setTimeout(() => {
+        // ステージクリア処理（行き詰まりでもゴールドは獲得）
+        this.gameStateManager.onStageClear();
+        
         this.scene.start('ResultScene', {
-          stage: this.gameState.currentStage,
-          score: this.gameState.score,
-          targetScore: this.gameState.targetScore,
-          isAllClear: false,
-          gold: this.gameState.score
+          gameStateManager: this.gameStateManager,
+          isAllClear: false
         });
       }, 2000);
     } else if (removableGroups.length > 0) {
@@ -1090,5 +1542,192 @@ export class GameScene extends Scene {
       delta: this.game.loop.delta
     });
     console.log('=== END DEBUG INFO ===');
+  }
+
+  /**
+   * ブロック位置の更新（スワップ用）
+   */
+  updateBlockPositions(block1: Block, block2: Block): void {
+    // ブロックの位置を更新
+    const index1 = this.currentBlocks.findIndex(b => b.id === block1.id);
+    const index2 = this.currentBlocks.findIndex(b => b.id === block2.id);
+    
+    if (index1 !== -1 && index2 !== -1) {
+      this.currentBlocks[index1] = block1;
+      this.currentBlocks[index2] = block2;
+    }
+  }
+
+  /**
+   * ブロック色の更新（チェンジワン用）
+   */
+  async updateBlockColor(block: Block, oldColor: BlockColor, newColor: BlockColor): Promise<void> {
+    // ブロックの色を更新
+    const index = this.currentBlocks.findIndex(b => b.id === block.id);
+    if (index !== -1) {
+      this.currentBlocks[index].color = newColor;
+      
+      // スプライトの色も更新
+      const sprite = this.blockSprites[block.y][block.x];
+      if (sprite) {
+        // 色変更アニメーション
+        return new Promise<void>((resolve) => {
+          // 一旦フェードアウト
+          this.tweens.add({
+            targets: sprite,
+            alpha: 0.3,
+            duration: 150,
+            onComplete: () => {
+              // テクスチャ変更
+              sprite.setTexture(this.getBlockTexture({ ...block, color: newColor }));
+              
+              // フェードイン
+              this.tweens.add({
+                targets: sprite,
+                alpha: 1,
+                duration: 150,
+                onComplete: () => {
+                  resolve();
+                }
+              });
+            }
+          });
+        });
+      }
+    }
+    
+    return Promise.resolve();
+  }
+
+  /**
+   * ブロック消去（ミニ爆弾用）
+   */
+  async removeBlock(block: Block, addScore: boolean = true): Promise<void> {
+    // ブロックを消去
+    const index = this.currentBlocks.findIndex(b => b.id === block.id);
+    if (index !== -1) {
+      // ブロックデータから削除
+      this.currentBlocks.splice(index, 1);
+      
+      // スプライトを消去
+      const sprite = this.blockSprites[block.y][block.x];
+      if (sprite) {
+        // 消去アニメーション
+        return new Promise<void>((resolve) => {
+          this.tweens.add({
+            targets: sprite,
+            scaleX: 0.1,
+            scaleY: 0.1,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => {
+              sprite.destroy();
+              this.blockSprites[block.y][block.x] = null as any;
+              
+              // スコア加算（オプション）
+              if (addScore) {
+                this.gameState.score += 1; // 1ブロックなので1点
+                this.gameStateManager.setScore(this.gameState.score);
+                this.updateScoreDisplay();
+              }
+              
+              resolve();
+            }
+          });
+        });
+      }
+    }
+    
+    return Promise.resolve();
+  }
+
+  /**
+   * シャッフル後の盤面更新
+   */
+  async updateAfterShuffle(blocks: Block[]): Promise<void> {
+    // 盤面を再描画
+    this.redrawBoard();
+    
+    // シャッフルアニメーション
+    return new Promise<void>((resolve) => {
+      // 全ブロックを一旦透明に
+      const sprites = this.blockSprites.flat().filter(Boolean);
+      
+      // フェードアウト
+      this.tweens.add({
+        targets: sprites,
+        alpha: 0.3,
+        duration: 200,
+        onComplete: () => {
+          // フェードイン
+          this.tweens.add({
+            targets: sprites,
+            alpha: 1,
+            duration: 200,
+            onComplete: () => {
+              resolve();
+            }
+          });
+        }
+      });
+    });
+  }
+
+  /**
+   * スワップアニメーション
+   */
+  async animateSwap(block1: Block, block2: Block): Promise<void> {
+    const sprite1 = this.blockSprites[block1.y][block1.x];
+    const sprite2 = this.blockSprites[block2.y][block2.x];
+    
+    if (!sprite1 || !sprite2) {
+      return Promise.resolve();
+    }
+    
+    // スプライトの位置を入れ替え
+    return new Promise<void>((resolve) => {
+      const pos1 = { x: sprite1.x, y: sprite1.y };
+      const pos2 = { x: sprite2.x, y: sprite2.y };
+      
+      // 同時にアニメーション
+      this.tweens.add({
+        targets: sprite1,
+        x: pos2.x,
+        y: pos2.y,
+        duration: 300,
+        ease: 'Power2'
+      });
+      
+      this.tweens.add({
+        targets: sprite2,
+        x: pos1.x,
+        y: pos1.y,
+        duration: 300,
+        ease: 'Power2',
+        onComplete: () => {
+          // スプライト配列も更新
+          this.blockSprites[block1.y][block1.x] = sprite2;
+          this.blockSprites[block2.y][block2.x] = sprite1;
+          
+          // スプライトのデータも更新
+          sprite1.setData('block', block1);
+          sprite1.setData('row', block1.y);
+          sprite1.setData('col', block1.x);
+          
+          sprite2.setData('block', block2);
+          sprite2.setData('row', block2.y);
+          sprite2.setData('col', block2.x);
+          
+          resolve();
+        }
+      });
+    });
+  }
+
+  /**
+   * 通常ブロックのみを取得
+   */
+  getNormalBlocks(): Block[] {
+    return this.currentBlocks.filter(block => block.type === 'normal');
   }
 }
