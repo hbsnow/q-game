@@ -482,7 +482,7 @@ export class GameScene extends Scene {
       const verticalMovements = movements.filter(m => m.from.y !== m.to.y);
       const horizontalMovements = movements.filter(m => m.from.x !== m.to.x);
       
-      // ステップ1: 垂直移動（落下）を先に実行
+      // ステップ1: 垂直移動（落下）を先に実行 - 速度アップ
       const verticalAnimations = verticalMovements.map(movement => {
         const sprite = this.blockSprites[movement.from.y][movement.from.x];
         if (sprite) {
@@ -492,7 +492,7 @@ export class GameScene extends Scene {
             this.tweens.add({
               targets: sprite,
               y: targetY,
-              duration: 300,
+              duration: 200, // 300ms → 200ms に短縮
               ease: 'Power2.easeOut',
               onComplete: () => {
                 animResolve();
@@ -505,33 +505,23 @@ export class GameScene extends Scene {
       
       // 垂直移動完了後に水平移動を実行
       Promise.all(verticalAnimations).then(() => {
-        // 少し間を置いてから水平移動を開始
-        this.time.delayedCall(50, () => {
+        // 間隔を短縮
+        this.time.delayedCall(30, () => { // 50ms → 30ms に短縮
           const horizontalAnimations = horizontalMovements.map(movement => {
             const sprite = this.blockSprites[movement.from.y][movement.from.x];
             if (sprite) {
               const targetX = startX + movement.to.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
               
               return new Promise<void>((animResolve) => {
-                // 水平移動時に微細な縦揺れを追加（水中感演出）
+                // 水平移動のみ、縦揺れは削除
                 this.tweens.add({
                   targets: sprite,
                   x: targetX,
-                  duration: 350,
+                  duration: 250, // 350ms → 250ms に短縮
                   ease: 'Power2.easeOut',
                   onComplete: () => {
                     animResolve();
                   }
-                });
-                
-                // 微細な縦揺れアニメーション
-                this.tweens.add({
-                  targets: sprite,
-                  y: sprite.y - 2,
-                  duration: 175,
-                  ease: 'Sine.easeInOut',
-                  yoyo: true,
-                  repeat: 1
                 });
               });
             }
