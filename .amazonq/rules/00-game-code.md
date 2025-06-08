@@ -68,5 +68,58 @@ const GAME_CONFIG = {
 
 ## デバッグ機能
 
+### レイアウトデバッグの必須実装
+
+**全ての画面実装時に、デバッグ用のエリア境界線を必ず追加する**
+
+```typescript
+// 必須：レイアウト実装時のデバッグライン
+private addDebugLayout(width: number, height: number) {
+  // 各エリアを四角い枠で囲む
+  this.add.rectangle(centerX, centerY, width, height, 0x000000, 0)
+    .setStrokeStyle(2, color);
+  
+  // エリア名と座標情報を表示
+  this.add.text(10, y, 'エリア名 Y=start-end', {
+    fontSize: '10px',
+    color: color,
+    backgroundColor: '#000000'
+  });
+}
+
+// 開発時のみ表示
+if (process.env.NODE_ENV === 'development') {
+  this.addDebugLayout(width, height);
+}
+```
+
+### デバッグライン削除ルール
+
+**デバッグラインの削除は、ユーザーから明示的な指示があった場合のみ実行する**
+
+```typescript
+// デバッグライン削除の例（指示があった場合のみ）
+// if (process.env.NODE_ENV === 'development') {
+//   this.addDebugLayout(width, height);
+// }
+```
+
+### 削除してはいけない場合
+- レイアウトが完璧に動作していても、指示がない限り削除しない
+- 座標問題が解決していても、指示がない限り削除しない
+- UI/UXが完成していても、指示がない限り削除しない
+
+### 削除の判断基準
+- **ユーザーからの明示的な削除指示**のみ
+- 自動的な削除は行わない
+- 推測による削除は行わない
+
+### エリア色分けルール
+- **タイトルエリア**: 赤色（0xFF0000）
+- **メニュー/ナビゲーション**: 緑色（0x00FF00）
+- **メインコンテンツ**: 黄色（0xFFFF00）
+- **ボタン/アクション**: 紫色（0xFF00FF）
+- **その他**: 青色（0x0000FF）
+
 * 開発時のデバッグ情報表示
 * チートコードやデバッグモードの実装

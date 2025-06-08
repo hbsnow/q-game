@@ -1,4 +1,5 @@
 import { Scene } from 'phaser';
+import { mockItems } from '../data/mockItems';
 
 interface ResultData {
   stage: number;
@@ -127,7 +128,10 @@ export class ResultScene extends Scene {
     const mainButton = this.add.rectangle(width / 2 + 80, buttonY, 120, 50, 0x2196F3, 0.8);
     mainButton.setInteractive();
     mainButton.on('pointerdown', () => {
-      this.scene.start('MainScene');
+      this.scene.start('MainScene', {
+        currentStage: this.resultData.stage,
+        gold: this.resultData.gold
+      });
     });
     
     this.add.text(width / 2 + 80, buttonY, 'メイン画面', {
@@ -139,19 +143,27 @@ export class ResultScene extends Scene {
   
   private goToNextStage() {
     // 次のステージのアイテム選択画面へ
-    // Phase 4でアイテム選択画面実装後に正しい遷移に変更
-    this.scene.start('GameScene', {
-      stage: this.resultData.stage + 1,
-      equippedItems: [] // 暫定：空のアイテム配列
+    this.scene.start('ItemSelectScene', {
+      items: mockItems,
+      currentStage: this.resultData.stage + 1,
+      gold: this.resultData.gold,
+      equipSlots: [
+        { type: 'special', item: null, used: false },
+        { type: 'normal', item: null, used: false }
+      ]
     });
   }
   
   private retryStage() {
     // 同じステージのアイテム選択画面へ
-    // Phase 4でアイテム選択画面実装後に正しい遷移に変更
-    this.scene.start('GameScene', {
-      stage: this.resultData.stage,
-      equippedItems: [] // 暫定：空のアイテム配列
+    this.scene.start('ItemSelectScene', {
+      items: mockItems,
+      currentStage: this.resultData.stage,
+      gold: this.resultData.gold,
+      equipSlots: [
+        { type: 'special', item: null, used: false },
+        { type: 'normal', item: null, used: false }
+      ]
     });
   }
 }

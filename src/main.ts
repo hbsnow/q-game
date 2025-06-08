@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { GAME_CONFIG } from "@/config/gameConfig";
 import { TitleScene } from "@/scenes/TitleScene";
 import { MainScene } from "./scenes/MainScene";
+import { ItemSelectScene } from "./scenes/ItemSelectScene";
 import { GameScene } from "./scenes/GameScene";
 import { ResultScene } from "./scenes/ResultScene";
 import { GameCompleteScene } from "./scenes/GameCompleteScene";
@@ -17,6 +18,7 @@ const config: Phaser.Types.Core.GameConfig = {
   scene: [
     TitleScene,
     MainScene,
+    ItemSelectScene,
     GameScene,
     ResultScene,
     GameCompleteScene,

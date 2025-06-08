@@ -1,11 +1,22 @@
 import { Scene } from 'phaser';
+import { mockItems } from '../data/mockItems';
 
 export class MainScene extends Scene {
   private currentStage: number = 1;
-  private gold: number = 0;
+  private gold: number = 1250; // モックデータ
 
   constructor() {
     super({ key: 'MainScene' });
+  }
+
+  init(data: any) {
+    // 他の画面から戻ってきた時のデータを受け取る
+    if (data.currentStage) {
+      this.currentStage = data.currentStage;
+    }
+    if (data.gold !== undefined) {
+      this.gold = data.gold;
+    }
   }
 
   create() {
@@ -39,10 +50,15 @@ export class MainScene extends Scene {
     const playButton = this.add.rectangle(width / 2, 250, 200, 60, 0x7DB9E8, 0.9);
     playButton.setInteractive();
     playButton.on('pointerdown', () => {
-      // アイテム選択画面をスキップして直接ゲーム画面へ（Phase 4で変更予定）
-      this.scene.start('GameScene', { 
-        stage: this.currentStage, 
-        equippedItems: [] 
+      // アイテム選択画面へ遷移
+      this.scene.start('ItemSelectScene', {
+        items: mockItems,
+        currentStage: this.currentStage,
+        gold: this.gold,
+        equipSlots: [
+          { type: 'special', item: null, used: false },
+          { type: 'normal', item: null, used: false }
+        ]
       });
     });
 
@@ -83,7 +99,7 @@ export class MainScene extends Scene {
 
     // デバッグ情報（開発時のみ）
     if (process.env.NODE_ENV === 'development') {
-      this.add.text(10, height - 30, 'Phase 2: 基本ゲームシステム', {
+      this.add.text(10, height - 30, 'Phase 3: UI/画面システム', {
         fontSize: '12px',
         color: '#CCCCCC'
       });

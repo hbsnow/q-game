@@ -28,7 +28,18 @@ export class TitleScene extends Scene {
     const startButton = this.add.rectangle(width / 2, height / 2 + 50, 200, 60, 0x2E8B57, 0.9);
     startButton.setInteractive();
     startButton.on('pointerdown', () => {
-      this.scene.start('MainScene');
+      this.scene.start('MainScene', {
+        currentStage: 1,
+        gold: 1250 // モックデータ
+      });
+    });
+    
+    // ボタンのホバーエフェクト
+    startButton.on('pointerover', () => {
+      startButton.setAlpha(0.8);
+    });
+    startButton.on('pointerout', () => {
+      startButton.setAlpha(1.0);
     });
 
     this.add.text(width / 2, height / 2 + 50, 'ゲーム開始', {
@@ -45,7 +56,7 @@ export class TitleScene extends Scene {
 
     // 開発情報（開発時のみ）
     if (process.env.NODE_ENV === 'development') {
-      this.add.text(10, 10, 'Phase 2: 基本ゲームシステム実装中', {
+      this.add.text(10, 10, 'Phase 3: UI/画面システム実装中', {
         fontSize: '12px',
         color: '#CCCCCC'
       });
