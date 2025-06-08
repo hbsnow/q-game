@@ -550,7 +550,10 @@ export class GameScene extends Scene {
       const verticalMovements = movements.filter(m => m.from.y !== m.to.y);
       const horizontalMovements = movements.filter(m => m.from.x !== m.to.x);
       
-      // ステップ1: 垂直移動（落下）を先に実行 - さらに高速化
+      // 横スライドが必要かどうかを判定
+      const hasHorizontalMovement = horizontalMovements.length > 0;
+      
+      // ステップ1: 垂直移動（落下）を実行
       const verticalAnimations = verticalMovements.map(movement => {
         const sprite = this.blockSprites[movement.from.y][movement.from.x];
         if (sprite) {
@@ -560,7 +563,8 @@ export class GameScene extends Scene {
             this.tweens.add({
               targets: sprite,
               y: targetY,
-              duration: 150, // 200ms → 150ms にさらに短縮
+              // 横スライドがある場合は落下を高速化
+              duration: hasHorizontalMovement ? 100 : 150,
               ease: 'Power2.easeOut',
               onComplete: () => {
                 animResolve();
@@ -571,33 +575,37 @@ export class GameScene extends Scene {
         return Promise.resolve();
       });
       
-      // 垂直移動完了後に水平移動を実行
+      // 垂直移動が完全に完了してから水平移動を開始
       Promise.all(verticalAnimations).then(() => {
-        // 間隔をさらに短縮
-        this.time.delayedCall(20, () => { // 30ms → 20ms に短縮
-          const horizontalAnimations = horizontalMovements.map(movement => {
-            const sprite = this.blockSprites[movement.from.y][movement.from.x];
-            if (sprite) {
-              const targetX = startX + movement.to.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
-              
-              return new Promise<void>((animResolve) => {
-                this.tweens.add({
-                  targets: sprite,
-                  x: targetX,
-                  duration: 180, // 250ms → 180ms に短縮
-                  ease: 'Power2.easeOut',
-                  onComplete: () => {
-                    animResolve();
-                  }
-                });
+        if (horizontalMovements.length === 0) {
+          // 水平移動がない場合はそのまま完了
+          resolve();
+          return;
+        }
+        
+        // 水平移動を実行（垂直移動完了後）
+        const horizontalAnimations = horizontalMovements.map(movement => {
+          const sprite = this.blockSprites[movement.from.y][movement.from.x];
+          if (sprite) {
+            const targetX = startX + movement.to.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
+            
+            return new Promise<void>((animResolve) => {
+              this.tweens.add({
+                targets: sprite,
+                x: targetX,
+                duration: 180,
+                ease: 'Power2.easeOut',
+                onComplete: () => {
+                  animResolve();
+                }
               });
-            }
-            return Promise.resolve();
-          });
-          
-          Promise.all(horizontalAnimations).then(() => {
-            resolve();
-          });
+            });
+          }
+          return Promise.resolve();
+        });
+        
+        Promise.all(horizontalAnimations).then(() => {
+          resolve();
         });
       });
     });
