@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { Block, BlockType, BlockColor, GameState } from '@/types';
+import { Block, BlockColor, GameState } from '@/types';
 import { BlockGenerator, AssetGenerator, BlockRemover, GravityProcessor, getConnectedBlocks } from '@/utils';
 
 export class GameScene extends Scene {
@@ -8,12 +8,13 @@ export class GameScene extends Scene {
   private currentBlocks: Block[] = [];
   private scoreText!: Phaser.GameObjects.Text;
   private targetText!: Phaser.GameObjects.Text;
+  private retireButton!: Phaser.GameObjects.Rectangle;
+  private retireButtonText!: Phaser.GameObjects.Text;
   
   // 盤面設定
   private readonly BOARD_WIDTH = 10;
   private readonly BOARD_HEIGHT = 14;
   private readonly BLOCK_SIZE = 40;
-  private readonly BOARD_OFFSET_X = 0;
   private readonly BOARD_OFFSET_Y = 75;
 
   constructor() {
@@ -51,16 +52,13 @@ export class GameScene extends Scene {
   }
 
   create() {
-    // 背景色設定（海のテーマ）
-    this.cameras.main.setBackgroundColor('#1E5799');
-
-    // UI要素の作成
+    // UI作成
     this.createUI();
-
-    // ゲーム盤面の初期化
+    
+    // 盤面初期化
     this.initializeBoard();
-
-    // 入力処理の設定
+    
+    // 入力設定
     this.setupInput();
   }
 
@@ -68,7 +66,7 @@ export class GameScene extends Scene {
     const { width, height } = this.scale;
 
     // ヘッダー部分
-    const headerBg = this.add.rectangle(width / 2, 37.5, width, 75, 0x2E8B57, 0.8);
+    this.add.rectangle(width / 2, 37.5, width, 75, 0x2E8B57, 0.8);
     
     // ステージ情報
     this.add.text(10, 10, `Stage ${this.gameState.currentStage}`, {
@@ -91,23 +89,23 @@ export class GameScene extends Scene {
 
     // フッター部分
     const footerY = height - 37.5;
-    const footerBg = this.add.rectangle(width / 2, footerY, width, 75, 0x2E8B57, 0.8);
+    this.add.rectangle(width / 2, footerY, width, 75, 0x2E8B57, 0.8);
 
     // アイテムスロット（プレースホルダー）
-    const itemSlot1 = this.add.rectangle(50, footerY - 10, 60, 40, 0x7DB9E8, 0.8);
-    const itemSlot2 = this.add.rectangle(120, footerY - 10, 60, 40, 0x7DB9E8, 0.8);
+    this.add.rectangle(50, footerY - 10, 60, 40, 0x7DB9E8, 0.8);
+    this.add.rectangle(120, footerY - 10, 60, 40, 0x7DB9E8, 0.8);
 
     this.add.text(20, footerY - 20, 'Item1', { fontSize: '12px', color: '#FFFFFF' });
     this.add.text(90, footerY - 20, 'Item2', { fontSize: '12px', color: '#FFFFFF' });
 
-    // リタイアボタン
-    const retireButton = this.add.rectangle(width - 60, footerY - 10, 100, 40, 0xFF6347, 0.8);
-    retireButton.setInteractive();
-    retireButton.on('pointerdown', () => {
-      this.scene.start('MainScene');
+    // リタイア/クリアボタン（状態に応じて変化）
+    this.retireButton = this.add.rectangle(width - 60, footerY - 10, 100, 40, 0xFF6347, 0.8);
+    this.retireButton.setInteractive();
+    this.retireButton.on('pointerdown', () => {
+      this.handleRetireOrClearButton();
     });
 
-    this.add.text(width - 85, footerY - 20, 'Retire', {
+    this.retireButtonText = this.add.text(width - 85, footerY - 20, 'Retire', {
       fontSize: '14px',
       color: '#FFFFFF',
       fontStyle: 'bold'
@@ -128,7 +126,6 @@ export class GameScene extends Scene {
 
     // 盤面の中央配置計算
     const boardPixelWidth = this.BOARD_WIDTH * this.BLOCK_SIZE;
-    const boardPixelHeight = this.BOARD_HEIGHT * this.BLOCK_SIZE;
     const startX = (this.scale.width - boardPixelWidth) / 2;
     const startY = this.BOARD_OFFSET_Y;
 
@@ -168,7 +165,7 @@ export class GameScene extends Scene {
 
   private setupInput() {
     // ブロックのクリック/タップ処理
-    this.input.on('gameobjectdown', (pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Sprite) => {
+    this.input.on('gameobjectdown', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Sprite) => {
       if (gameObject.getData('block')) {
         this.handleBlockClick(gameObject);
       }
@@ -191,9 +188,6 @@ export class GameScene extends Scene {
     
     console.log(`📦 Found block at position:`, actualBlock);
     
-    // デバッグ: ブロックデータの整合性をチェック
-    this.debugBlockConsistency();
-    
     // 通常ブロック以外はクリック無効
     if (actualBlock.type !== 'normal') {
       console.log('Non-normal block clicked, ignoring');
@@ -215,186 +209,7 @@ export class GameScene extends Scene {
     // ブロック消去処理
     this.removeBlockGroup(connectedGroup.blocks);
   }
-  
-  private debugBlockConsistency() {
-    console.log('=== Block Consistency Check ===');
-    console.log('Current blocks count:', this.currentBlocks.length);
-    
-    // 現在のブロックデータを表示
-    console.log('📊 Block data positions:');
-    this.currentBlocks.forEach(block => {
-      console.log(`  Block ${block.id.substring(0, 8)}: (${block.x}, ${block.y}) - ${block.color}`);
-    });
-    
-    // 盤面の視覚的な状態を表示
-    console.log('🎮 Visual board state (sprite array):');
-    this.printVisualBoard();
-    
-    // 論理的な盤面状態を表示
-    console.log('💾 Logical board state (block data):');
-    this.printLogicalBoard();
-    
-    // 同期チェック
-    const syncResult = this.checkBoardSync();
-    
-    // スプライト配列の状態をチェック
-    let spriteCount = 0;
-    let mismatchCount = 0;
-    
-    for (let row = 0; row < this.BOARD_HEIGHT; row++) {
-      for (let col = 0; col < this.BOARD_WIDTH; col++) {
-        if (this.blockSprites[row] && this.blockSprites[row][col]) {
-          spriteCount++;
-          const sprite = this.blockSprites[row][col];
-          const spriteBlock = sprite.getData('block') as Block;
-          const spriteRow = sprite.getData('row') as number;
-          const spriteCol = sprite.getData('col') as number;
-          
-          // データの整合性をチェック
-          if (spriteRow !== row || spriteCol !== col) {
-            console.error(`❌ Sprite position mismatch at [${row}][${col}]: sprite data says (${spriteRow}, ${spriteCol})`);
-            mismatchCount++;
-          }
-          
-          // 対応するブロックデータが存在するかチェック
-          const matchingBlock = this.currentBlocks.find(b => b.id === spriteBlock.id);
-          if (!matchingBlock) {
-            console.error(`❌ Sprite at [${row}][${col}] has no matching block data: ${spriteBlock.id}`);
-            mismatchCount++;
-          } else if (matchingBlock.x !== col || matchingBlock.y !== row) {
-            console.error(`❌ Block data position mismatch: sprite at [${row}][${col}], block at (${matchingBlock.x}, ${matchingBlock.y})`);
-            mismatchCount++;
-          }
-        }
-      }
-    }
-    
-    console.log(`📈 Summary: ${spriteCount} sprites, ${mismatchCount} mismatches`);
-    console.log(`🔍 Board Sync Status: ${syncResult.isSync ? '✅ SYNCHRONIZED' : '❌ DESYNCHRONIZED'}`);
-    
-    if (!syncResult.isSync) {
-      console.error(`❌ BOARD SYNC ERROR: Found ${syncResult.mismatches} position mismatches!`);
-    }
-    
-    console.log('================================');
-  }
-  
-  private printVisualBoard() {
-    const board: string[][] = Array(this.BOARD_HEIGHT).fill(null).map(() => 
-      Array(this.BOARD_WIDTH).fill('.')
-    );
-    
-    for (let row = 0; row < this.BOARD_HEIGHT; row++) {
-      for (let col = 0; col < this.BOARD_WIDTH; col++) {
-        if (this.blockSprites[row] && this.blockSprites[row][col]) {
-          const sprite = this.blockSprites[row][col];
-          const block = sprite.getData('block') as Block;
-          board[row][col] = this.getColorSymbol(block.color);
-        }
-      }
-    }
-    
-    board.forEach((row, i) => {
-      console.log(`  ${i.toString().padStart(2)}: ${row.join(' ')}`);
-    });
-  }
-  
-  private printLogicalBoard() {
-    const board: string[][] = Array(this.BOARD_HEIGHT).fill(null).map(() => 
-      Array(this.BOARD_WIDTH).fill('.')
-    );
-    
-    this.currentBlocks.forEach(block => {
-      if (block.y >= 0 && block.y < this.BOARD_HEIGHT && 
-          block.x >= 0 && block.x < this.BOARD_WIDTH) {
-        board[block.y][block.x] = this.getColorSymbol(block.color);
-      }
-    });
-    
-    board.forEach((row, i) => {
-      console.log(`  ${i.toString().padStart(2)}: ${row.join(' ')}`);
-    });
-  }
-  
-  private getColorSymbol(color: BlockColor): string {
-    switch (color) {
-      case 'blue': return 'B';
-      case 'lightBlue': return 'L';
-      case 'seaGreen': return 'G';
-      case 'coralRed': return 'C';
-      case 'sandGold': return 'S';
-      case 'pearlWhite': return 'W';
-      default: return '?';
-    }
-  }
-  
-  private checkBoardSync(): { isSync: boolean; mismatches: number } {
-    let mismatches = 0;
-    
-    for (let row = 0; row < this.BOARD_HEIGHT; row++) {
-      for (let col = 0; col < this.BOARD_WIDTH; col++) {
-        const hasSprite = this.blockSprites[row] && this.blockSprites[row][col];
-        const hasBlock = this.currentBlocks.some(b => b.x === col && b.y === row);
-        
-        if (hasSprite && !hasBlock) {
-          console.error(`❌ Sync Error [${row}][${col}]: Has sprite but no block data`);
-          mismatches++;
-        } else if (!hasSprite && hasBlock) {
-          console.error(`❌ Sync Error [${row}][${col}]: Has block data but no sprite`);
-          mismatches++;
-        } else if (hasSprite && hasBlock) {
-          const sprite = this.blockSprites[row][col];
-          const spriteBlock = sprite.getData('block') as Block;
-          const logicalBlock = this.currentBlocks.find(b => b.x === col && b.y === row);
-          
-          if (spriteBlock.color !== logicalBlock!.color) {
-            console.error(`❌ Sync Error [${row}][${col}]: Color mismatch - Sprite: ${spriteBlock.color}, Logical: ${logicalBlock!.color}`);
-            mismatches++;
-          }
-        }
-      }
-    }
-    
-    return { isSync: mismatches === 0, mismatches };
-  }
-  
-  private printVisualBoard() {
-    const board: string[][] = Array(this.BOARD_HEIGHT).fill(null).map(() => 
-      Array(this.BOARD_WIDTH).fill('.')
-    );
-    
-    for (let row = 0; row < this.BOARD_HEIGHT; row++) {
-      for (let col = 0; col < this.BOARD_WIDTH; col++) {
-        if (this.blockSprites[row] && this.blockSprites[row][col]) {
-          const sprite = this.blockSprites[row][col];
-          const block = sprite.getData('block') as Block;
-          board[row][col] = block.color.charAt(0).toUpperCase();
-        }
-      }
-    }
-    
-    board.forEach((row, i) => {
-      console.log(`  ${i.toString().padStart(2)}: ${row.join(' ')}`);
-    });
-  }
-  
-  private printLogicalBoard() {
-    const board: string[][] = Array(this.BOARD_HEIGHT).fill(null).map(() => 
-      Array(this.BOARD_WIDTH).fill('.')
-    );
-    
-    this.currentBlocks.forEach(block => {
-      if (block.y >= 0 && block.y < this.BOARD_HEIGHT && 
-          block.x >= 0 && block.x < this.BOARD_WIDTH) {
-        board[block.y][block.x] = block.color.charAt(0).toUpperCase();
-      }
-    });
-    
-    board.forEach((row, i) => {
-      console.log(`  ${i.toString().padStart(2)}: ${row.join(' ')}`);
-    });
-  }
-  
+
   private showInvalidClickFeedback(sprite: Phaser.GameObjects.Sprite) {
     // 無効クリック時の視覚フィードバック（赤い点滅）
     this.tweens.add({
@@ -408,7 +223,7 @@ export class GameScene extends Scene {
       }
     });
   }
-  
+
   private async removeBlockGroup(blocksToRemove: Block[]) {
     // Phase 1のBlockRemoverを使用してブロック消去とスコア計算
     const firstBlock = blocksToRemove[0];
@@ -440,22 +255,113 @@ export class GameScene extends Scene {
     // 重力処理
     await this.applyGravity();
     
-    // ステージクリア判定
+    // ステージクリア判定（UI更新のみ）
     this.checkStageComplete();
     
     // 行き詰まり判定
     this.checkGameOver();
   }
-  
+
   private updateScoreDisplay() {
-    this.scoreText.setText(`Score: ${this.gameState.score}`);
+    const oldScore = parseInt(this.scoreText.text.replace('Score: ', '')) || 0;
+    const newScore = this.gameState.score;
     
-    // 目標達成時の色変更
+    // スコアアニメーション
+    if (newScore > oldScore) {
+      this.animateScoreUpdate(oldScore, newScore);
+    } else {
+      this.scoreText.setText(`Score: ${newScore}`);
+    }
+    
+    // 目標達成時の色変更とエフェクト
     if (this.gameState.score >= this.gameState.targetScore) {
       this.targetText.setColor('#00FF00'); // 緑色に変更
+      
+      // 目標達成エフェクト（初回のみ）
+      if (!this.targetText.getData('achieved')) {
+        this.targetText.setData('achieved', true);
+        this.showTargetAchievedEffect();
+      }
     }
   }
-  
+
+  private animateScoreUpdate(fromScore: number, toScore: number) {
+    const duration = Math.min(800, Math.max(300, (toScore - fromScore) * 10)); // スコア差に応じて調整
+    
+    // 数値カウントアップアニメーション
+    this.tweens.addCounter({
+      from: fromScore,
+      to: toScore,
+      duration: duration,
+      ease: 'Power2',
+      onUpdate: (tween) => {
+        const value = Math.floor(tween.getValue() || 0);
+        this.scoreText.setText(`Score: ${value}`);
+      },
+      onComplete: () => {
+        this.scoreText.setText(`Score: ${toScore}`);
+      }
+    });
+    
+    // スコアテキストの拡大・縮小エフェクト
+    this.tweens.add({
+      targets: this.scoreText,
+      scaleX: 1.2,
+      scaleY: 1.2,
+      duration: 200,
+      yoyo: true,
+      ease: 'Power2'
+    });
+  }
+
+  private showTargetAchievedEffect() {
+    // 目標テキストの点滅エフェクト
+    this.tweens.add({
+      targets: this.targetText,
+      alpha: 0.3,
+      duration: 200,
+      yoyo: true,
+      repeat: 5,
+      ease: 'Power2'
+    });
+    
+    // 目標達成メッセージ
+    const { width } = this.scale;
+    const achievedText = this.add.text(width / 2, 50, '目標達成！', {
+      fontSize: '20px',
+      color: '#00FF00',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // クリア可能メッセージ
+    const clearHintText = this.add.text(width / 2, 75, 'クリアボタンを押してステージ終了', {
+      fontSize: '14px',
+      color: '#FFFF00'
+    }).setOrigin(0.5);
+    
+    // メッセージアニメーション
+    this.tweens.add({
+      targets: [achievedText, clearHintText],
+      scaleX: 1.1,
+      scaleY: 1.1,
+      duration: 300,
+      yoyo: true,
+      onComplete: () => {
+        // フェードアウト
+        this.tweens.add({
+          targets: [achievedText, clearHintText],
+          alpha: 0,
+          duration: 2000,
+          delay: 2000,
+          onComplete: () => {
+            achievedText.destroy();
+            clearHintText.destroy();
+          }
+        });
+      }
+    });
+  }
+
   private async playRemovalAnimation(blocksToRemove: Block[]): Promise<void> {
     return new Promise((resolve) => {
       const sprites = blocksToRemove.map(block => this.blockSprites[block.y][block.x]).filter(Boolean);
@@ -482,7 +388,7 @@ export class GameScene extends Scene {
       this.showScorePopup(blocksToRemove);
     });
   }
-  
+
   private showScorePopup(blocksToRemove: Block[]) {
     if (blocksToRemove.length === 0) return;
     
@@ -512,7 +418,7 @@ export class GameScene extends Scene {
       }
     });
   }
-  
+
   private async applyGravity(): Promise<void> {
     // Phase 1のGravityProcessorを使用
     const gravityResult = GravityProcessor.applyGravity(this.currentBlocks);
@@ -530,7 +436,7 @@ export class GameScene extends Scene {
     // アニメーション完了後、スプライトとブロックデータを完全に再同期
     this.rebuildSpriteBlockMapping();
   }
-  
+
   private async executeGravityAnimations(movements: any[]): Promise<void> {
     return new Promise((resolve) => {
       if (movements.length === 0) {
@@ -541,8 +447,6 @@ export class GameScene extends Scene {
       const animations: Promise<void>[] = [];
       
       // 位置計算用の定数
-      const boardPixelWidth = this.BOARD_WIDTH * this.BLOCK_SIZE;
-      const startX = (this.scale.width - boardPixelWidth) / 2;
       const startY = this.BOARD_OFFSET_Y;
       
       movements.forEach(movement => {
@@ -572,10 +476,7 @@ export class GameScene extends Scene {
       });
     });
   }
-  
-  /**
-   * スプライトとブロックデータの対応関係を完全に再構築
-   */
+
   private rebuildSpriteBlockMapping() {
     console.log('🔄 Rebuilding sprite-block mapping...');
     
@@ -630,39 +531,217 @@ export class GameScene extends Scene {
     
     console.log('✅ Sprite-block mapping rebuilt successfully');
     console.log(`📊 Mapped ${this.currentBlocks.length} blocks to sprites`);
-    
-    // デバッグ情報を出力
-    if (process.env.NODE_ENV === 'development') {
-      this.debugBlockConsistency();
-    }
   }
-  
+
+  /**
+   * ステージクリア判定（UI更新のみ）
+   */
   private checkStageComplete() {
     if (this.gameState.score >= this.gameState.targetScore) {
-      console.log('Stage completed!');
-      // リザルト画面への遷移（Phase 3で実装予定）
-      setTimeout(() => {
-        alert(`Stage ${this.gameState.currentStage} Clear!\nScore: ${this.gameState.score}`);
-        this.scene.start('MainScene');
-      }, 1000);
+      console.log('Target score achieved! Player can now clear the stage.');
+      this.updateRetireButtonToClear();
     }
   }
-  
-  private checkGameOver() {
-    // 消去可能なブロックがあるかチェック
-    const hasRemovableBlocks = this.currentBlocks.some(block => {
-      if (block.type !== 'normal') return false;
-      const group = getConnectedBlocks(block, this.currentBlocks);
-      return group.count >= 2;
+
+  /**
+   * リタイアボタンをクリアボタンに変更
+   */
+  private updateRetireButtonToClear() {
+    // ボタンの色を緑に変更
+    this.retireButton.setFillStyle(0x4CAF50, 0.8);
+    
+    // テキストを「クリア」に変更
+    this.retireButtonText.setText('Clear');
+    
+    // ボタンの位置を調整（テキストが短くなるため）
+    this.retireButtonText.setX(this.retireButton.x - 15);
+  }
+  private handleRetireOrClearButton() {
+    if (this.gameState.score >= this.gameState.targetScore) {
+      // 目標達成時：クリア処理
+      this.handleStageComplete();
+    } else {
+      // 目標未達成時：リタイア処理
+      this.scene.start('MainScene');
+    }
+  }
+
+  /**
+   * ステージクリア処理（手動クリア時）
+   */
+  private handleStageComplete() {
+    // 全消し判定
+    const isAllClear = this.checkAllClear();
+    
+    // 全消しボーナス適用
+    if (isAllClear) {
+      const bonusScore = Math.floor(this.gameState.score * 0.5); // 1.5倍 - 1 = 0.5倍のボーナス
+      this.gameState.score += bonusScore;
+      this.updateScoreDisplay();
+      
+      console.log(`All Clear Bonus! +${bonusScore} points`);
+      
+      // 全消しボーナス表示
+      this.showAllClearBonus(bonusScore);
+      
+      // ボーナス表示後にリザルト画面へ
+      setTimeout(() => {
+        this.goToResultScene(isAllClear);
+      }, 2000);
+    } else {
+      // 通常クリア：即座にリザルト画面へ
+      this.goToResultScene(isAllClear);
+    }
+  }
+
+  /**
+   * リザルト画面への遷移
+   */
+  private goToResultScene(isAllClear: boolean) {
+    this.scene.start('ResultScene', {
+      stage: this.gameState.currentStage,
+      score: this.gameState.score,
+      targetScore: this.gameState.targetScore,
+      isAllClear: isAllClear,
+      gold: this.gameState.score // スコア = ゴールド
+    });
+  }
+
+  private checkAllClear(): boolean {
+    // 消去可能ブロック：通常ブロック、氷結ブロック、カウンターブロック、カウンター+ブロック
+    // 消去不可能ブロック：岩ブロック、鋼鉄ブロック（全消し条件に含まれない）
+    
+    const removableBlocks = this.currentBlocks.filter(block => {
+      // Phase 1では通常ブロックのみ実装されているため、通常ブロックのみをチェック
+      // Phase 7で妨害ブロック実装時に条件を拡張
+      return block.type === 'normal';
     });
     
-    if (!hasRemovableBlocks && this.gameState.score < this.gameState.targetScore) {
+    // 消去可能ブロックが全て消去されている場合は全消し
+    const isAllClear = removableBlocks.length === 0;
+    
+    console.log(`🎯 All Clear Check: ${removableBlocks.length} removable blocks remaining`);
+    console.log(`🏆 All Clear Status: ${isAllClear ? 'ACHIEVED' : 'NOT ACHIEVED'}`);
+    
+    return isAllClear;
+  }
+
+  private showAllClearBonus(bonusScore: number) {
+    // 画面中央に大きく表示
+    const centerX = this.scale.width / 2;
+    const centerY = this.scale.height / 2;
+    
+    // 全消しテキスト
+    const allClearText = this.add.text(centerX, centerY - 50, '全消しボーナス！', {
+      fontSize: '32px',
+      color: '#FFD700',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // ボーナススコアテキスト
+    const bonusText = this.add.text(centerX, centerY + 10, `+${bonusScore}`, {
+      fontSize: '24px',
+      color: '#FFFF00',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // アニメーション効果
+    this.tweens.add({
+      targets: [allClearText, bonusText],
+      scaleX: 1.2,
+      scaleY: 1.2,
+      duration: 300,
+      yoyo: true,
+      repeat: 2,
+      onComplete: () => {
+        // フェードアウト
+        this.tweens.add({
+          targets: [allClearText, bonusText],
+          alpha: 0,
+          duration: 500,
+          onComplete: () => {
+            allClearText.destroy();
+            bonusText.destroy();
+          }
+        });
+      }
+    });
+  }
+
+  private checkGameOver() {
+    // 消去可能なブロックがあるかチェック
+    const removableGroups = this.findRemovableGroups();
+    
+    if (removableGroups.length === 0 && this.gameState.score < this.gameState.targetScore) {
       console.log('Game over - no removable blocks');
+      console.log(`📊 Final Score: ${this.gameState.score}/${this.gameState.targetScore}`);
+      
+      // 行き詰まり状態の詳細情報を表示
+      this.showGameOverInfo();
+      
       setTimeout(() => {
-        alert(`Game Over!\nScore: ${this.gameState.score}\nTarget: ${this.gameState.targetScore}`);
-        this.scene.start('MainScene');
-      }, 1000);
+        this.scene.start('ResultScene', {
+          stage: this.gameState.currentStage,
+          score: this.gameState.score,
+          targetScore: this.gameState.targetScore,
+          isAllClear: false,
+          gold: this.gameState.score
+        });
+      }, 2000);
+    } else if (removableGroups.length > 0) {
+      console.log(`✅ Game continues: ${removableGroups.length} removable groups found`);
     }
+  }
+
+  private findRemovableGroups(): Block[][] {
+    const removableGroups: Block[][] = [];
+    const checkedBlocks = new Set<string>();
+    
+    this.currentBlocks.forEach(block => {
+      if (checkedBlocks.has(block.id) || block.type !== 'normal') {
+        return;
+      }
+      
+      const group = getConnectedBlocks(block, this.currentBlocks);
+      if (group.count >= 2) {
+        removableGroups.push(group.blocks);
+        // このグループの全ブロックをチェック済みに追加
+        group.blocks.forEach(b => checkedBlocks.add(b.id));
+      } else {
+        checkedBlocks.add(block.id);
+      }
+    });
+    
+    return removableGroups;
+  }
+
+  private showGameOverInfo() {
+    const { width, height } = this.scale;
+    
+    // 半透明オーバーレイ
+    this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
+    
+    // ゲームオーバーテキスト
+    const gameOverText = this.add.text(width / 2, height / 2 - 80, '行き詰まり', {
+      fontSize: '28px',
+      color: '#FF6347',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // 詳細情報
+    const infoText = this.add.text(width / 2, height / 2 - 20, 
+      `消去可能なブロックがありません\n\nスコア: ${this.gameState.score}\n目標: ${this.gameState.targetScore}`, {
+      fontSize: '16px',
+      color: '#FFFFFF',
+      align: 'center'
+    }).setOrigin(0.5);
+    
+    // アニメーション効果
+    this.tweens.add({
+      targets: [gameOverText, infoText],
+      alpha: { from: 0, to: 1 },
+      duration: 500
+    });
   }
 
   update() {

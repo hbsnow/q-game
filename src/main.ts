@@ -3,6 +3,8 @@ import { GAME_CONFIG } from "@/config/gameConfig";
 import { TitleScene } from "@/scenes/TitleScene";
 import { MainScene } from "./scenes/MainScene";
 import { GameScene } from "./scenes/GameScene";
+import { ResultScene } from "./scenes/ResultScene";
+import { GameCompleteScene } from "./scenes/GameCompleteScene";
 import { GameDebugger } from "@/utils";
 
 // Phaserゲーム設定
@@ -16,6 +18,8 @@ const config: Phaser.Types.Core.GameConfig = {
     TitleScene,
     MainScene,
     GameScene,
+    ResultScene,
+    GameCompleteScene,
   ],
   physics: {
     default: "arcade",
@@ -50,5 +54,7 @@ if (process.env.NODE_ENV === "development") {
   (window as any).debugger = gameDebugger;
   console.log("🌊 さめがめオーシャン - 開発モード");
   console.log("ゲームオブジェクト:", game);
-  console.log("デバッガー: Ctrl+D でデバッグパネル表示");
+  console.log("デバッグ用コマンド:");
+  console.log("  debugger.showDebugInfo() - デバッグ情報表示");
+  console.log("  debugger.skipToStage(n) - ステージnにスキップ");
 }

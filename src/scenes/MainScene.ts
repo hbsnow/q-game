@@ -22,7 +22,7 @@ export class MainScene extends Scene {
     }).setOrigin(0.5);
 
     // ゴールド表示
-    const goldText = this.add.text(width - 20, 20, `ゴールド: ${this.gold}`, {
+    this.add.text(width - 20, 20, `ゴールド: ${this.gold}`, {
       fontSize: '16px',
       color: '#F4D03F',
       fontStyle: 'bold'
