@@ -136,9 +136,30 @@ export class ItemEffectManager {
         if (itemType === 'changeOne' && blocks.length === 1) {
           // チェンジワンの場合は色選択UIを表示
           this.showColorSelectionUI(blocks[0]);
+        } else if (itemType === 'swap' && blocks.length === 2) {
+          // スワップの場合は直接executeSwapを呼び出す
+          console.log('Swap blocks selected:', blocks);
+          this.executeSwap(blocks[0], blocks[1]).then(success => {
+            console.log('Swap result:', success);
+            this.completeItemEffect();
+          }).catch(error => {
+            console.error('Error swapping blocks:', error);
+            this.completeItemEffect();
+          });
+        } else if (itemType === 'miniBomb' && blocks.length === 1) {
+          // ミニ爆弾の場合は直接executeMiniBombを呼び出す
+          console.log('MiniBomb block selected:', blocks[0]);
+          this.executeMiniBomb(blocks[0]).then(success => {
+            console.log('MiniBomb result:', success);
+            this.completeItemEffect();
+          }).catch(error => {
+            console.error('Error using miniBomb:', error);
+            this.completeItemEffect();
+          });
         } else {
           // その他のアイテムは選択したブロックで実行
-          this.executeItemEffect(itemType, ...blocks);
+          console.warn('Unhandled item type or invalid block count:', itemType, blocks.length);
+          this.completeItemEffect();
         }
       },
       () => {
@@ -210,31 +231,41 @@ export class ItemEffectManager {
    */
   private async executeSwap(block1: Block, block2: Block): Promise<boolean> {
     if (!block1 || !block2) {
+      console.error('Invalid parameters for swap:', { block1, block2 });
       return false;
     }
 
     // 岩ブロックと鋼鉄ブロックは入れ替え不可
     if (block1.type === 'rock' || block1.type === 'steel' || 
         block2.type === 'rock' || block2.type === 'steel') {
+      console.error('Cannot swap rock or steel blocks');
       return false;
     }
 
-    // ブロックの位置を入れ替え
-    const tempX = block1.x;
-    const tempY = block1.y;
-    
-    block1.x = block2.x;
-    block1.y = block2.y;
-    block2.x = tempX;
-    block2.y = tempY;
+    console.log(`Swapping blocks: ${block1.id} (${block1.x},${block1.y}) with ${block2.id} (${block2.x},${block2.y})`);
 
-    // ゲームシーンのブロック配列も更新
-    this.gameScene.updateBlockPositions(block1, block2);
+    try {
+      // ブロックの位置を入れ替え
+      const tempX = block1.x;
+      const tempY = block1.y;
+      
+      block1.x = block2.x;
+      block1.y = block2.y;
+      block2.x = tempX;
+      block2.y = tempY;
 
-    // アニメーション再生
-    await this.gameScene.animateSwap(block1, block2);
+      // ゲームシーンのブロック配列も更新
+      this.gameScene.updateBlockPositions(block1, block2);
 
-    return true;
+      // アニメーション再生
+      await this.gameScene.animateSwap(block1, block2);
+      console.log('Swap animation completed');
+      
+      return true;
+    } catch (error) {
+      console.error('Error in executeSwap:', error);
+      return false;
+    }
   }
 
   /**

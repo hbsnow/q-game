@@ -51,6 +51,13 @@ export class BlockSelectionUI {
       this.cancel();
     });
     this.cancelButton.setVisible(false);
+    
+    // ESCキーでキャンセル
+    this.scene.input.keyboard?.on('keydown-ESC', () => {
+      if (this.isActive) {
+        this.cancel();
+      }
+    });
   }
 
   /**
@@ -63,18 +70,26 @@ export class BlockSelectionUI {
     this.instructionText.setVisible(true);
     this.cancelButton.setVisible(true);
     this.updateInstructionText();
+    
+    console.log(`BlockSelectionUI started: ${message}, max selections: ${this.maxSelections}`);
   }
 
   /**
    * ブロックを選択
    */
   selectBlock(block: Block, sprite: Phaser.GameObjects.Sprite): boolean {
-    if (!this.isActive) return false;
+    if (!this.isActive) {
+      console.log('BlockSelectionUI is not active, ignoring selection');
+      return false;
+    }
+    
+    console.log(`Selecting block: ${block.id} at (${block.x},${block.y})`);
     
     // 既に選択済みかチェック
     const existingIndex = this.selectedBlocks.findIndex(b => b.id === block.id);
     if (existingIndex >= 0) {
       // 選択解除
+      console.log(`Block ${block.id} was already selected, deselecting`);
       this.selectedBlocks.splice(existingIndex, 1);
       this.unhighlightSprite(sprite);
       this.updateInstructionText();
@@ -84,6 +99,7 @@ export class BlockSelectionUI {
     // 最大選択数を超える場合
     if (this.selectedBlocks.length >= this.maxSelections) {
       // 最初の選択を解除して新しい選択を追加
+      console.log(`Max selections (${this.maxSelections}) reached, replacing first selection`);
       const oldSprite = this.highlightedSprites.shift();
       if (oldSprite) {
         this.unhighlightSprite(oldSprite);
@@ -96,8 +112,11 @@ export class BlockSelectionUI {
     this.highlightSprite(sprite);
     this.updateInstructionText();
     
+    console.log(`Selected blocks: ${this.selectedBlocks.length}/${this.maxSelections}`);
+    
     // 最大選択数に達したら完了
     if (this.selectedBlocks.length === this.maxSelections) {
+      console.log(`Max selections reached, completing selection`);
       this.complete();
     }
     
@@ -141,6 +160,7 @@ export class BlockSelectionUI {
    * 選択完了
    */
   private complete(): void {
+    console.log('BlockSelectionUI: Selection complete');
     this.isActive = false;
     this.instructionText.setVisible(false);
     this.cancelButton.setVisible(false);
@@ -153,13 +173,16 @@ export class BlockSelectionUI {
     this.highlightedSprites = [];
     
     // 完了コールバックを呼び出し
-    this.onComplete([...this.selectedBlocks]);
+    const selectedBlocks = [...this.selectedBlocks];
+    console.log(`Calling onComplete with ${selectedBlocks.length} blocks`);
+    this.onComplete(selectedBlocks);
   }
 
   /**
    * 選択キャンセル
    */
   private cancel(): void {
+    console.log('BlockSelectionUI: Selection cancelled');
     this.isActive = false;
     this.instructionText.setVisible(false);
     this.cancelButton.setVisible(false);

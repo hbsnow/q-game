@@ -1565,13 +1565,25 @@ export class GameScene extends Scene {
    * ブロック位置の更新（スワップ用）
    */
   updateBlockPositions(block1: Block, block2: Block): void {
+    console.log(`GameScene.updateBlockPositions: Updating block positions in currentBlocks array`);
+    
     // ブロックの位置を更新
     const index1 = this.currentBlocks.findIndex(b => b.id === block1.id);
     const index2 = this.currentBlocks.findIndex(b => b.id === block2.id);
     
     if (index1 !== -1 && index2 !== -1) {
+      console.log(`Found blocks at indices ${index1} and ${index2}`);
       this.currentBlocks[index1] = block1;
       this.currentBlocks[index2] = block2;
+      console.log('Block positions updated in currentBlocks array');
+    } else {
+      console.error('Failed to find blocks in currentBlocks array:', {
+        block1Id: block1.id,
+        block2Id: block2.id,
+        index1,
+        index2,
+        totalBlocks: this.currentBlocks.length
+      });
     }
   }
 
@@ -1704,10 +1716,18 @@ export class GameScene extends Scene {
    * スワップアニメーション
    */
   async animateSwap(block1: Block, block2: Block): Promise<void> {
+    console.log(`GameScene.animateSwap: Animating swap between blocks at (${block1.x},${block1.y}) and (${block2.x},${block2.y})`);
+    
     const sprite1 = this.blockSprites[block1.y][block1.x];
     const sprite2 = this.blockSprites[block2.y][block2.x];
     
     if (!sprite1 || !sprite2) {
+      console.error('Cannot animate swap: sprites not found', {
+        sprite1: !!sprite1,
+        sprite2: !!sprite2,
+        block1: `(${block1.x},${block1.y})`,
+        block2: `(${block2.x},${block2.y})`
+      });
       return Promise.resolve();
     }
     
@@ -1715,6 +1735,11 @@ export class GameScene extends Scene {
     return new Promise<void>((resolve) => {
       const pos1 = { x: sprite1.x, y: sprite1.y };
       const pos2 = { x: sprite2.x, y: sprite2.y };
+      
+      console.log('Starting swap animation with positions:', {
+        pos1: `(${pos1.x},${pos1.y})`,
+        pos2: `(${pos2.x},${pos2.y})`
+      });
       
       // 同時にアニメーション
       this.tweens.add({
@@ -1745,6 +1770,7 @@ export class GameScene extends Scene {
           sprite2.setData('row', block2.y);
           sprite2.setData('col', block2.x);
           
+          console.log('Swap animation completed');
           resolve();
         }
       });
