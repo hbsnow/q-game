@@ -164,6 +164,8 @@ export class ItemEffectManager {
     const availableColors: BlockColor[] = ['blue', 'lightBlue', 'seaGreen', 'coralRed', 'sandGold', 'pearlWhite']
       .filter(color => color !== block.color);
     
+    console.log('Available colors for selection:', availableColors);
+    
     // 色選択UIを作成
     this.colorSelectionUI = new ColorSelectionUI(
       this.gameScene,
@@ -171,7 +173,16 @@ export class ItemEffectManager {
       (color) => {
         // 色選択完了時の処理
         console.log('Color selected:', color);
-        this.executeItemEffect('changeOne', block, color).then(success => {
+        
+        // 型チェック
+        if (!this.isValidBlockColor(color)) {
+          console.error('Invalid color selected:', color);
+          this.completeItemEffect();
+          return;
+        }
+        
+        // 色変更処理を実行
+        this.executeChangeOne(block, color as BlockColor).then(success => {
           console.log('Color change result:', success);
           // 実行完了後に選択モードを終了
           this.completeItemEffect();
@@ -184,6 +195,14 @@ export class ItemEffectManager {
     
     // 色選択UIを表示
     this.colorSelectionUI.show();
+  }
+  
+  /**
+   * 有効なBlockColorかどうかをチェック
+   */
+  private isValidBlockColor(color: any): boolean {
+    const validColors: BlockColor[] = ['blue', 'lightBlue', 'seaGreen', 'coralRed', 'sandGold', 'pearlWhite'];
+    return validColors.includes(color as BlockColor);
   }
 
   /**

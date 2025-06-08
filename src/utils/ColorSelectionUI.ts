@@ -52,14 +52,16 @@ export class ColorSelectionUI {
     cancelButton.setSize(120, 40);
     cancelButton.setInteractive();
     cancelButton.on('pointerup', () => {
-      this.hide();
+      this.cancel();
     });
     this.container.add(cancelButton);
     
     // オーバーレイをクリックしても何も起きないようにする
     overlay.setInteractive();
     overlay.on('pointerdown', (event: Phaser.Input.Pointer) => {
-      event.stopPropagation();
+      if (event.stopPropagation) {
+        event.stopPropagation();
+      }
     });
     
     // ESCキーでキャンセル
@@ -122,6 +124,7 @@ export class ColorSelectionUI {
     
     // クリック時の処理
     container.on('pointerup', () => {
+      console.log(`Selected color: ${color}`);
       this.onColorSelected(color);
       this.hide();
     });
