@@ -72,6 +72,9 @@ export class ItemSelectScene extends Phaser.Scene {
     // デバッグショートカットキーを設定
     this.setupDebugShortcut();
     
+    // キーボードショートカットを設定
+    this.setupKeyboardShortcuts();
+    
     // 🎨 美しい海のグラデーション背景
     const graphics = this.add.graphics();
     
@@ -95,6 +98,23 @@ export class ItemSelectScene extends Phaser.Scene {
     
     // レイアウト検証
     this.validateLayout();
+  }
+  
+  // キーボードショートカットの設定
+  private setupKeyboardShortcuts() {
+    // ESCキーでキャンセル
+    this.input.keyboard?.on('keydown-ESC', () => {
+      this.cancelSelection();
+    });
+    
+    // Enterキーで決定
+    this.input.keyboard?.on('keydown-ENTER', () => {
+      this.confirmSelection();
+    });
+    
+    console.log('⌨️ Keyboard shortcuts setup:');
+    console.log('  - Press "ESC" to cancel');
+    console.log('  - Press "ENTER" to confirm');
   }
 
   private createTitle() {
@@ -154,6 +174,13 @@ export class ItemSelectScene extends Phaser.Scene {
       fontFamily: 'Arial, sans-serif'
     }).setOrigin(0.5);
     
+    // 特殊枠の説明テキスト（小さく追加）
+    this.add.text(specialX, SLOT_Y + 20, '全レア度装備可能', {
+      fontSize: '9px',
+      color: '#AAAAAA',
+      fontFamily: 'Arial, sans-serif'
+    }).setOrigin(0.5);
+    
     // 🎨 通常枠（右側）- シンプルで上品なデザイン
     const normalX = 300;
     
@@ -179,6 +206,13 @@ export class ItemSelectScene extends Phaser.Scene {
     this.normalSlotText = this.add.text(normalX, SLOT_Y, '未選択', {
       fontSize: '12px',
       color: '#CCCCCC',
+      fontFamily: 'Arial, sans-serif'
+    }).setOrigin(0.5);
+    
+    // 通常枠の説明テキスト（小さく追加）
+    this.add.text(normalX, SLOT_Y + 20, 'S・Aレア装備不可', {
+      fontSize: '9px',
+      color: '#AAAAAA',
       fontFamily: 'Arial, sans-serif'
     }).setOrigin(0.5);
     
@@ -444,7 +478,56 @@ export class ItemSelectScene extends Phaser.Scene {
     const decoration1 = this.add.circle(-width/2 + 8, -height/2 + 8, 3, 0xFFFFFF, 0.3);
     const decoration2 = this.add.circle(width/2 - 8, height/2 - 8, 2, 0xFFFFFF, 0.2);
     
-    container.add([bg, baseBg, hoverBg, strokeBorder, nameText, countBg, countText, rarityBg, rarityText, decoration1, decoration2]);
+    // 装備制限表示（通常枠に装備できないS・Aレアアイテムの場合）
+    let restrictionIcon = null;
+    let restrictionText = null;
+    if (['S', 'A'].includes(item.rarity)) {
+      // 特殊枠専用アイコン
+      restrictionIcon = this.add.circle(width/2 - 10, 0, 8, 0xFFD700, 0.8);
+      restrictionIcon.setStrokeStyle(1, 0xFFFFFF, 0.8);
+      
+      restrictionText = this.add.text(width/2 - 10, 0, '特', {
+        fontSize: '10px',
+        color: '#FFFFFF',
+        fontStyle: 'bold',
+        fontFamily: 'Arial, sans-serif'
+      }).setOrigin(0.5);
+    }
+    
+    // 使用済みアイテム表示（装備済みで使用済みの場合）
+    let usedOverlay = null;
+    let usedText = null;
+    
+    // 装備スロットをチェックして使用済みかどうか確認
+    const isUsed = this.checkIfItemIsUsed(item);
+    
+    if (isUsed) {
+      // 使用済みオーバーレイ
+      usedOverlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.5);
+      
+      // 使用済みテキスト
+      usedText = this.add.text(0, 0, '使用済', {
+        fontSize: '14px',
+        color: '#FFFFFF',
+        fontStyle: 'bold',
+        fontFamily: 'Arial, sans-serif',
+        backgroundColor: '#FF0000',
+        padding: { x: 5, y: 2 }
+      }).setOrigin(0.5);
+    }
+    
+    // 全ての要素をコンテナに追加
+    const elements = [bg, baseBg, hoverBg, strokeBorder, nameText, countBg, countText, rarityBg, rarityText, decoration1, decoration2];
+    
+    if (restrictionIcon && restrictionText) {
+      elements.push(restrictionIcon, restrictionText);
+    }
+    
+    if (usedOverlay && usedText) {
+      elements.push(usedOverlay, usedText);
+    }
+    
+    container.add(elements);
     
     // インタラクション
     container.setSize(width, height);
@@ -475,12 +558,30 @@ export class ItemSelectScene extends Phaser.Scene {
       container.setScale(1.0);
       hoverBg.setVisible(false);
       console.log(`[HOVER] ${item.name} - reset to normal state`);
+      
+      // 使用済みアイテムは選択できない
+      if (isUsed) {
+        this.showMessage(`${item.name}は既に使用済みです`);
+        return;
+      }
+      
       this.selectItem(item);
     });
     
     this.itemListContainer.add(container);
     
     console.log(`✅ Beautiful item ${item.name} created`);
+  }
+  
+  // アイテムが使用済みかどうかをチェック
+  private checkIfItemIsUsed(item: Item): boolean {
+    // 装備スロットをチェック
+    for (const slot of this.equipSlots) {
+      if (slot.item && slot.item.type === item.type && slot.used) {
+        return true; // 装備済みで使用済み
+      }
+    }
+    return false;
   }
 
   private createButtons() {
@@ -594,7 +695,12 @@ export class ItemSelectScene extends Phaser.Scene {
     const equippableItems = itemManager.getEquippableItems(slotType);
     
     if (!equippableItems.some(equippableItem => equippableItem.type === item.type)) {
-      this.showMessage('このアイテムはこの枠に装備できません');
+      // 装備制限に引っかかる場合、より詳細なエラーメッセージを表示
+      if (slotType === 'normal' && ['S', 'A'].includes(item.rarity)) {
+        this.showMessage(`${item.rarity}レアアイテムは通常枠に装備できません`);
+      } else {
+        this.showMessage('このアイテムはこの枠に装備できません');
+      }
       return;
     }
     
@@ -618,8 +724,16 @@ export class ItemSelectScene extends Phaser.Scene {
     // 特殊枠の表示更新
     const specialSlot = this.equipSlots[0];
     if (specialSlot.item) {
-      this.specialSlotText.setText(specialSlot.item.name); // 個数表示を削除
-      this.specialSlotText.setColor('#FFFFFF');
+      // アイテム名と使用状態を表示
+      const usedText = specialSlot.used ? '（使用済）' : '';
+      this.specialSlotText.setText(`${specialSlot.item.name}${usedText}`);
+      
+      // 使用済みの場合は色を変える
+      if (specialSlot.used) {
+        this.specialSlotText.setColor('#FF6B6B');
+      } else {
+        this.specialSlotText.setColor('#FFFFFF');
+      }
     } else {
       this.specialSlotText.setText('未選択');
       this.specialSlotText.setColor('#CCCCCC');
@@ -628,8 +742,16 @@ export class ItemSelectScene extends Phaser.Scene {
     // 通常枠の表示更新
     const normalSlot = this.equipSlots[1];
     if (normalSlot.item) {
-      this.normalSlotText.setText(normalSlot.item.name); // 個数表示を削除
-      this.normalSlotText.setColor('#FFFFFF');
+      // アイテム名と使用状態を表示
+      const usedText = normalSlot.used ? '（使用済）' : '';
+      this.normalSlotText.setText(`${normalSlot.item.name}${usedText}`);
+      
+      // 使用済みの場合は色を変える
+      if (normalSlot.used) {
+        this.normalSlotText.setColor('#FF6B6B');
+      } else {
+        this.normalSlotText.setColor('#FFFFFF');
+      }
     } else {
       this.normalSlotText.setText('未選択');
       this.normalSlotText.setColor('#CCCCCC');
@@ -718,6 +840,12 @@ export class ItemSelectScene extends Phaser.Scene {
     
     // GameStateManagerから最新の装備情報を取得
     const equipSlots = this.gameStateManager.getItemManager().getEquipSlots();
+    
+    // 装備スロットが空の場合は警告
+    if (!equipSlots[0].item && !equipSlots[1].item) {
+      this.showMessage('少なくとも1つのアイテムを装備してください');
+      return;
+    }
     
     console.log('📦 装備データ:', equipSlots);
     
