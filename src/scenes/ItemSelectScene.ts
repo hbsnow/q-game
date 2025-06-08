@@ -705,6 +705,37 @@ export class ItemSelectScene extends Phaser.Scene {
     });
   }
 
+  // 決定ボタンの処理
+  private confirmSelection() {
+    console.log('🎯 決定ボタンが押されました');
+    
+    // 装備データを準備
+    const equipData = {
+      specialSlot: this.equipSlots[0].item,
+      normalSlot: this.equipSlots[1].item
+    };
+    
+    console.log('📦 装備データ:', equipData);
+    
+    // ゲーム画面に遷移
+    this.scene.start('GameScene', {
+      currentStage: this.currentStage,
+      gold: this.gold,
+      equippedItems: equipData
+    });
+  }
+
+  // キャンセルボタンの処理
+  private cancelSelection() {
+    console.log('🔙 キャンセルボタンが押されました');
+    
+    // メイン画面に戻る
+    this.scene.start('MainScene', {
+      currentStage: this.currentStage,
+      gold: this.gold
+    });
+  }
+
   private confirmSelection() {
     console.log('Confirming selection...');
     console.log('Equipped items:', this.equipSlots);

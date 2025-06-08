@@ -87,11 +87,14 @@ export class MainScene extends Scene {
     const buttonWidth = 120;
     const buttonHeight = 50;
 
-    // アイテムボタン（Phase 4で実装予定）
+    // アイテムボタン
     const itemButton = this.add.rectangle(width / 2 - 70, buttonY, buttonWidth, buttonHeight, 0x2E8B57, 0.8);
     itemButton.setInteractive();
     itemButton.on('pointerdown', () => {
-      console.log('アイテム画面（未実装）');
+      this.scene.start('ItemListScene', {
+        currentStage: this.currentStage,
+        gold: this.gold
+      });
     });
 
     this.add.text(width / 2 - 70, buttonY, 'アイテム', {
@@ -99,11 +102,14 @@ export class MainScene extends Scene {
       color: '#FFFFFF'
     }).setOrigin(0.5);
 
-    // ガチャボタン（Phase 5で実装予定）
+    // ガチャボタン
     const gachaButton = this.add.rectangle(width / 2 + 70, buttonY, buttonWidth, buttonHeight, 0xFF6347, 0.8);
     gachaButton.setInteractive();
     gachaButton.on('pointerdown', () => {
-      console.log('ガチャ画面（未実装）');
+      this.scene.start('GachaScene', {
+        currentStage: this.currentStage,
+        gold: this.gold
+      });
     });
 
     this.add.text(width / 2 + 70, buttonY, 'ガチャ', {

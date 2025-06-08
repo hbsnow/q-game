@@ -158,6 +158,41 @@ export class ResultScene extends Scene {
     
     // デバッグライン追加は create() メソッドで既に実行されているため削除
   }
+
+  // 次のステージに進む
+  private goToNextStage() {
+    console.log('🎯 次のステージに進みます');
+    console.log('📊 現在のステージ:', this.resultData.stage);
+    console.log('📊 次のステージ:', this.resultData.stage + 1);
+    
+    // アイテム選択画面に遷移（次のステージ）
+    this.scene.start('ItemSelectScene', {
+      items: [], // 実際のアイテムデータは Phase 4 で実装
+      currentStage: this.resultData.stage + 1,
+      gold: this.resultData.gold,
+      equipSlots: [
+        { type: 'special', item: null, used: false },
+        { type: 'normal', item: null, used: false }
+      ]
+    });
+  }
+
+  // ステージをリトライする
+  private retryStage() {
+    console.log('🔄 ステージをリトライします');
+    console.log('📊 リトライするステージ:', this.resultData.stage);
+    
+    // アイテム選択画面に遷移（同じステージ）
+    this.scene.start('ItemSelectScene', {
+      items: [], // 実際のアイテムデータは Phase 4 で実装
+      currentStage: this.resultData.stage,
+      gold: this.resultData.gold,
+      equipSlots: [
+        { type: 'special', item: null, used: false },
+        { type: 'normal', item: null, used: false }
+      ]
+    });
+  }
   
   private setupDebugShortcut() {
     // Dキーでデバッグライン切り替え

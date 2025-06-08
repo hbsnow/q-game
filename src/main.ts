@@ -3,6 +3,9 @@ import { GAME_CONFIG } from "@/config/gameConfig";
 import { TitleScene } from "@/scenes/TitleScene";
 import { MainScene } from "./scenes/MainScene";
 import { ItemSelectScene } from "./scenes/ItemSelectScene";
+import { ItemListScene } from "./scenes/ItemListScene";
+import { GachaScene } from "./scenes/GachaScene";
+import { GachaResultScene } from "./scenes/GachaResultScene";
 import { GameScene } from "./scenes/GameScene";
 import { ResultScene } from "./scenes/ResultScene";
 import { GameCompleteScene } from "./scenes/GameCompleteScene";
@@ -19,6 +22,9 @@ const config: Phaser.Types.Core.GameConfig = {
     TitleScene,
     MainScene,
     ItemSelectScene,
+    ItemListScene,
+    GachaScene,
+    GachaResultScene,
     GameScene,
     ResultScene,
     GameCompleteScene,
