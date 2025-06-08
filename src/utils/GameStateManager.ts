@@ -67,6 +67,27 @@ export class GameStateManager {
   public setScore(score: number): void {
     this.gameState.score = score;
   }
+  
+  /**
+   * 現在のスコアを取得
+   */
+  public getScore(): number {
+    return this.gameState.score;
+  }
+  
+  /**
+   * 目標スコアを取得
+   */
+  public getTargetScore(): number {
+    return this.gameState.targetScore;
+  }
+  
+  /**
+   * 目標スコアを達成しているかチェック
+   */
+  public isTargetScoreAchieved(): boolean {
+    return this.gameState.score >= this.gameState.targetScore;
+  }
 
   /**
    * ステージをクリアした時の処理
@@ -96,7 +117,7 @@ export class GameStateManager {
     
     console.log(`Advanced to stage ${this.gameState.currentStage}`);
   }
-
+  
   /**
    * 現在のステージをリトライ
    */
@@ -105,6 +126,20 @@ export class GameStateManager {
     this.gameState.score = 0;
     
     console.log(`Retrying stage ${this.gameState.currentStage}`);
+  }
+  
+  /**
+   * 次のステージに進む（ResultScene用のエイリアス）
+   */
+  public nextStage(): void {
+    this.goToNextStage();
+  }
+  
+  /**
+   * ステージをリトライする（ResultScene用のエイリアス）
+   */
+  public retryStage(): void {
+    this.retryCurrentStage();
   }
 
   /**
