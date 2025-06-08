@@ -306,18 +306,31 @@ export class ItemEffectManager {
    */
   private async executeMiniBomb(block: Block): Promise<boolean> {
     if (!block) {
+      console.error('Invalid parameter for miniBomb: block is null');
       return false;
     }
 
     // 通常ブロックのみ消去可能
     if (block.type !== 'normal') {
+      console.error(`Cannot use miniBomb on block type: ${block.type}`);
       return false;
     }
 
-    // ブロックを消去（スコアは加算しない）
-    await this.gameScene.removeBlock(block, false);
+    console.log(`Using miniBomb on block at (${block.x},${block.y})`);
 
-    return true;
+    try {
+      // ブロックを消去（スコアは加算しない）
+      await this.gameScene.removeBlock(block, false);
+      
+      // 重力処理を適用（通常のブロック消去と同様）
+      await this.gameScene.applyGravityAfterRemoval();
+      
+      console.log('MiniBomb effect completed with gravity applied');
+      return true;
+    } catch (error) {
+      console.error('Error in executeMiniBomb:', error);
+      return false;
+    }
   }
 
   /**

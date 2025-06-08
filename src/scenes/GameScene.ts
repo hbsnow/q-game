@@ -1748,7 +1748,13 @@ export class GameScene extends Scene {
         y: pos2.y,
         duration: 300,
         ease: 'Power2'
-      });
+  /**
+   * 重力処理を適用（ミニ爆弾用）
+   */
+  async applyGravityAfterRemoval(): Promise<void> {
+    console.log('Applying gravity after block removal');
+    return this.applyGravity();
+  }      });
       
       this.tweens.add({
         targets: sprite2,
