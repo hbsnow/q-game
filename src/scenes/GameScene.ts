@@ -379,7 +379,14 @@ export class GameScene extends Scene {
     console.log(`📦 Found block at position:`, actualBlock);
     
     // アイテム選択モードの場合
-    if (this.isItemSelectionMode && this.selectedItemType) {
+    if (this.isItemSelectionMode) {
+      // ItemEffectManagerにブロック選択を委譲
+      const handled = this.itemEffectManager.handleBlockSelection(actualBlock, sprite);
+      if (handled) {
+        return;
+      }
+      
+      // 従来のアイテムターゲット選択処理（互換性のため残す）
       this.handleItemTargetSelection(actualBlock);
       return;
     }
@@ -971,39 +978,40 @@ export class GameScene extends Scene {
     try {
       switch (itemType) {
         case 'swap':
-          // スワップは対象選択が必要
-          this.enterTargetSelectionMode('swap');
-          break;
         case 'changeOne':
-          // チェンジワンは対象選択が必要
-          this.enterTargetSelectionMode('changeOne');
-          break;
         case 'miniBomb':
-          // ミニ爆弾は対象選択が必要
-          this.enterTargetSelectionMode('miniBomb');
+          // 対象選択が必要なアイテムは新しいAPIを使用
+          this.itemEffectManager.executeItemEffect(itemType).then(success => {
+            if (!success) {
+              // 選択モードに入らなかった場合は処理中フラグを解除
+              this.setProcessingState(false);
+            }
+          });
           break;
+          
         case 'shuffle':
           // シャッフルは即時実行
-          await this.itemEffectManager.executeItemEffect('shuffle');
-          this.redrawBoard();
+          const shuffleSuccess = await this.itemEffectManager.executeItemEffect('shuffle');
+          if (shuffleSuccess) {
+            this.redrawBoard();
+          }
+          this.setProcessingState(false);
           break;
+          
         case 'scoreBooster':
           // スコアブースターは即時実行
           this.executeScoreBoosterEffect();
+          this.setProcessingState(false);
           break;
+          
         default:
           console.log(`⚠️ Item effect not implemented: ${itemType}`);
-          // 他のアイテムは後で実装
+          this.setProcessingState(false);
           break;
       }
     } catch (error) {
       console.error(`Error executing item effect ${itemType}:`, error);
-    } finally {
-      // 即時実行アイテムの場合は処理完了
-      if (itemType === 'shuffle' || itemType === 'scoreBooster') {
-        this.setProcessingState(false);
-      }
-      // 対象選択アイテムは選択モードに入るので、処理中フラグはそのまま
+      this.setProcessingState(false);
     }
   }
 
