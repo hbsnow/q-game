@@ -171,6 +171,71 @@ export class GameScene extends Scene {
         this.handleBlockClick(gameObject);
       }
     });
+
+    // ホバー処理（マウス/タッチ）
+    this.input.on('gameobjectover', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Sprite) => {
+      if (gameObject.getData('block')) {
+        this.handleBlockHover(gameObject, true);
+      }
+    });
+
+    this.input.on('gameobjectout', (_pointer: Phaser.Input.Pointer, gameObject: Phaser.GameObjects.Sprite) => {
+      if (gameObject.getData('block')) {
+        this.handleBlockHover(gameObject, false);
+      }
+    });
+  }
+
+  private handleBlockHover(sprite: Phaser.GameObjects.Sprite, isHovering: boolean) {
+    // 処理中は無視
+    if (this.isProcessing) {
+      return;
+    }
+
+    const row = sprite.getData('row') as number;
+    const col = sprite.getData('col') as number;
+    
+    // スプライトの位置に基づいて実際のブロックデータを取得
+    const actualBlock = this.currentBlocks.find(b => b.x === col && b.y === row);
+    
+    if (!actualBlock || actualBlock.type !== 'normal') {
+      return;
+    }
+
+    if (isHovering) {
+      // ホバー開始：連結グループをハイライト
+      const connectedGroup = getConnectedBlocks(actualBlock, this.currentBlocks);
+      
+      if (connectedGroup.count >= 2) {
+        // 消去可能なグループの場合、全体をハイライト
+        connectedGroup.blocks.forEach(block => {
+          const blockSprite = this.blockSprites[block.y][block.x];
+          if (blockSprite) {
+            blockSprite.setTint(0xFFFFAA); // 薄い黄色でハイライト
+            blockSprite.setScale(1.05); // 少し拡大
+          }
+        });
+      } else {
+        // 消去不可能な場合、薄い赤色でハイライト
+        sprite.setTint(0xFFAAAA);
+      }
+    } else {
+      // ホバー終了：全てのハイライトを解除
+      this.clearAllHighlights();
+    }
+  }
+
+  private clearAllHighlights() {
+    // 全スプライトのハイライトを解除
+    for (let row = 0; row < this.BOARD_HEIGHT; row++) {
+      for (let col = 0; col < this.BOARD_WIDTH; col++) {
+        const sprite = this.blockSprites[row][col];
+        if (sprite) {
+          sprite.clearTint();
+          sprite.setScale(1.0);
+        }
+      }
+    }
   }
 
   private handleBlockClick(sprite: Phaser.GameObjects.Sprite) {
@@ -179,6 +244,9 @@ export class GameScene extends Scene {
       console.log('🚫 Processing in progress, ignoring click');
       return;
     }
+
+    // ハイライトをクリア
+    this.clearAllHighlights();
 
     const row = sprite.getData('row') as number;
     const col = sprite.getData('col') as number;
@@ -400,13 +468,13 @@ export class GameScene extends Scene {
         return;
       }
       
-      // 消去アニメーション（拡大→フェードアウト）
+      // 消去アニメーション（拡大→フェードアウト）- 高速化
       this.tweens.add({
         targets: sprites,
         scaleX: 1.3,
         scaleY: 1.3,
         alpha: 0,
-        duration: 300,
+        duration: 200, // 300ms → 200ms に短縮
         ease: 'Power2',
         onComplete: () => {
           resolve();
@@ -482,7 +550,7 @@ export class GameScene extends Scene {
       const verticalMovements = movements.filter(m => m.from.y !== m.to.y);
       const horizontalMovements = movements.filter(m => m.from.x !== m.to.x);
       
-      // ステップ1: 垂直移動（落下）を先に実行 - 速度アップ
+      // ステップ1: 垂直移動（落下）を先に実行 - さらに高速化
       const verticalAnimations = verticalMovements.map(movement => {
         const sprite = this.blockSprites[movement.from.y][movement.from.x];
         if (sprite) {
@@ -492,7 +560,7 @@ export class GameScene extends Scene {
             this.tweens.add({
               targets: sprite,
               y: targetY,
-              duration: 200, // 300ms → 200ms に短縮
+              duration: 150, // 200ms → 150ms にさらに短縮
               ease: 'Power2.easeOut',
               onComplete: () => {
                 animResolve();
@@ -505,19 +573,18 @@ export class GameScene extends Scene {
       
       // 垂直移動完了後に水平移動を実行
       Promise.all(verticalAnimations).then(() => {
-        // 間隔を短縮
-        this.time.delayedCall(30, () => { // 50ms → 30ms に短縮
+        // 間隔をさらに短縮
+        this.time.delayedCall(20, () => { // 30ms → 20ms に短縮
           const horizontalAnimations = horizontalMovements.map(movement => {
             const sprite = this.blockSprites[movement.from.y][movement.from.x];
             if (sprite) {
               const targetX = startX + movement.to.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
               
               return new Promise<void>((animResolve) => {
-                // 水平移動のみ、縦揺れは削除
                 this.tweens.add({
                   targets: sprite,
                   x: targetX,
-                  duration: 250, // 350ms → 250ms に短縮
+                  duration: 180, // 250ms → 180ms に短縮
                   ease: 'Power2.easeOut',
                   onComplete: () => {
                     animResolve();
