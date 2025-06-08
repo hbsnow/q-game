@@ -61,6 +61,11 @@ export class ColorSelectionUI {
     overlay.on('pointerdown', (event: Phaser.Input.Pointer) => {
       event.stopPropagation();
     });
+    
+    // ESCキーでキャンセル
+    this.scene.input.keyboard?.on('keydown-ESC', () => {
+      this.cancel();
+    });
   }
 
   /**
@@ -188,6 +193,13 @@ export class ColorSelectionUI {
         this.container.setVisible(false);
       }
     });
+  }
+
+  /**
+   * キャンセル処理
+   */
+  cancel(): void {
+    this.hide();
   }
 
   /**

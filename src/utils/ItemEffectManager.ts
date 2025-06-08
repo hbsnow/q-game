@@ -170,7 +170,15 @@ export class ItemEffectManager {
       availableColors,
       (color) => {
         // 色選択完了時の処理
-        this.executeItemEffect('changeOne', block, color);
+        console.log('Color selected:', color);
+        this.executeItemEffect('changeOne', block, color).then(success => {
+          console.log('Color change result:', success);
+          // 実行完了後に選択モードを終了
+          this.completeItemEffect();
+        }).catch(error => {
+          console.error('Error changing color:', error);
+          this.completeItemEffect();
+        });
       }
     );
     
@@ -215,22 +223,32 @@ export class ItemEffectManager {
    */
   private async executeChangeOne(block: Block, newColor: BlockColor): Promise<boolean> {
     if (!block || !newColor) {
+      console.error('Invalid parameters for changeOne:', { block, newColor });
       return false;
     }
 
     // 岩ブロックと鋼鉄ブロックは変更不可
     if (block.type === 'rock' || block.type === 'steel') {
+      console.error('Cannot change color of rock or steel block');
       return false;
     }
 
-    // 色を変更
-    const oldColor = block.color;
-    block.color = newColor;
+    console.log(`Changing block color from ${block.color} to ${newColor}`);
 
-    // ゲームシーンのブロック色を更新
-    await this.gameScene.updateBlockColor(block, oldColor, newColor);
+    try {
+      // 色を変更
+      const oldColor = block.color;
+      block.color = newColor;
 
-    return true;
+      // ゲームシーンのブロック色を更新
+      await this.gameScene.updateBlockColor(block, oldColor, newColor);
+      console.log('Color change animation completed');
+      
+      return true;
+    } catch (error) {
+      console.error('Error in executeChangeOne:', error);
+      return false;
+    }
   }
 
   /**

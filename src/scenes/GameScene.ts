@@ -1579,14 +1579,19 @@ export class GameScene extends Scene {
    * ブロック色の更新（チェンジワン用）
    */
   async updateBlockColor(block: Block, oldColor: BlockColor, newColor: BlockColor): Promise<void> {
+    console.log(`GameScene.updateBlockColor: Updating block color from ${oldColor} to ${newColor}`);
+    
     // ブロックの色を更新
     const index = this.currentBlocks.findIndex(b => b.id === block.id);
     if (index !== -1) {
       this.currentBlocks[index].color = newColor;
+      console.log('Block data updated in currentBlocks array');
       
       // スプライトの色も更新
       const sprite = this.blockSprites[block.y][block.x];
       if (sprite) {
+        console.log('Found sprite to update:', sprite);
+        
         // 色変更アニメーション
         return new Promise<void>((resolve) => {
           // 一旦フェードアウト
@@ -1595,6 +1600,7 @@ export class GameScene extends Scene {
             alpha: 0.3,
             duration: 150,
             onComplete: () => {
+              console.log('Fade out complete, changing texture');
               // テクスチャ変更
               sprite.setTexture(this.getBlockTexture({ ...block, color: newColor }));
               
@@ -1604,13 +1610,18 @@ export class GameScene extends Scene {
                 alpha: 1,
                 duration: 150,
                 onComplete: () => {
+                  console.log('Color change animation complete');
                   resolve();
                 }
               });
             }
           });
         });
+      } else {
+        console.error('No sprite found at position:', { x: block.x, y: block.y });
       }
+    } else {
+      console.error('Block not found in currentBlocks array:', block);
     }
     
     return Promise.resolve();
