@@ -1647,16 +1647,7 @@ export class GameScene extends Scene {
                 this.gameStateManager.setScore(this.gameState.score);
                 this.updateScoreDisplay();
               }
-              
-  /**
-   * アイテム選択モードを終了
-   * ItemEffectManagerから呼び出される
-   */
-  exitItemSelectionMode(): void {
-    this.isItemSelectionMode = false;
-    this.setProcessingState(false);
-    console.log('🔄 Exiting item selection mode');
-  }              resolve();
+              resolve();
             }
           });
         });
@@ -1756,3 +1747,12 @@ export class GameScene extends Scene {
     return this.currentBlocks.filter(block => block.type === 'normal');
   }
 }
+  /**
+   * アイテム選択モードを終了
+   * ItemEffectManagerから呼び出される
+   */
+  exitItemSelectionMode(): void {
+    this.isItemSelectionMode = false;
+    this.setProcessingState(false);
+    console.log('🔄 Exiting item selection mode');
+  }
