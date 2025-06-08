@@ -24,7 +24,11 @@ export class GameStateManager {
         { type: 'normal', item: null, used: false }
       ],
       isScoreBoosterActive: false,
-      usedItems: [] // 使用済みアイテムのID
+      usedItems: [], // 使用済みアイテムのID
+      equippedItems: {
+        special: null,
+        normal: null
+      }
     };
 
     // アイテム管理システムを初期化
@@ -213,7 +217,33 @@ export class GameStateManager {
   }
 
   /**
-   * 開発用：モックアイテムを追加
+   * 特殊枠にアイテムを装備
+   */
+  public equipSpecialItem(itemId: string): void {
+    this.gameState.equippedItems.special = itemId;
+  }
+  
+  /**
+   * 通常枠にアイテムを装備
+   */
+  public equipNormalItem(itemId: string): void {
+    this.gameState.equippedItems.normal = itemId;
+  }
+  
+  /**
+   * 装備中のアイテムを取得
+   */
+  public getEquippedItems(): { special: string | null, normal: string | null } {
+    return this.gameState.equippedItems;
+  }
+  
+  /**
+   * アイテムが装備されているかチェック
+   */
+  public isItemEquipped(itemId: string): boolean {
+    return this.gameState.equippedItems.special === itemId || 
+           this.gameState.equippedItems.normal === itemId;
+  }
    */
   private initializeWithMockItems(): void {
     // モックアイテムを追加
