@@ -10,6 +10,7 @@ export class GameScene extends Scene {
   private targetText!: Phaser.GameObjects.Text;
   private retireButton!: Phaser.GameObjects.Rectangle;
   private retireButtonText!: Phaser.GameObjects.Text;
+  private isProcessing: boolean = false; // 処理中フラグを追加
   
   // 盤面設定
   private readonly BOARD_WIDTH = 10;
@@ -173,6 +174,12 @@ export class GameScene extends Scene {
   }
 
   private handleBlockClick(sprite: Phaser.GameObjects.Sprite) {
+    // 処理中の場合は無視
+    if (this.isProcessing) {
+      console.log('🚫 Processing in progress, ignoring click');
+      return;
+    }
+
     const row = sprite.getData('row') as number;
     const col = sprite.getData('col') as number;
 
@@ -206,8 +213,30 @@ export class GameScene extends Scene {
     
     console.log(`Removing group of ${connectedGroup.count} blocks`);
     
-    // ブロック消去処理
-    this.removeBlockGroup(connectedGroup.blocks);
+    // 処理開始フラグを設定
+    this.setProcessingState(true);
+    
+    // ブロック消去処理（非同期）
+    this.removeBlockGroup(connectedGroup.blocks).finally(() => {
+      // 処理完了後にフラグをリセット
+      this.setProcessingState(false);
+    });
+  }
+
+  /**
+   * 処理状態を設定し、UI要素の有効/無効を切り替える
+   */
+  private setProcessingState(processing: boolean) {
+    this.isProcessing = processing;
+    
+    // ボタンの有効/無効を切り替え
+    if (processing) {
+      this.retireButton.setAlpha(0.5);
+      this.retireButtonText.setAlpha(0.5);
+    } else {
+      this.retireButton.setAlpha(1.0);
+      this.retireButtonText.setAlpha(1.0);
+    }
   }
 
   private showInvalidClickFeedback(sprite: Phaser.GameObjects.Sprite) {
@@ -557,6 +586,12 @@ export class GameScene extends Scene {
     this.retireButtonText.setX(this.retireButton.x - 15);
   }
   private handleRetireOrClearButton() {
+    // 処理中の場合は無視
+    if (this.isProcessing) {
+      console.log('🚫 Processing in progress, ignoring button click');
+      return;
+    }
+
     if (this.gameState.score >= this.gameState.targetScore) {
       // 目標達成時：クリア処理
       this.handleStageComplete();
