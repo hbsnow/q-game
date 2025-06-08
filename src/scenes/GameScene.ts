@@ -546,12 +546,46 @@ export class GameScene extends Scene {
       const startX = (this.scale.width - boardPixelWidth) / 2;
       const startY = this.BOARD_OFFSET_Y;
       
-      // 垂直移動と水平移動を分離
-      const verticalMovements = movements.filter(m => m.from.y !== m.to.y);
-      const horizontalMovements = movements.filter(m => m.from.x !== m.to.x);
+      // ブロックIDごとに移動をグループ化
+      const blockMovements = new Map<string, {
+        blockId: string;
+        from: { x: number; y: number };
+        to: { x: number; y: number };
+        hasVertical: boolean;
+        hasHorizontal: boolean;
+      }>();
+      
+      // 移動データを統合
+      movements.forEach(movement => {
+        const existing = blockMovements.get(movement.blockId);
+        if (existing) {
+          // 既存の移動データを更新
+          if (movement.from.y !== movement.to.y) {
+            existing.to.y = movement.to.y;
+            existing.hasVertical = true;
+          }
+          if (movement.from.x !== movement.to.x) {
+            existing.to.x = movement.to.x;
+            existing.hasHorizontal = true;
+          }
+        } else {
+          // 新しい移動データを作成
+          blockMovements.set(movement.blockId, {
+            blockId: movement.blockId,
+            from: { x: movement.from.x, y: movement.from.y },
+            to: { x: movement.to.x, y: movement.to.y },
+            hasVertical: movement.from.y !== movement.to.y,
+            hasHorizontal: movement.from.x !== movement.to.x
+          });
+        }
+      });
+      
+      const consolidatedMovements = Array.from(blockMovements.values());
+      const verticalMovements = consolidatedMovements.filter(m => m.hasVertical);
+      const horizontalOnlyMovements = consolidatedMovements.filter(m => m.hasHorizontal && !m.hasVertical);
       
       // 横スライドが必要かどうかを判定
-      const hasHorizontalMovement = horizontalMovements.length > 0;
+      const hasHorizontalMovement = consolidatedMovements.some(m => m.hasHorizontal);
       
       // ステップ1: 垂直移動（落下）を実行
       const verticalAnimations = verticalMovements.map(movement => {
@@ -577,13 +611,16 @@ export class GameScene extends Scene {
       
       // 垂直移動が完全に完了してから水平移動を開始
       Promise.all(verticalAnimations).then(() => {
+        // 水平移動が必要なブロック（垂直移動したものと水平のみのもの）
+        const horizontalMovements = consolidatedMovements.filter(m => m.hasHorizontal);
+        
         if (horizontalMovements.length === 0) {
           // 水平移動がない場合はそのまま完了
           resolve();
           return;
         }
         
-        // 水平移動を実行（垂直移動完了後）
+        // 水平移動を実行
         const horizontalAnimations = horizontalMovements.map(movement => {
           const sprite = this.blockSprites[movement.from.y][movement.from.x];
           if (sprite) {
