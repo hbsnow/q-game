@@ -207,17 +207,34 @@ export class GameScene extends Scene {
       const connectedGroup = getConnectedBlocks(actualBlock, this.currentBlocks);
       
       if (connectedGroup.count >= 2) {
-        // 消去可能なグループの場合、全体をハイライト
+        // 消去可能なグループの場合、全体を拡大＋脈動エフェクト
         connectedGroup.blocks.forEach(block => {
           const blockSprite = this.blockSprites[block.y][block.x];
           if (blockSprite) {
-            blockSprite.setTint(0xFFFFAA); // 薄い黄色でハイライト
-            blockSprite.setScale(1.05); // 少し拡大
+            // 拡大
+            blockSprite.setScale(1.15);
+            // 脈動エフェクト
+            this.tweens.add({
+              targets: blockSprite,
+              scaleX: 1.2,
+              scaleY: 1.2,
+              duration: 600,
+              yoyo: true,
+              repeat: -1,
+              ease: 'Sine.easeInOut'
+            });
           }
         });
       } else {
-        // 消去不可能な場合、薄い赤色でハイライト
-        sprite.setTint(0xFFAAAA);
+        // 消去不可能な場合、点滅エフェクト
+        this.tweens.add({
+          targets: sprite,
+          alpha: 0.3,
+          duration: 400,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
       }
     } else {
       // ホバー終了：全てのハイライトを解除
@@ -231,8 +248,10 @@ export class GameScene extends Scene {
       for (let col = 0; col < this.BOARD_WIDTH; col++) {
         const sprite = this.blockSprites[row][col];
         if (sprite) {
-          sprite.clearTint();
-          sprite.setScale(1.0);
+          sprite.setScale(1.0); // スケールリセット
+          sprite.setAlpha(1.0); // 透明度リセット
+          // 全てのアニメーションを停止
+          this.tweens.killTweensOf(sprite);
         }
       }
     }
