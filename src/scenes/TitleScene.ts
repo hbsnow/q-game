@@ -10,7 +10,7 @@ export class TitleScene extends Scene {
   }
 
   create() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
 
     // 🏷️ 画面名をコンソールに表示
     console.log('🎬 === TITLE SCENE ===');
@@ -109,6 +109,10 @@ export class TitleScene extends Scene {
   private addDebugLines(width: number, height: number) {
     console.log('🔧 [TITLE SCENE] Adding debug rectangles for area visualization...');
     
+    // 実際のボタン位置を計算
+    const buttonY = height / 2 + 50; // 405
+    const versionY = height - 50; // 660
+    
     // ヘッダーエリア（Y=0-100）- 赤色
     const headerRect = this.add.rectangle(width / 2, 50, width - 4, 96, 0x000000, 0)
       .setStrokeStyle(3, 0xFF0000);
@@ -120,10 +124,10 @@ export class TitleScene extends Scene {
     });
     this.debugElements.push(headerRect, headerText);
     
-    // タイトルエリア（Y=100-400）- 緑色
-    const titleRect = this.add.rectangle(width / 2, 250, width - 4, 296, 0x000000, 0)
+    // タイトルエリア（Y=100-350）- 緑色
+    const titleRect = this.add.rectangle(width / 2, 225, width - 4, 246, 0x000000, 0)
       .setStrokeStyle(3, 0x00FF00);
-    const titleText = this.add.text(10, 105, 'タイトルエリア Y=100-400', {
+    const titleText = this.add.text(10, 105, 'タイトルエリア Y=100-350', {
       fontSize: '12px',
       color: '#00FF00',
       backgroundColor: '#000000',
@@ -131,10 +135,10 @@ export class TitleScene extends Scene {
     });
     this.debugElements.push(titleRect, titleText);
     
-    // ボタンエリア（Y=400-600）- 青色
-    const buttonRect = this.add.rectangle(width / 2, 500, width - 4, 196, 0x000000, 0)
+    // ボタンエリア（Y=350-460）- 青色
+    const buttonRect = this.add.rectangle(width / 2, 405, width - 4, 106, 0x000000, 0)
       .setStrokeStyle(3, 0x0000FF);
-    const buttonText = this.add.text(10, 405, 'ボタンエリア Y=400-600', {
+    const buttonText = this.add.text(10, 355, `ボタンエリア Y=350-460 (実際のボタン位置: ${buttonY})`, {
       fontSize: '12px',
       color: '#0000FF',
       backgroundColor: '#000000',
@@ -142,22 +146,24 @@ export class TitleScene extends Scene {
     });
     this.debugElements.push(buttonRect, buttonText);
     
-    // フッターエリア（Y=600-710）- 紫色
-    const footerRect = this.add.rectangle(width / 2, 655, width - 4, 106, 0x000000, 0)
+    // バージョン表示エリア（Y=640-680）- 紫色（実際のバージョン表示のみ）
+    const versionRect = this.add.rectangle(width / 2, 660, width - 4, 36, 0x000000, 0)
       .setStrokeStyle(3, 0xFF00FF);
-    const footerText = this.add.text(10, 605, 'フッターエリア Y=600-710', {
+    const versionText = this.add.text(10, 645, `バージョン表示エリア Y=640-680 (実際: ${versionY})`, {
       fontSize: '12px',
       color: '#FF00FF',
       backgroundColor: '#000000',
       fontStyle: 'bold'
     });
-    this.debugElements.push(footerRect, footerText);
+    this.debugElements.push(versionRect, versionText);
+    
+    // Y=460-640と Y=680-710 は空白のためエリア定義しない
     
     console.log('🔧 [TITLE SCENE] Debug elements count:', this.debugElements.length);
   }
 
   private logDetailedDebugInfo() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
     console.log('🔍 === DETAILED DEBUG INFO [TITLE SCENE] ===');
     console.log('📍 Current Screen:', {
       sceneName: 'TitleScene',

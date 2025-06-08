@@ -82,7 +82,7 @@ export class GameScene extends Scene {
   }
 
   private createUI() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
 
     // ヘッダー部分
     this.add.rectangle(width / 2, 37.5, width, 75, 0x2E8B57, 0.8);
@@ -812,13 +812,19 @@ export class GameScene extends Scene {
    * リザルト画面への遷移
    */
   private goToResultScene(isAllClear: boolean) {
-    this.scene.start('ResultScene', {
-      stage: this.gameState.currentStage,
-      score: this.gameState.score,
-      targetScore: this.gameState.targetScore,
-      isAllClear: isAllClear,
-      gold: this.gameState.score // スコア = ゴールド
-    });
+    try {
+      this.scene.start('ResultScene', {
+        stage: this.gameState.currentStage,
+        score: this.gameState.score,
+        targetScore: this.gameState.targetScore,
+        isAllClear: isAllClear,
+        gold: this.gameState.score // スコア = ゴールド
+      });
+    } catch (error) {
+      console.error('Error in goToResultScene:', error);
+      // フォールバック：メイン画面に戻る
+      this.scene.start('MainScene');
+    }
   }
 
   private checkAllClear(): boolean {
@@ -930,7 +936,7 @@ export class GameScene extends Scene {
   }
 
   private showGameOverInfo() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
     
     // 半透明オーバーレイ
     this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
@@ -991,7 +997,7 @@ export class GameScene extends Scene {
   }
 
   private addDebugLines() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
     console.log('🔧 [GAME SCENE] Adding debug rectangles for area visualization...');
     
     // ヘッダーエリア（Y=0-75）- 赤色
@@ -1031,7 +1037,7 @@ export class GameScene extends Scene {
   }
 
   private logDetailedDebugInfo() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
     console.log('🔍 === DETAILED DEBUG INFO [GAME SCENE] ===');
     console.log('📍 Current Screen:', {
       sceneName: 'GameScene',

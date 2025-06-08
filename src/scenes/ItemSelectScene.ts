@@ -99,12 +99,12 @@ export class ItemSelectScene extends Phaser.Scene {
     const { width } = this.cameras.main;
     
     // 🎨 美しいタイトルデザイン
-    // タイトル背景
-    const titleBg = this.add.rectangle(width / 2, 30, 250, 40, 0x0B2F5C, 0.8);
+    // タイトル背景（拡張されたタイトルエリアに合わせて調整）
+    const titleBg = this.add.rectangle(width / 2, 35, 250, 40, 0x0B2F5C, 0.8);
     titleBg.setStrokeStyle(2, 0x87CEEB, 0.8);
     
     // レイアウト定数に従ったタイトル配置
-    this.titleText = this.add.text(width / 2, 30, '🌊 アイテム選択 🌊', {
+    this.titleText = this.add.text(width / 2, 35, '🌊 アイテム選択 🌊', {
       fontSize: '18px',
       color: '#FFFFFF',
       fontStyle: 'bold',
@@ -112,15 +112,15 @@ export class ItemSelectScene extends Phaser.Scene {
     }).setOrigin(0.5);
     
     // タイトル装飾
-    const decoration1 = this.add.circle(width / 2 - 80, 30, 4, 0x87CEEB, 0.6);
-    const decoration2 = this.add.circle(width / 2 + 80, 30, 4, 0x87CEEB, 0.6);
+    const decoration1 = this.add.circle(width / 2 - 80, 35, 4, 0x87CEEB, 0.6);
+    const decoration2 = this.add.circle(width / 2 + 80, 35, 4, 0x87CEEB, 0.6);
   }
 
   private createEquipSlots() {
     const { width } = this.cameras.main;
     
-    // レイアウト定数（item-select-scene-todo仕様）
-    const SLOT_Y = 90;
+    // レイアウト定数（装備スロットをさらに下に移動）
+    const SLOT_Y = 130; // 120 → 130 に変更（さらに10px下に移動）
     const SLOT_HEIGHT = 50;
     const SLOT_WIDTH = 180;
     
@@ -128,8 +128,8 @@ export class ItemSelectScene extends Phaser.Scene {
     const specialX = 100;
     
     // 🔧 修正：説明文を強制的に見えるように（背景付き）
-    const specialLabelBg = this.add.rectangle(specialX, SLOT_Y - 20, 160, 16, 0x000000, 0.8);
-    this.add.text(specialX, SLOT_Y - 20, '◆特殊枠（S〜Fレア用）', {
+    const specialLabelBg = this.add.rectangle(specialX, SLOT_Y - 35, 160, 16, 0x000000, 0.8);
+    this.add.text(specialX, SLOT_Y - 35, '◆特殊枠（S〜Fレア用）', {
       fontSize: '11px',
       color: '#FFFFFF',
       fontStyle: 'bold',
@@ -156,8 +156,8 @@ export class ItemSelectScene extends Phaser.Scene {
     const normalX = 300;
     
     // 🔧 修正：説明文を強制的に見えるように（背景付き）
-    const normalLabelBg = this.add.rectangle(normalX, SLOT_Y - 20, 160, 16, 0x000000, 0.8);
-    this.add.text(normalX, SLOT_Y - 20, '◆通常枠（B〜Fレア用）', {
+    const normalLabelBg = this.add.rectangle(normalX, SLOT_Y - 35, 160, 16, 0x000000, 0.8);
+    this.add.text(normalX, SLOT_Y - 35, '◆通常枠（B〜Fレア用）', {
       fontSize: '11px',
       color: '#FFFFFF',
       fontStyle: 'bold',
@@ -196,10 +196,10 @@ export class ItemSelectScene extends Phaser.Scene {
       SCREEN_HEIGHT: 710,
       
       // 各エリアの高さ
-      TITLE_HEIGHT: 60,
-      SLOT_AREA_HEIGHT: 60, // 特殊枠 + 通常枠（左右配置で高さ削減）
+      TITLE_HEIGHT: 70, // 60 → 70 に拡張（10px増加）
+      SLOT_AREA_HEIGHT: 100, // 90 → 100 に拡張（10px増加）
       ITEM_TITLE_HEIGHT: 40,
-      SCROLL_AREA_HEIGHT: 470, // 60px増加
+      SCROLL_AREA_HEIGHT: 420, // 440 → 420 に調整（20px減少）
       BUTTON_AREA_HEIGHT: 80,
       
       // マージン設定
@@ -208,23 +208,25 @@ export class ItemSelectScene extends Phaser.Scene {
       SAFE_MARGIN: 20
     };
     
-    // 🎨 アイテム一覧のタイトル（Y=140）- 美しいデザイン
-    const itemTitleY = LAYOUT_CONSTANTS.TITLE_HEIGHT + LAYOUT_CONSTANTS.SLOT_AREA_HEIGHT + 20; // 140
+    // 🎨 アイテム一覧のタイトル（Y=190）- 美しいデザイン
+    const itemTitleY = LAYOUT_CONSTANTS.TITLE_HEIGHT + LAYOUT_CONSTANTS.SLOT_AREA_HEIGHT + 20; // 190（20px下に移動）
     
     const itemTitleBg = this.add.rectangle(width / 2, itemTitleY, 200, 30, 0x0B2F5C, 0.7);
     itemTitleBg.setStrokeStyle(1, 0x87CEEB, 0.6);
+    itemTitleBg.setDepth(100); // 最前面に表示
     
-    this.add.text(width / 2, itemTitleY, '🎒 所持アイテム一覧', {
+    const itemTitleText = this.add.text(width / 2, itemTitleY, '🎒 所持アイテム一覧', {
       fontSize: '14px',
       color: '#FFFFFF',
       fontStyle: 'bold',
       fontFamily: 'Arial, sans-serif'
     }).setOrigin(0.5);
+    itemTitleText.setDepth(101); // タイトルテキストを最前面に表示
     
     // アイテム表示エリアの定義（マスクなし）
-    const itemAreaStartY = itemTitleY + 30; // タイトルの下に十分な余白
-    const itemAreaHeight = 470 - 30; // タイトル分を差し引く
-    const itemAreaEndY = itemAreaStartY + itemAreaHeight;
+    const itemAreaStartY = itemTitleY + 30; // タイトルの下に十分な余白（Y=220）
+    const itemAreaHeight = 420 - 30; // タイトル分を差し引く（390px）
+    const itemAreaEndY = itemAreaStartY + itemAreaHeight; // Y=610
     
     console.log('🔧 Item Display Area (No Mask):', {
       itemTitleY,
@@ -303,10 +305,10 @@ export class ItemSelectScene extends Phaser.Scene {
     
     // 🚨 緊急修正：直接描画でデバッグラインを強制表示
     
-    // タイトルエリア（Y=0-60）- 赤色
-    const titleRect = this.add.rectangle(width / 2, 30, width - 4, 56, 0x000000, 0)
+    // タイトルエリア（Y=0-70）- 赤色（拡張）
+    const titleRect = this.add.rectangle(width / 2, 35, width - 4, 66, 0x000000, 0)
       .setStrokeStyle(3, 0xFF0000);
-    const titleText = this.add.text(10, 5, 'タイトルエリア Y=0-60', {
+    const titleText = this.add.text(10, 5, 'タイトルエリア Y=0-70 (拡張)', {
       fontSize: '12px',
       color: '#FF0000',
       backgroundColor: '#000000',
@@ -314,10 +316,10 @@ export class ItemSelectScene extends Phaser.Scene {
     });
     this.debugElements.push(titleRect, titleText);
     
-    // 装備スロットエリア（Y=60-120）- 緑色
-    const slotRect = this.add.rectangle(width / 2, 90, width - 4, 56, 0x000000, 0)
+    // 装備スロットエリア（Y=70-170）- 緑色（さらに拡張）
+    const slotRect = this.add.rectangle(width / 2, 120, width - 4, 96, 0x000000, 0)
       .setStrokeStyle(3, 0x00FF00);
-    const slotText = this.add.text(10, 65, '装備スロットエリア Y=60-120', {
+    const slotText = this.add.text(10, 75, '装備スロットエリア Y=70-170 (さらに拡張)', {
       fontSize: '12px',
       color: '#00FF00',
       backgroundColor: '#000000',
@@ -325,10 +327,10 @@ export class ItemSelectScene extends Phaser.Scene {
     });
     this.debugElements.push(slotRect, slotText);
     
-    // アイテムタイトルエリア（Y=120-160）- 青色
-    const itemTitleRect = this.add.rectangle(width / 2, 140, width - 4, 36, 0x000000, 0)
+    // アイテムタイトルエリア（Y=170-210）- 青色
+    const itemTitleRect = this.add.rectangle(width / 2, 190, width - 4, 36, 0x000000, 0)
       .setStrokeStyle(3, 0x0000FF);
-    const itemTitleText = this.add.text(10, 125, 'アイテムタイトルエリア Y=120-160', {
+    const itemTitleText = this.add.text(10, 175, 'アイテムタイトルエリア Y=170-210', {
       fontSize: '12px',
       color: '#0000FF',
       backgroundColor: '#000000',
@@ -336,10 +338,10 @@ export class ItemSelectScene extends Phaser.Scene {
     });
     this.debugElements.push(itemTitleRect, itemTitleText);
     
-    // アイテム表示エリア（Y=160-630）- 黄色
-    const itemAreaRect = this.add.rectangle(width / 2, 395, width - 4, 466, 0x000000, 0)
+    // アイテム表示エリア（Y=210-630）- 黄色（開始位置を20px下に移動）
+    const itemAreaRect = this.add.rectangle(width / 2, 420, width - 4, 416, 0x000000, 0)
       .setStrokeStyle(4, 0xFFFF00);
-    const itemAreaText = this.add.text(10, 165, 'アイテム表示エリア Y=160-630', {
+    const itemAreaText = this.add.text(10, 215, 'アイテム表示エリア Y=210-630', {
       fontSize: '12px',
       color: '#FFFF00',
       backgroundColor: '#000000',
@@ -395,9 +397,16 @@ export class ItemSelectScene extends Phaser.Scene {
     // メイン背景（深い海の色）
     const bg = this.add.rectangle(0, 0, width, height, 0x2E5984, 0.9);
     
-    // レア度に応じたグラデーション効果
-    const gradientBg = this.add.rectangle(0, 0, width - 4, height - 4, rarityColor, 0.15);
-    gradientBg.setStrokeStyle(2, rarityColor, 0.8);
+    // レア度に応じたベース背景（常に表示）
+    const baseBg = this.add.rectangle(0, 0, width - 4, height - 4, rarityColor, 0.15);
+    
+    // ホバー効果専用の背景（初期は非表示）
+    const hoverBg = this.add.rectangle(0, 0, width - 4, height - 4, rarityColor, 0.1);
+    hoverBg.setVisible(false);
+    
+    // ストローク（枠線）を別要素として作成（常に表示）
+    const strokeBorder = this.add.rectangle(0, 0, width - 4, height - 4, 0x000000, 0);
+    strokeBorder.setStrokeStyle(2, rarityColor, 0.8);
     
     // 🎨 アイテム名（より読みやすく）
     const nameText = this.add.text(-width/2 + 15, -12, item.name, {
@@ -433,29 +442,37 @@ export class ItemSelectScene extends Phaser.Scene {
     const decoration1 = this.add.circle(-width/2 + 8, -height/2 + 8, 3, 0xFFFFFF, 0.3);
     const decoration2 = this.add.circle(width/2 - 8, height/2 - 8, 2, 0xFFFFFF, 0.2);
     
-    container.add([bg, gradientBg, nameText, countBg, countText, rarityBg, rarityText, decoration1, decoration2]);
+    container.add([bg, baseBg, hoverBg, strokeBorder, nameText, countBg, countText, rarityBg, rarityText, decoration1, decoration2]);
     
     // インタラクション
     container.setSize(width, height);
     container.setInteractive();
     
-    // 🎨 ホバー効果
+    // 🎨 ホバー効果（完全修正版：表示/非表示切り替え）
     container.on('pointerover', () => {
+      console.log(`[HOVER] ${item.name} - pointerover`);
       container.setScale(1.02);
-      gradientBg.setAlpha(0.25);
+      hoverBg.setVisible(true);
+      console.log(`[HOVER] ${item.name} - applied hover effect`);
     });
     
     container.on('pointerout', () => {
+      console.log(`[HOVER] ${item.name} - pointerout`);
       container.setScale(1.0);
-      gradientBg.setAlpha(0.15);
+      hoverBg.setVisible(false);
+      console.log(`[HOVER] ${item.name} - removed hover effect`);
     });
     
     container.on('pointerdown', () => {
-      // タップ時の視覚効果
+      console.log(`[HOVER] ${item.name} - pointerdown`);
       container.setScale(0.98);
-      this.time.delayedCall(100, () => {
-        container.setScale(1.0);
-      });
+    });
+    
+    container.on('pointerup', () => {
+      console.log(`[HOVER] ${item.name} - pointerup`);
+      container.setScale(1.0);
+      hoverBg.setVisible(false);
+      console.log(`[HOVER] ${item.name} - reset to normal state`);
       this.selectItem(item);
     });
     
@@ -489,18 +506,26 @@ export class ItemSelectScene extends Phaser.Scene {
     this.confirmButton.setSize(100, 40);
     this.confirmButton.setInteractive();
     
-    // ホバー効果
+    // ホバー効果（修正版：確実に元に戻る）
+    let isPressed = false;
+    
     this.confirmButton.on('pointerover', () => {
-      this.confirmButton.setScale(1.05);
+      if (!isPressed) {
+        this.confirmButton.setScale(1.05);
+      }
     });
     this.confirmButton.on('pointerout', () => {
-      this.confirmButton.setScale(1.0);
+      if (!isPressed) {
+        this.confirmButton.setScale(1.0);
+      }
     });
     this.confirmButton.on('pointerdown', () => {
+      isPressed = true;
       this.confirmButton.setScale(0.95);
-      this.time.delayedCall(100, () => {
-        this.confirmButton.setScale(1.0);
-      });
+    });
+    this.confirmButton.on('pointerup', () => {
+      isPressed = false;
+      this.confirmButton.setScale(1.0);
       this.confirmSelection();
     });
     
@@ -523,18 +548,26 @@ export class ItemSelectScene extends Phaser.Scene {
     this.cancelButton.setSize(100, 40);
     this.cancelButton.setInteractive();
     
-    // ホバー効果
+    // ホバー効果（修正版：確実に元に戻る）
+    let isCancelPressed = false;
+    
     this.cancelButton.on('pointerover', () => {
-      this.cancelButton.setScale(1.05);
+      if (!isCancelPressed) {
+        this.cancelButton.setScale(1.05);
+      }
     });
     this.cancelButton.on('pointerout', () => {
-      this.cancelButton.setScale(1.0);
+      if (!isCancelPressed) {
+        this.cancelButton.setScale(1.0);
+      }
     });
     this.cancelButton.on('pointerdown', () => {
+      isCancelPressed = true;
       this.cancelButton.setScale(0.95);
-      this.time.delayedCall(100, () => {
-        this.cancelButton.setScale(1.0);
-      });
+    });
+    this.cancelButton.on('pointerup', () => {
+      isCancelPressed = false;
+      this.cancelButton.setScale(1.0);
       this.cancelSelection();
     });
   }

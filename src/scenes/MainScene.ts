@@ -24,7 +24,7 @@ export class MainScene extends Scene {
   }
 
   create() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
 
     // 🏷️ 画面名をコンソールに表示
     console.log('🎬 === MAIN SCENE ===');
@@ -154,6 +154,10 @@ export class MainScene extends Scene {
   private addDebugLines(width: number, height: number) {
     console.log('🔧 [MAIN SCENE] Adding debug rectangles for area visualization...');
     
+    // 実際のボタン位置を計算
+    const playButtonY = 250;
+    const menuButtonY = 350;
+    
     // ヘッダーエリア（Y=0-120）- 赤色
     const headerRect = this.add.rectangle(width / 2, 60, width - 4, 116, 0x000000, 0)
       .setStrokeStyle(3, 0xFF0000);
@@ -165,10 +169,10 @@ export class MainScene extends Scene {
     });
     this.debugElements.push(headerRect, headerText);
     
-    // ステージ情報エリア（Y=120-350）- 緑色
-    const stageRect = this.add.rectangle(width / 2, 235, width - 4, 226, 0x000000, 0)
+    // ステージ情報エリア（Y=120-220）- 緑色
+    const stageRect = this.add.rectangle(width / 2, 170, width - 4, 96, 0x000000, 0)
       .setStrokeStyle(3, 0x00FF00);
-    const stageText = this.add.text(10, 125, 'ステージ情報エリア Y=120-350', {
+    const stageText = this.add.text(10, 125, 'ステージ情報エリア Y=120-220', {
       fontSize: '12px',
       color: '#00FF00',
       backgroundColor: '#000000',
@@ -176,10 +180,10 @@ export class MainScene extends Scene {
     });
     this.debugElements.push(stageRect, stageText);
     
-    // プレイボタンエリア（Y=350-450）- 青色
-    const playRect = this.add.rectangle(width / 2, 400, width - 4, 96, 0x000000, 0)
+    // プレイボタンエリア（Y=220-280）- 青色（実際のプレイボタン位置Y=250を含む）
+    const playRect = this.add.rectangle(width / 2, 250, width - 4, 56, 0x000000, 0)
       .setStrokeStyle(3, 0x0000FF);
-    const playText = this.add.text(10, 355, 'プレイボタンエリア Y=350-450', {
+    const playText = this.add.text(10, 225, `プレイボタンエリア Y=220-280 (実際: ${playButtonY})`, {
       fontSize: '12px',
       color: '#0000FF',
       backgroundColor: '#000000',
@@ -187,10 +191,10 @@ export class MainScene extends Scene {
     });
     this.debugElements.push(playRect, playText);
     
-    // メニューボタンエリア（Y=450-550）- 黄色
-    const menuRect = this.add.rectangle(width / 2, 500, width - 4, 96, 0x000000, 0)
+    // メニューボタンエリア（Y=320-380）- 黄色（実際のメニューボタン位置Y=350を含む）
+    const menuRect = this.add.rectangle(width / 2, 350, width - 4, 56, 0x000000, 0)
       .setStrokeStyle(3, 0xFFFF00);
-    const menuText = this.add.text(10, 455, 'メニューボタンエリア Y=450-550', {
+    const menuText = this.add.text(10, 325, `メニューボタンエリア Y=320-380 (実際: ${menuButtonY})`, {
       fontSize: '12px',
       color: '#FFFF00',
       backgroundColor: '#000000',
@@ -198,22 +202,13 @@ export class MainScene extends Scene {
     });
     this.debugElements.push(menuRect, menuText);
     
-    // フッターエリア（Y=550-710）- 紫色
-    const footerRect = this.add.rectangle(width / 2, 630, width - 4, 156, 0x000000, 0)
-      .setStrokeStyle(3, 0xFF00FF);
-    const footerText = this.add.text(10, 555, 'フッターエリア Y=550-710', {
-      fontSize: '12px',
-      color: '#FF00FF',
-      backgroundColor: '#000000',
-      fontStyle: 'bold'
-    });
-    this.debugElements.push(footerRect, footerText);
+    // 空白フッターエリアは削除（実際のコンテンツがないため）
     
     console.log('🔧 [MAIN SCENE] Debug elements count:', this.debugElements.length);
   }
 
   private logDetailedDebugInfo() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
     console.log('🔍 === DETAILED DEBUG INFO [MAIN SCENE] ===');
     console.log('📍 Current Screen:', {
       sceneName: 'MainScene',

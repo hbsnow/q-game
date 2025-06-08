@@ -25,7 +25,7 @@ export class ResultScene extends Scene {
   }
 
   create() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
     
     // 🏷️ 画面名をコンソールに表示
     console.log('🎬 === RESULT SCENE ===');
@@ -90,7 +90,7 @@ export class ResultScene extends Scene {
   }
   
   private createButtons() {
-    const { width } = this.scale;
+    const { width, height } = this.cameras.main;
     const buttonY = 450;
     
     if (this.resultData.score >= this.resultData.targetScore) {
@@ -156,8 +156,7 @@ export class ResultScene extends Scene {
       fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    // デバッグライン追加
-    this.addDebugLines(width, height);
+    // デバッグライン追加は create() メソッドで既に実行されているため削除
   }
   
   private setupDebugShortcut() {
@@ -252,7 +251,7 @@ export class ResultScene extends Scene {
   }
 
   private logDetailedDebugInfo() {
-    const { width, height } = this.scale;
+    const { width, height } = this.cameras.main;
     console.log('🔍 === DETAILED DEBUG INFO [RESULT SCENE] ===');
     console.log('📍 Current Screen:', {
       sceneName: 'ResultScene',
