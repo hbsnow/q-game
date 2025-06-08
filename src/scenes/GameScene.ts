@@ -1718,8 +1718,8 @@ export class GameScene extends Scene {
   async animateSwap(block1: Block, block2: Block): Promise<void> {
     console.log(`GameScene.animateSwap: Animating swap between blocks at (${block1.x},${block1.y}) and (${block2.x},${block2.y})`);
     
-    const sprite1 = this.blockSprites[block1.y][block1.x];
-    const sprite2 = this.blockSprites[block2.y][block2.x];
+    const sprite1 = this.blockSprites[block2.y][block2.x]; // 注意: 位置が既に入れ替わっているため
+    const sprite2 = this.blockSprites[block1.y][block1.x]; // 注意: 位置が既に入れ替わっているため
     
     if (!sprite1 || !sprite2) {
       console.error('Cannot animate swap: sprites not found', {
@@ -1758,8 +1758,8 @@ export class GameScene extends Scene {
         ease: 'Power2',
         onComplete: () => {
           // スプライト配列も更新
-          this.blockSprites[block1.y][block1.x] = sprite2;
-          this.blockSprites[block2.y][block2.x] = sprite1;
+          this.blockSprites[block1.y][block1.x] = sprite1;
+          this.blockSprites[block2.y][block2.x] = sprite2;
           
           // スプライトのデータも更新
           sprite1.setData('block', block1);
