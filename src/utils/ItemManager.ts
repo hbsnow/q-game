@@ -1,4 +1,5 @@
 import { Item, ItemType, ItemRarity, EquipSlot, EquipSlotType } from '../types';
+import { ITEM_DATA, getItemData } from '../data/ItemData';
 
 /**
  * アイテム管理システム
@@ -21,7 +22,7 @@ export class ItemManager {
    * アイテムを追加または所持数を増加
    */
   addItem(itemType: ItemType, count: number = 1): void {
-    const itemData = this.getItemData(itemType);
+    const itemData = getItemData(itemType);
     const existingItem = this.items.get(itemType);
 
     if (existingItem) {
@@ -193,39 +194,6 @@ export class ItemManager {
    */
   resetUsedItems(): void {
     this.usedItemIds.clear();
-  }
-
-  /**
-   * アイテムタイプから基本データを取得
-   */
-  private getItemData(itemType: ItemType): {
-    name: string;
-    rarity: ItemRarity;
-    description: string;
-    unlockStage: number;
-  } {
-    const itemDataMap: Record<ItemType, {
-      name: string;
-      rarity: ItemRarity;
-      description: string;
-      unlockStage: number;
-    }> = {
-      swap: { name: 'スワップ', rarity: 'E', description: '2つの指定ブロックを入れ替える', unlockStage: 1 },
-      changeOne: { name: 'チェンジワン', rarity: 'D', description: '指定ブロック1個を指定色に変更', unlockStage: 1 },
-      miniBomb: { name: 'ミニ爆弾', rarity: 'F', description: '1マスの指定ブロックを消去', unlockStage: 1 },
-      shuffle: { name: 'シャッフル', rarity: 'E', description: '盤面の通常ブロックを再配置', unlockStage: 1 },
-      meltingAgent: { name: '溶解剤', rarity: 'E', description: '氷結ブロックの解除に必要な回数を-1', unlockStage: 11 },
-      changeArea: { name: 'チェンジエリア', rarity: 'D', description: '隣接する同色ブロック全体を指定色に変更', unlockStage: 11 },
-      counterReset: { name: 'カウンター+リセット', rarity: 'F', description: '指定したカウンター+ブロックを通常ブロックにする', unlockStage: 21 },
-      bomb: { name: '爆弾', rarity: 'S', description: '3×3の範囲のブロックを消去', unlockStage: 31 },
-      addPlus: { name: 'アドプラス', rarity: 'B', description: 'カウンターブロックをカウンター+ブロックに変化', unlockStage: 41 },
-      scoreBooster: { name: 'スコアブースター', rarity: 'A', description: '使用後からそのステージの獲得スコアを1.5倍', unlockStage: 51 },
-      hammer: { name: 'ハンマー', rarity: 'C', description: '指定した岩ブロック1個を破壊', unlockStage: 61 },
-      steelHammer: { name: '鋼鉄ハンマー', rarity: 'B', description: '指定した鋼鉄ブロック1個を破壊', unlockStage: 81 },
-      specialHammer: { name: 'スペシャルハンマー', rarity: 'S', description: '指定したブロック1個を破壊', unlockStage: 81 }
-    };
-
-    return itemDataMap[itemType];
   }
 
   /**

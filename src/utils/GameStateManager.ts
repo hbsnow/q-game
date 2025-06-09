@@ -1,6 +1,6 @@
 import { GameState, Item, EquipSlot } from '../types';
 import { ItemManager } from './ItemManager';
-import { mockItems } from '../data/mockItems';
+import { ITEM_DATA } from '../data/ItemData';
 
 /**
  * ゲーム状態管理クラス
@@ -225,8 +225,19 @@ export class GameStateManager {
    * 開発用：モックアイテムを追加
    */
   private initializeWithMockItems(): void {
-    // モックアイテムを追加
-    mockItems.forEach(item => {
+    // 開発用の初期アイテムを追加
+    const initialItems = [
+      { type: 'swap', count: 3 },
+      { type: 'changeOne', count: 2 },
+      { type: 'miniBomb', count: 8 },
+      { type: 'shuffle', count: 5 },
+      { type: 'bomb', count: 3 },
+      { type: 'scoreBooster', count: 1 },
+      { type: 'hammer', count: 1 }
+    ];
+    
+    // 各アイテムを追加
+    initialItems.forEach(item => {
       this.itemManager.addItem(item.type, item.count);
     });
     
@@ -234,7 +245,7 @@ export class GameStateManager {
     this.itemManager.equipItem('bomb', 0);
     this.itemManager.equipItem('swap', 1);
     
-    console.log('Initialized with mock items');
+    console.log('Initialized with development items');
   }
 
   /**

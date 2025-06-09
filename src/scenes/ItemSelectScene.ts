@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Item, EquipSlot } from '../types';
 import { GameStateManager } from '../utils/GameStateManager';
-import { getRarityColor } from '../data/mockItems';
+import { getRarityColor } from '../data/ItemData';
 
 export class ItemSelectScene extends Phaser.Scene {
   private gameStateManager!: GameStateManager;
