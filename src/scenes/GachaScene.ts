@@ -554,10 +554,71 @@ export class GachaScene extends Scene {
       return;
     }
     
-    const { width, height } = this.cameras.main;
+    // 別のシーンとして確率詳細画面を起動
+    this.scene.pause();
+    this.scene.launch('GachaRateDetailsScene', {
+      gameStateManager: this.gameStateManager
+    });
+  }
     
-    // 確率詳細表示用のコンテナ
-    this.rateDetailsContainer = this.add.container(width / 2, height / 2);
+    // 背景オーバーレイ
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
+    overlay.setOrigin(0.5);
+    overlay.setInteractive();
+    overlay.on('pointerdown', () => {
+      this.rateDetailsContainer?.destroy();
+      this.rateDetailsContainer = null;
+    });
+    
+    // テーブルヘッダー
+    const headerBg = this.add.rectangle(width / 2, 70, width - 40, 25, 0x2A4A6A, 0.9);
+    headerBg.setStrokeStyle(1, 0xFFFFFF, 0.5);
+    
+    this.add.text(width / 2 - 100, 70, 'レア度', {
+      fontSize: '14px',
+      color: '#FFFFFF',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    this.add.text(width / 2, 70, '排出確率', {
+      fontSize: '14px',
+      color: '#FFFFFF',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    this.add.text(width / 2 + 100, 70, '出現数', {
+      fontSize: '14px',
+      color: '#FFFFFF',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // タイトル
+    const titleText = this.add.text(width / 2, 30, '排出確率詳細', {
+      fontSize: '18px',
+      color: '#FFFFFF',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // 閉じるボタン
+    const closeButton = this.add.rectangle(width - 30, 30, 30, 30, 0xFF5555, 0.8);
+    closeButton.setInteractive();
+    closeButton.on('pointerdown', () => {
+      this.rateDetailsContainer?.destroy();
+      this.rateDetailsContainer = null;
+    });
+    
+    const closeText = this.add.text(width - 30, 30, '×', {
+      fontSize: '20px',
+      color: '#FFFFFF'
+    }).setOrigin(0.5);
+    
+    // レア度ごとの確率
+    const rarityRates = this.gachaManager.getRarityRates();
+    let rateY = 95; // ヘッダーの下から開始
+    
+    // 各レア度の行
+    const rarities: string[] = ['S', 'A', 'B', 'C', 'D', 'E', 'F'];
+    const availableItems = this.gachaManager.getAvailableItems();
     
     // 背景オーバーレイ
     const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.7);
