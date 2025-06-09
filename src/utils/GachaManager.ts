@@ -67,6 +67,7 @@ export class GachaManager {
   public draw10Gacha(): GachaResult {
     const items: { type: ItemType, count: number }[] = [];
     let hasRareItem = false;
+    let guaranteedItemIndex = -1; // 確定枠のインデックス
     
     // 10回抽選
     for (let i = 0; i < 10; i++) {
@@ -92,6 +93,7 @@ export class GachaManager {
       const dOrAboveItems = this.getAvailableItemsByMinRarity('D');
       if (dOrAboveItems.length > 0) {
         const guaranteedItem = this.selectRandomItemFromList(dOrAboveItems);
+        guaranteedItemIndex = items.length - 1; // 最後のアイテムを確定枠とする
         
         // 最後のアイテムを置き換え
         if (items.length > 0) {
@@ -99,6 +101,7 @@ export class GachaManager {
           if (lastItem.count > 1) {
             lastItem.count--;
             items.push({ type: guaranteedItem, count: 1 });
+            guaranteedItemIndex = items.length - 1; // 新しく追加したアイテムが確定枠
           } else {
             items[items.length - 1] = { type: guaranteedItem, count: 1 };
           }
@@ -113,7 +116,11 @@ export class GachaManager {
       ['S', 'A'].includes(ITEM_DATA[item.type].rarity)
     );
     
-    return { items, isRare };
+    return { 
+      items, 
+      isRare,
+      guaranteedItemIndex // 確定枠のインデックス（-1の場合は確定枠なし＝自然にDレア以上が出た）
+    };
   }
 
   /**

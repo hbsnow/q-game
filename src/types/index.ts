@@ -84,8 +84,9 @@ export interface ObstacleConfig {
 
 // ガチャ結果
 export interface GachaResult {
-  items: Item[];
+  items: { type: ItemType, count: number }[];
   isRare: boolean; // S・Aレア含有フラグ
+  guaranteedItemIndex?: number; // 確定枠のインデックス（10連ガチャ用）
 }
 
 // スコア計算結果

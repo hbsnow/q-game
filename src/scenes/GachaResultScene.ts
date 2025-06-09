@@ -1,13 +1,14 @@
 import { Scene } from 'phaser';
 import { Item, ItemType } from '../types';
 import { GameStateManager } from '../utils/GameStateManager';
-import { getRarityColor } from '../data/ItemData';
+import { getRarityColor, getRarityStars } from '../data/ItemData';
 
 export class GachaResultScene extends Scene {
   private gameStateManager!: GameStateManager;
   private drawnItems: Item[] = [];
   private drawCount: number = 1;
   private isRare: boolean = false;
+  private guaranteedItemIndex: number = -1;
   private animationComplete: boolean = false;
   private treasureChest!: Phaser.GameObjects.Sprite;
   private resultContainer!: Phaser.GameObjects.Container;
@@ -30,11 +31,14 @@ export class GachaResultScene extends Scene {
     if (data.isRare !== undefined) {
       this.isRare = data.isRare;
     }
+    if (data.guaranteedItemIndex !== undefined) {
+      this.guaranteedItemIndex = data.guaranteedItemIndex;
+    }
     
     // アニメーション状態をリセット
     this.animationComplete = false;
     
-    console.log(`GachaResultScene initialized: ${this.drawCount} items, isRare: ${this.isRare}`);
+    console.log(`GachaResultScene initialized: ${this.drawCount} items, isRare: ${this.isRare}, guaranteedItemIndex: ${this.guaranteedItemIndex}`);
     console.log('Drawn items:', this.drawnItems);
   }
 
@@ -220,6 +224,34 @@ export class GachaResultScene extends Scene {
       
       this.animationComplete = true;
     });
+    
+    // S・Aレアの場合は特別な背景エフェクト
+    if (this.isRare) {
+      this.createRareBackgroundEffect();
+    }
+  }
+  
+  private createRareBackgroundEffect() {
+    const { width, height } = this.cameras.main;
+    
+    // 背景に金色の光を追加
+    const goldenLight = this.add.graphics();
+    goldenLight.fillStyle(0xFFD700, 0.1);
+    goldenLight.fillRect(0, 0, width, height);
+    
+    // 光の波紋
+    for (let i = 0; i < 3; i++) {
+      const ring = this.add.circle(width / 2, height / 2, 100 + i * 50, 0xFFD700, 0.1);
+      
+      this.tweens.add({
+        targets: ring,
+        scale: { from: 0.5, to: 3 },
+        alpha: { from: 0.2, to: 0 },
+        duration: 3000 + i * 500,
+        repeat: -1,
+        delay: i * 1000
+      });
+    }
   }
 
   private showResults() {
@@ -236,8 +268,10 @@ export class GachaResultScene extends Scene {
           fontStyle: 'bold'
         }).setOrigin(0.5);
         
-        // レア度表示
-        const rarityText = this.add.text(0, 0, `レア度: ${item.rarity}`, {
+        // レア度表示（星で表現）
+        const stars = getRarityStars(item.rarity);
+        const starText = '★'.repeat(stars) + '☆'.repeat(Math.max(0, 5 - stars));
+        const rarityText = this.add.text(0, 0, `${starText} (${item.rarity})`, {
           fontSize: '16px',
           color: getRarityColor(item.rarity)
         }).setOrigin(0.5);
@@ -256,6 +290,11 @@ export class GachaResultScene extends Scene {
         }).setOrigin(0.5);
         
         this.resultContainer.add([nameText, rarityText, countText, descText]);
+        
+        // S・Aレアの場合は特別演出
+        if (item.rarity === 'S' || item.rarity === 'A') {
+          this.createRareItemEffect();
+        }
       }
     } else {
       // 10回引きの場合
@@ -268,41 +307,71 @@ export class GachaResultScene extends Scene {
       this.resultContainer.add(titleText);
       
       // アイテムをカウント
-      const itemCounts: { [key: string]: { item: Item, count: number } } = {};
+      const itemCounts: { [key: string]: { item: Item, count: number, index: number } } = {};
       
-      this.drawnItems.forEach(item => {
+      this.drawnItems.forEach((item, index) => {
         const key = item.type;
         if (!itemCounts[key]) {
-          itemCounts[key] = { item, count: 0 };
+          itemCounts[key] = { item, count: 0, index };
         }
         itemCounts[key].count++;
       });
       
-      // 結果表示（左右2列に分ける）
+      // 結果表示（グリッドレイアウト）
       const entries = Object.values(itemCounts);
-      let leftY = -100;
-      let rightY = -100;
+      const gridSize = 3; // 3×4のグリッド
+      const cellWidth = 100;
+      const cellHeight = 60;
+      const startX = -cellWidth;
+      const startY = -100;
       
       entries.forEach((entry, index) => {
-        const isLeft = index % 2 === 0;
-        const x = isLeft ? -100 : 100;
-        const y = isLeft ? leftY : rightY;
+        const row = Math.floor(index / gridSize);
+        const col = index % gridSize;
+        const x = startX + col * cellWidth;
+        const y = startY + row * cellHeight;
         
-        const itemBg = this.add.rectangle(x, y, 180, 30, 0x000000, 0.3);
+        // アイテム背景（レア度に応じた色）
+        const bgColor = this.getRarityBackgroundColor(entry.item.rarity);
+        const itemBg = this.add.rectangle(x, y, cellWidth - 10, cellHeight - 10, bgColor, 0.3);
+        itemBg.setStrokeStyle(2, parseInt(getRarityColor(entry.item.rarity).replace('#', '0x')), 0.8);
         
-        const itemText = this.add.text(x, y, `${entry.item.name} ×${entry.count}`, {
-          fontSize: '14px',
+        // 確定枠の場合は特別な枠
+        if (this.guaranteedItemIndex !== -1 && entry.index === this.guaranteedItemIndex) {
+          itemBg.setStrokeStyle(3, 0xFFD700, 1);
+          
+          // 「確定」テキスト
+          const guaranteedText = this.add.text(x, y + cellHeight / 2 - 8, '確定', {
+            fontSize: '10px',
+            color: '#FFD700',
+            fontStyle: 'bold'
+          }).setOrigin(0.5);
+          
+          this.resultContainer.add(guaranteedText);
+        }
+        
+        // アイテム名
+        const itemText = this.add.text(x, y - 10, entry.item.name, {
+          fontSize: '12px',
           color: getRarityColor(entry.item.rarity),
           fontStyle: entry.item.rarity === 'S' || entry.item.rarity === 'A' ? 'bold' : 'normal'
         }).setOrigin(0.5);
         
-        this.resultContainer.add([itemBg, itemText]);
+        // 獲得数
+        const countText = this.add.text(x, y + 10, `×${entry.count}`, {
+          fontSize: '12px',
+          color: '#FFFFFF'
+        }).setOrigin(0.5);
         
-        if (isLeft) {
-          leftY += 35;
-        } else {
-          rightY += 35;
-        }
+        // レア度（星で表現）
+        const stars = getRarityStars(entry.item.rarity);
+        const starText = '★'.repeat(stars);
+        const starDisplay = this.add.text(x, y + 25, starText, {
+          fontSize: '10px',
+          color: getRarityColor(entry.item.rarity)
+        }).setOrigin(0.5);
+        
+        this.resultContainer.add([itemBg, itemText, countText, starDisplay]);
       });
       
       // S・Aレアが含まれている場合は特別表示
@@ -312,19 +381,34 @@ export class GachaResultScene extends Scene {
         );
         
         if (rareItems.length > 0) {
-          const specialY = Math.max(leftY, rightY) + 30;
+          const specialY = startY + Math.ceil(entries.length / gridSize) * cellHeight + 20;
           
           const specialBg = this.add.rectangle(0, specialY, 300, 40, 0xFFD700, 0.3);
           specialBg.setStrokeStyle(2, 0xFFD700, 0.8);
           
-          const specialText = this.add.text(0, specialY, `★ レアアイテム獲得! ★`, {
+          const specialText = this.add.text(0, specialY, `★ レアアイテム ${rareItems.length}個 獲得! ★`, {
             fontSize: '16px',
             color: '#FFD700',
             fontStyle: 'bold'
           }).setOrigin(0.5);
           
           this.resultContainer.add([specialBg, specialText]);
+          
+          // レアアイテムがある場合は特別演出
+          this.createRareItemEffect();
         }
+      }
+      
+      // Dレア以上確定枠の表示（自然に出た場合は表示しない）
+      if (this.guaranteedItemIndex !== -1) {
+        const guaranteedY = -150;
+        const guaranteedText = this.add.text(0, guaranteedY, 'Dレア以上1枠確定!', {
+          fontSize: '14px',
+          color: '#32CD32',
+          fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        this.resultContainer.add(guaranteedText);
       }
     }
     
@@ -334,6 +418,54 @@ export class GachaResultScene extends Scene {
       alpha: 1,
       duration: 500,
       ease: 'Power2'
+    });
+  }
+
+  private getRarityBackgroundColor(rarity: string): number {
+    switch (rarity) {
+      case 'S': return 0x332200;
+      case 'A': return 0x330000;
+      case 'B': return 0x220033;
+      case 'C': return 0x001133;
+      case 'D': return 0x003300;
+      case 'E': return 0x222222;
+      case 'F': return 0x111111;
+      default: return 0x000000;
+    }
+  }
+
+  private createRareItemEffect() {
+    const { width, height } = this.cameras.main;
+    
+    // キラキラエフェクト
+    for (let i = 0; i < 30; i++) {
+      const x = Phaser.Math.Between(-150, 150);
+      const y = Phaser.Math.Between(-150, 150);
+      const size = Phaser.Math.Between(2, 6);
+      
+      const star = this.add.star(x, y, 5, size, size * 2, 0xFFD700);
+      this.resultContainer.add(star);
+      
+      this.tweens.add({
+        targets: star,
+        angle: 360,
+        alpha: { from: 0, to: 1, yoyo: true },
+        scale: { from: 0.5, to: 1.5, yoyo: true },
+        duration: Phaser.Math.Between(1000, 2000),
+        repeat: -1
+      });
+    }
+    
+    // 光の輪
+    const ring = this.add.circle(0, 0, 100, 0xFFD700, 0.3);
+    this.resultContainer.add(ring);
+    
+    this.tweens.add({
+      targets: ring,
+      scale: { from: 0.5, to: 2 },
+      alpha: { from: 0.5, to: 0 },
+      duration: 2000,
+      repeat: -1
     });
   }
 
