@@ -246,19 +246,22 @@ export class GachaResultScene extends Scene {
     const { width, height } = this.cameras.main;
     
     // タイトルエリア（赤色）
-    this.debugHelper.addAreaBorder(width / 2, 50, width, 50, 0xFF0000, 'タイトルエリア');
+    this.debugHelper.addAreaBorder(width / 2, 25, width, 50, 0xFF0000, 'タイトルエリア');
     
     // 宝箱表示エリア（黄色）
-    this.debugHelper.addAreaBorder(width / 2, height / 2 - 50, width, 150, 0xFFFF00, '宝箱表示エリア');
+    // 宝箱は height / 2 - 50 の位置にあるので、その周りに適切なサイズで配置
+    this.debugHelper.addAreaBorder(width / 2, height / 2 - 50, width, 120, 0xFFFF00, '宝箱表示エリア');
     
     // 結果表示エリア（黄色）
     if (this.drawCount === 1) {
-      // 1回引きの場合
-      this.debugHelper.addAreaBorder(width / 2, height / 2 + 100, width, 200, 0xFFFF00, '結果表示エリア');
+      // 1回引きの場合 - 宝箱エリアの下に配置
+      const resultY = (height / 2 - 50) + 60 + 100; // 宝箱Y + 宝箱高さの半分 + 結果エリア高さの半分
+      this.debugHelper.addAreaBorder(width / 2, resultY, width, 200, 0xFFFF00, '結果表示エリア');
     } else {
       // 10連の場合
       const itemsHeight = Math.min(this.drawnItems.length, 10) * 30 + 50;
-      this.debugHelper.addAreaBorder(width / 2, height / 2 + 100, width, itemsHeight, 0xFFFF00, '結果表示エリア');
+      const resultY = (height / 2 - 50) + 60 + (itemsHeight / 2); // 宝箱Y + 宝箱高さの半分 + 結果エリア高さの半分
+      this.debugHelper.addAreaBorder(width / 2, resultY, width, itemsHeight, 0xFFFF00, '結果表示エリア');
     }
     
     // ボタンエリア（紫色）

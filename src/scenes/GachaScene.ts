@@ -258,7 +258,7 @@ export class GachaScene extends Scene {
     const { width, height } = this.cameras.main;
     
     // タイトルエリア（赤色）
-    this.debugHelper.addAreaBorder(width / 2, 50, width, 60, 0xFF0000, 'タイトルエリア');
+    this.debugHelper.addAreaBorder(width / 2, 30, width, 60, 0xFF0000, 'タイトルエリア');
     
     // ゴールド表示エリア（青色）
     this.debugHelper.addAreaBorder(width / 2, 90, width, 30, 0x0000FF, 'ゴールド表示');
@@ -279,13 +279,16 @@ export class GachaScene extends Scene {
     this.debugHelper.addAreaBorder(width / 2, 350, width, 30, 0x0000FF, '排出アイテム見出し');
     
     // 排出確率表示エリア（黄色）
-    const rateHeight = 20 * Object.values(this.gachaManager.getRarityRates()).filter(rate => rate > 0).length;
-    this.debugHelper.addAreaBorder(width / 2, 390, width, rateHeight, 0xFFFF00, '排出確率表示');
+    const rarityRates = this.gachaManager.getRarityRates();
+    const visibleRarities = Object.values(rarityRates).filter(rate => rate > 0).length;
+    const rateHeight = 20 * visibleRarities;
+    const rateY = 380 + (rateHeight / 2);
+    this.debugHelper.addAreaBorder(width / 2, rateY, width, rateHeight, 0xFFFF00, '排出確率表示');
     
     // 排出アイテム一覧エリア（黄色）
     const availableItems = this.gachaManager.getAvailableItems();
     const itemsHeight = Math.ceil(availableItems.length / 2) * 20;
-    const itemsY = 390 + rateHeight + itemsHeight / 2;
+    const itemsY = rateY + (rateHeight / 2) + (itemsHeight / 2) + 10; // 10pxの間隔を追加
     this.debugHelper.addAreaBorder(width / 2, itemsY, width, itemsHeight, 0xFFFF00, '排出アイテム一覧');
     
     // 戻るボタンエリア（紫色）
