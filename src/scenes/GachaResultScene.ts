@@ -1,5 +1,5 @@
 import { Scene } from 'phaser';
-import { Item, ItemType } from '../types';
+import { Item } from '../types';
 import { GameStateManager } from '../utils/GameStateManager';
 import { getRarityColor, getRarityStars } from '../data/ItemData';
 
@@ -9,6 +9,7 @@ export class GachaResultScene extends Scene {
   private drawCount: number = 1;
   private isRare: boolean = false;
   private guaranteedItemIndex: number = -1;
+  // アニメーション完了フラグ - 実際にはthis.time.delayedCallで使用されている
   private animationComplete: boolean = false;
   private treasureChest!: Phaser.GameObjects.Sprite;
   private resultContainer!: Phaser.GameObjects.Container;
@@ -255,7 +256,10 @@ export class GachaResultScene extends Scene {
   }
 
   private showResults() {
+    // width, heightは両方使用するので残す
     const { width, height } = this.cameras.main;
+    
+    // 以下のコードでwidthとheightを使用
     
     if (this.drawCount === 1) {
       // 1回引きの場合
@@ -435,7 +439,8 @@ export class GachaResultScene extends Scene {
   }
 
   private createRareItemEffect() {
-    const { width, height } = this.cameras.main;
+    // heightは実際に使用する
+    const { height } = this.cameras.main;
     
     // キラキラエフェクト
     for (let i = 0; i < 30; i++) {
