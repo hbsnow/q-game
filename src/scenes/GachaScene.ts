@@ -3,6 +3,7 @@ import { GameStateManager } from '../utils/GameStateManager';
 import { GachaManager } from '../utils/GachaManager';
 import { getRarityColor, ITEM_DATA } from '../data/ItemData';
 import { ItemType } from '../types';
+import { DebugHelper } from '../utils/DebugHelper';
 
 export class GachaScene extends Scene {
   private gameStateManager!: GameStateManager;
@@ -17,6 +18,7 @@ export class GachaScene extends Scene {
   private rateDetailsContainer: Phaser.GameObjects.Container | null = null;
   private isDrawing: boolean = false; // ガチャ実行中フラグ
   private loadingSpinner: Phaser.GameObjects.Container | null = null; // ローディングスピナー
+  private debugHelper!: DebugHelper;
 
   constructor() {
     super({ key: 'GachaScene' });
@@ -244,6 +246,49 @@ export class GachaScene extends Scene {
     
     // ボタンの有効/無効状態を更新
     this.updateButtonStates();
+    
+    // デバッグヘルパーを初期化
+    this.debugHelper = new DebugHelper(this);
+    
+    // エリア境界線を追加
+    this.addDebugLines();
+  }
+  
+  private addDebugLines() {
+    const { width, height } = this.cameras.main;
+    
+    // タイトルエリア（赤色）
+    this.debugHelper.addAreaBorder(width / 2, 50, width - 4, 60, 0xFF0000, 'タイトルエリア');
+    
+    // ゴールド表示エリア（青色）
+    this.debugHelper.addAreaBorder(width / 2, 90, 200, 30, 0x0000FF, 'ゴールド表示');
+    
+    // ガチャ価格表示エリア（青色）
+    this.debugHelper.addAreaBorder(width / 2, 150, 250, 40, 0x0000FF, 'ガチャ価格表示');
+    
+    // ボタンエリア（紫色）
+    this.debugHelper.addAreaBorder(width / 2, 220, 300, 50, 0xFF00FF, 'ガチャボタンエリア');
+    
+    // 10連ガチャ特典表示エリア（青色）
+    this.debugHelper.addAreaBorder(width / 2, 270, 300, 30, 0x0000FF, '10連特典表示');
+    
+    // 確率表示ボタンエリア（紫色）
+    this.debugHelper.addAreaBorder(width / 2, 310, 200, 40, 0xFF00FF, '確率表示ボタン');
+    
+    // 排出アイテム見出しエリア（青色）
+    this.debugHelper.addAreaBorder(width / 2, 350, width - 40, 30, 0x0000FF, '排出アイテム見出し');
+    
+    // 排出確率表示エリア（黄色）
+    const rateHeight = 20 * Object.values(this.gachaManager.getRarityRates()).filter(rate => rate > 0).length;
+    this.debugHelper.addAreaBorder(width / 2, 380 + rateHeight / 2 - 10, width - 40, rateHeight, 0xFFFF00, '排出確率表示');
+    
+    // 排出アイテム一覧エリア（黄色）
+    const availableItems = this.gachaManager.getAvailableItems();
+    const itemsHeight = Math.ceil(availableItems.length / 2) * 20;
+    this.debugHelper.addAreaBorder(width / 2, 450 + itemsHeight / 2 - 10, width - 40, itemsHeight, 0xFFFF00, '排出アイテム一覧');
+    
+    // 戻るボタンエリア（紫色）
+    this.debugHelper.addAreaBorder(width / 2, height - 80, 150, 50, 0xFF00FF, '戻るボタン');
   }
 
   private drawGacha(count: number) {

@@ -2,6 +2,7 @@ import { Scene } from 'phaser';
 import { Item } from '../types';
 import { GameStateManager } from '../utils/GameStateManager';
 import { getRarityColor, getRarityStars } from '../data/ItemData';
+import { DebugHelper } from '../utils/DebugHelper';
 
 export class GachaResultScene extends Scene {
   private gameStateManager!: GameStateManager;
@@ -13,6 +14,7 @@ export class GachaResultScene extends Scene {
   private animationComplete: boolean = false;
   private treasureChest!: Phaser.GameObjects.Sprite;
   private resultContainer!: Phaser.GameObjects.Container;
+  private debugHelper!: DebugHelper;
 
   constructor() {
     super({ key: 'GachaResultScene' });
@@ -232,6 +234,35 @@ export class GachaResultScene extends Scene {
     if (this.isRare) {
       this.createRareBackgroundEffect();
     }
+    
+    // デバッグヘルパーを初期化
+    this.debugHelper = new DebugHelper(this);
+    
+    // エリア境界線を追加
+    this.addDebugLines();
+  }
+  
+  private addDebugLines() {
+    const { width, height } = this.cameras.main;
+    
+    // タイトルエリア（赤色）
+    this.debugHelper.addAreaBorder(width / 2, 50, 250, 50, 0xFF0000, 'タイトルエリア');
+    
+    // 宝箱表示エリア（黄色）
+    this.debugHelper.addAreaBorder(width / 2, height / 2 - 50, 150, 150, 0xFFFF00, '宝箱表示エリア');
+    
+    // 結果表示エリア（黄色）
+    if (this.drawCount === 1) {
+      // 1回引きの場合
+      this.debugHelper.addAreaBorder(width / 2, height / 2, 300, 200, 0xFFFF00, '結果表示エリア');
+    } else {
+      // 10連の場合
+      const itemsHeight = Math.min(this.drawnItems.length, 10) * 30 + 50;
+      this.debugHelper.addAreaBorder(width / 2, height / 2, 300, itemsHeight, 0xFFFF00, '結果表示エリア');
+    }
+    
+    // ボタンエリア（紫色）
+    this.debugHelper.addAreaBorder(width / 2, height - 120, 280, 50, 0xFF00FF, 'ボタンエリア');
   }
   
   private createRareBackgroundEffect() {
