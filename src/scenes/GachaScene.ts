@@ -284,18 +284,21 @@ export class GachaScene extends Scene {
         itemManager.addItem(item.type, item.count);
       });
       
-      // 獲得アイテムの詳細情報を作成
-      const drawnItems = result.items.map(item => {
-        return {
+      // 獲得アイテムの詳細情報を作成（集約されたアイテムを展開）
+      const drawnItems = result.items.flatMap(item => {
+        // 各アイテムをcount分だけ複製して展開
+        return Array(item.count).fill(null).map(() => ({
           id: `${item.type}_temp`,
           type: item.type as ItemType,
           name: ITEM_DATA[item.type].name,
           rarity: ITEM_DATA[item.type].rarity,
-          count: item.count,
+          count: 1,
           description: ITEM_DATA[item.type].description,
           unlockStage: ITEM_DATA[item.type].unlockStage
-        };
+        }));
       });
+      
+      console.log(`展開後のアイテム数: ${drawnItems.length}`);
       
       // ローディングスピナーを非表示
       this.hideLoadingSpinner();
