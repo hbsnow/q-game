@@ -560,14 +560,6 @@ export class GachaScene extends Scene {
       gameStateManager: this.gameStateManager
     });
   }
-    
-    // 背景オーバーレイ
-    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
-    overlay.setOrigin(0.5);
-    overlay.setInteractive();
-    overlay.on('pointerdown', () => {
-      this.rateDetailsContainer?.destroy();
-      this.rateDetailsContainer = null;
     });
     
     // テーブルヘッダー
@@ -805,40 +797,4 @@ export class GachaScene extends Scene {
       this.rateDetailsContainer?.destroy();
       this.rateDetailsContainer = null;
     });
-    
-    this.add.text(0, panel.height / 2 - 20, '閉じる', {
-      fontSize: '14px',
-      color: '#FFFFFF',
-      fontStyle: 'bold'
-    }).setOrigin(0.5);
-    
-    // コンテナに追加
-    this.rateDetailsContainer.add([
-      overlay, panel, titleText, closeButton, closeText,
-      headerBg, guaranteedBg, bottomCloseButton
-    ]);
-    
-    // スクロール可能なコンテンツエリアを作成（必要に応じて）
-    if (currentY > panel.height / 2 - 30) {
-      // コンテンツが多すぎる場合は、アイテム一覧を省略表示
-      const maxRarities = 3; // 表示するレア度の最大数を減らす
-      let displayedRarities = 0;
-      
-      // コンテナから既存のアイテム一覧を削除
-      this.rateDetailsContainer.each((child) => {
-        if (child.y > rateY + 20) {
-          child.destroy();
-        }
-      });
-      
-      // 省略メッセージを追加
-      const moreText = this.add.text(0, rateY + 40, '※ 一部のアイテムは省略表示されています', {
-        fontSize: '10px',
-        color: '#CCCCCC',
-        fontStyle: 'italic'
-      }).setOrigin(0.5);
-      
-      this.rateDetailsContainer.add(moreText);
-    }
-  }
 }
