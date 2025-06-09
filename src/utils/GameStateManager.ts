@@ -165,35 +165,6 @@ export class GameStateManager {
   }
 
   /**
-   * 特殊枠にアイテムを装備
-   */
-  public equipSpecialItem(itemId: string): void {
-    this.gameState.equippedItems.special = itemId;
-  }
-  
-  /**
-   * 通常枠にアイテムを装備
-   */
-  public equipNormalItem(itemId: string): void {
-    this.gameState.equippedItems.normal = itemId;
-  }
-  
-  /**
-   * 装備中のアイテムを取得
-   */
-  public getEquippedItems(): { special: string | null, normal: string | null } {
-    return this.gameState.equippedItems;
-  }
-  
-  /**
-   * アイテムが装備されているかチェック
-   */
-  public isItemEquipped(itemId: string): boolean {
-    return this.gameState.equippedItems.special === itemId || 
-           this.gameState.equippedItems.normal === itemId;
-  }
-  
-  /**
    * アイテムを使用済みとしてマーク
    */
   public markItemAsUsed(itemId: string): void {
@@ -220,30 +191,38 @@ export class GameStateManager {
    * 特殊枠にアイテムを装備
    */
   public equipSpecialItem(itemId: string): void {
-    this.gameState.equippedItems.special = itemId;
+    if (this.gameState.equippedItems) {
+      this.gameState.equippedItems.special = itemId;
+    }
   }
   
   /**
    * 通常枠にアイテムを装備
    */
   public equipNormalItem(itemId: string): void {
-    this.gameState.equippedItems.normal = itemId;
+    if (this.gameState.equippedItems) {
+      this.gameState.equippedItems.normal = itemId;
+    }
   }
   
   /**
    * 装備中のアイテムを取得
    */
   public getEquippedItems(): { special: string | null, normal: string | null } {
-    return this.gameState.equippedItems;
+    return this.gameState.equippedItems || { special: null, normal: null };
   }
   
   /**
    * アイテムが装備されているかチェック
    */
   public isItemEquipped(itemId: string): boolean {
+    if (!this.gameState.equippedItems) return false;
     return this.gameState.equippedItems.special === itemId || 
            this.gameState.equippedItems.normal === itemId;
   }
+
+  /**
+   * 開発用：モックアイテムを追加
    */
   private initializeWithMockItems(): void {
     // モックアイテムを追加
