@@ -15,6 +15,8 @@ export class GachaScene extends Scene {
   private singleButton!: Phaser.GameObjects.Rectangle; // 1回ガチャボタン
   private tenButton!: Phaser.GameObjects.Rectangle; // 10連ガチャボタン
   private rateDetailsContainer: Phaser.GameObjects.Container | null = null;
+  private isDrawing: boolean = false; // ガチャ実行中フラグ
+  private loadingSpinner: Phaser.GameObjects.Container | null = null; // ローディングスピナー
 
   constructor() {
     super({ key: 'GachaScene' });
@@ -245,6 +247,9 @@ export class GachaScene extends Scene {
   }
 
   private drawGacha(count: number) {
+    // ガチャ実行中なら処理しない
+    if (this.isDrawing) return;
+    
     const cost = count === 1 ? 
       this.gachaManager.getGachaPrice() : 
       this.gachaManager.getGacha10Price();
@@ -256,46 +261,174 @@ export class GachaScene extends Scene {
 
     console.log(`🎰 ガチャを${count}回引きます (コスト: ${cost}G)`);
     
-    // ガチャを実行
-    const result = count === 1 ? 
-      this.gachaManager.drawGacha() : 
-      this.gachaManager.draw10Gacha();
+    // ガチャ実行中フラグをセット
+    this.isDrawing = true;
     
-    // ゴールドを消費
-    this.gold -= cost;
-    this.gameStateManager.getGameState().gold = this.gold;
+    // ローディングスピナーを表示
+    this.showLoadingSpinner();
     
-    // 獲得したアイテムを所持アイテムに追加
-    const itemManager = this.gameStateManager.getItemManager();
-    result.items.forEach(item => {
-      itemManager.addItem(item.type, item.count);
-    });
-    
-    // 獲得アイテムの詳細情報を作成
-    const drawnItems = result.items.map(item => {
-      // itemDataは使用しないのでコメントアウト
-      // const itemData = this.gameStateManager.getItemManager().getAllItems()
-      //   .find(i => i.type === item.type);
+    // ガチャ演出のための遅延（実際のゲームでは適切な時間に調整）
+    this.time.delayedCall(1500, () => {
+      // ガチャを実行
+      const result = count === 1 ? 
+        this.gachaManager.drawGacha() : 
+        this.gachaManager.draw10Gacha();
       
-      return {
-        id: `${item.type}_temp`,
-        type: item.type as ItemType,
-        name: ITEM_DATA[item.type].name,
-        rarity: ITEM_DATA[item.type].rarity,
-        count: item.count,
-        description: ITEM_DATA[item.type].description,
-        unlockStage: ITEM_DATA[item.type].unlockStage
-      };
+      // ゴールドを消費
+      this.gold -= cost;
+      this.gameStateManager.getGameState().gold = this.gold;
+      
+      // 獲得したアイテムを所持アイテムに追加
+      const itemManager = this.gameStateManager.getItemManager();
+      result.items.forEach(item => {
+        itemManager.addItem(item.type, item.count);
+      });
+      
+      // 獲得アイテムの詳細情報を作成
+      const drawnItems = result.items.map(item => {
+        return {
+          id: `${item.type}_temp`,
+          type: item.type as ItemType,
+          name: ITEM_DATA[item.type].name,
+          rarity: ITEM_DATA[item.type].rarity,
+          count: item.count,
+          description: ITEM_DATA[item.type].description,
+          unlockStage: ITEM_DATA[item.type].unlockStage
+        };
+      });
+      
+      // ローディングスピナーを非表示
+      this.hideLoadingSpinner();
+      
+      // ガチャ結果画面に遷移
+      this.scene.start('GachaResultScene', {
+        gameStateManager: this.gameStateManager,
+        drawnItems: drawnItems,
+        drawCount: count,
+        isRare: result.isRare,
+        guaranteedItemIndex: result.guaranteedItemIndex
+      });
     });
+  }
 
-    // ガチャ結果画面に遷移
-    this.scene.start('GachaResultScene', {
-      gameStateManager: this.gameStateManager,
-      drawnItems: drawnItems,
-      drawCount: count,
-      isRare: result.isRare,
-      guaranteedItemIndex: result.guaranteedItemIndex
+  private showLoadingSpinner() {
+    const { width, height } = this.cameras.main;
+    
+    // ローディングスピナーのコンテナ
+    this.loadingSpinner = this.add.container(width / 2, height / 2);
+    
+    // 半透明の背景オーバーレイ
+    const overlay = this.add.rectangle(0, 0, width, height, 0x000000, 0.5);
+    overlay.setOrigin(0.5);
+    
+    // スピナーの背景
+    const spinnerBg = this.add.circle(0, 0, 50, 0x1A3A5A, 0.8);
+    spinnerBg.setStrokeStyle(3, 0x87CEEB, 0.8);
+    
+    // スピナーのドット
+    const dots = [];
+    const dotCount = 8;
+    const radius = 30;
+    
+    for (let i = 0; i < dotCount; i++) {
+      const angle = (i / dotCount) * Math.PI * 2;
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius;
+      const size = 5;
+      
+      const dot = this.add.circle(x, y, size, 0xFFFFFF, 0.5 + (i / dotCount) * 0.5);
+      dots.push(dot);
+    }
+    
+    // 「抽選中...」テキスト
+    const loadingText = this.add.text(0, 70, '抽選中...', {
+      fontSize: '18px',
+      color: '#FFFFFF',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // 宝箱アイコン
+    const treasureIcon = this.add.rectangle(0, 0, 30, 20, 0xFFD700, 1);
+    treasureIcon.setStrokeStyle(2, 0xFFFFFF, 0.8);
+    
+    // コンテナに追加
+    this.loadingSpinner.add([overlay, spinnerBg, ...dots, loadingText, treasureIcon]);
+    
+    // スピナーのアニメーション
+    this.tweens.add({
+      targets: spinnerBg,
+      angle: 360,
+      duration: 2000,
+      repeat: -1,
+      ease: 'Linear'
     });
+    
+    // ドットのアニメーション
+    dots.forEach((dot, i) => {
+      this.tweens.add({
+        targets: dot,
+        scale: { from: 0.5, to: 1.5, yoyo: true },
+        alpha: { from: 0.3, to: 1, yoyo: true },
+        duration: 1000,
+        repeat: -1,
+        delay: i * (1000 / dotCount)
+      });
+    });
+    
+    // 宝箱のアニメーション
+    this.tweens.add({
+      targets: treasureIcon,
+      y: { from: -5, to: 5 },
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    // 泡エフェクト
+    this.time.addEvent({
+      delay: 300,
+      callback: () => {
+        if (this.loadingSpinner) {
+          const bubbleX = Phaser.Math.Between(-40, 40);
+          const bubbleY = Phaser.Math.Between(-40, 40);
+          const bubbleSize = Phaser.Math.Between(2, 5);
+          
+          const bubble = this.add.circle(bubbleX, bubbleY, bubbleSize, 0xFFFFFF, 0.6);
+          this.loadingSpinner.add(bubble);
+          
+          this.tweens.add({
+            targets: bubble,
+            y: bubbleY - 50,
+            x: bubbleX + Phaser.Math.Between(-20, 20),
+            alpha: 0,
+            scale: { from: 1, to: 0 },
+            duration: 1000,
+            onComplete: () => {
+              bubble.destroy();
+            }
+          });
+        }
+      },
+      repeat: 20
+    });
+    
+    // ボタンを無効化
+    this.singleButton.disableInteractive();
+    this.tenButton.disableInteractive();
+  }
+
+  private hideLoadingSpinner() {
+    if (this.loadingSpinner) {
+      this.loadingSpinner.destroy();
+      this.loadingSpinner = null;
+    }
+    
+    // ガチャ実行中フラグをリセット
+    this.isDrawing = false;
+    
+    // ボタンの状態を更新
+    this.updateButtonStates();
   }
 
   private showError(message: string) {
@@ -330,6 +463,15 @@ export class GachaScene extends Scene {
     const singlePrice = this.gachaManager.getGachaPrice();
     const tenPrice = this.gachaManager.getGacha10Price();
     
+    // ガチャ実行中は全てのボタンを無効化
+    if (this.isDrawing) {
+      this.singleButton.setFillStyle(0x888888, 0.5);
+      this.singleButton.disableInteractive();
+      this.tenButton.setFillStyle(0x888888, 0.5);
+      this.tenButton.disableInteractive();
+      return;
+    }
+    
     // 1回ガチャボタンの状態更新
     if (this.gold < singlePrice) {
       this.singleButton.setFillStyle(0x888888, 0.5);
@@ -347,6 +489,9 @@ export class GachaScene extends Scene {
       this.tenButton.setFillStyle(0xFF9800, 0.8);
       this.tenButton.setInteractive();
     }
+    
+    // ゴールド表示を更新
+    this.goldText.setText(`ゴールド: ${this.gold}`);
   }
 
   private showRateDetails() {
