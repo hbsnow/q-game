@@ -41,6 +41,8 @@ export class GachaResultScene extends Scene {
     
     console.log(`GachaResultScene initialized: ${this.drawCount} items, isRare: ${this.isRare}, guaranteedItemIndex: ${this.guaranteedItemIndex}`);
     console.log('Drawn items:', this.drawnItems);
+    console.log('Debug - drawnItems length:', this.drawnItems.length);
+    console.log('Debug - drawnItems types:', this.drawnItems.map(item => item.type).join(', '));
   }
 
   create() {
@@ -258,6 +260,9 @@ export class GachaResultScene extends Scene {
   private showResults() {
     const { width, height } = this.cameras.main;
     
+    console.log('Debug - showResults called with drawCount:', this.drawCount);
+    console.log('Debug - drawnItems in showResults:', this.drawnItems.length);
+    
     if (this.drawCount === 1) {
       // 1回引きの場合
       const item = this.drawnItems[0];
@@ -307,32 +312,26 @@ export class GachaResultScene extends Scene {
       
       this.resultContainer.add(titleText);
       
-      // アイテムをカウント
-      const itemCounts: { [key: string]: { item: Item, count: number, index: number } } = {};
+      // 直接アイテムを表示（カウントせずに）
+      console.log('Debug - Displaying all items directly:', this.drawnItems.length);
       
-      this.drawnItems.forEach((item, index) => {
-        const key = item.type;
-        if (!itemCounts[key]) {
-          itemCounts[key] = { item, count: 0, index };
-        }
-        itemCounts[key].count++;
-      });
-      
-      // 結果表示（シンプルなリスト形式）
-      const entries = Object.values(itemCounts);
       let startY = -100;
       const lineHeight = 30;
+      const maxVisibleItems = 10; // 最大表示数
       
-      entries.forEach((entry, index) => {
+      // 表示するアイテム数を制限（スクロールなしで表示できる数）
+      const displayItems = this.drawnItems.slice(0, maxVisibleItems);
+      
+      displayItems.forEach((item, index) => {
         const y = startY + index * lineHeight;
         
         // アイテム背景
-        const bgColor = this.getRarityBackgroundColor(entry.item.rarity);
+        const bgColor = this.getRarityBackgroundColor(item.rarity);
         const itemBg = this.add.rectangle(0, y, 280, lineHeight - 4, bgColor, 0.3);
-        itemBg.setStrokeStyle(2, parseInt(getRarityColor(entry.item.rarity).replace('#', '0x')), 0.8);
+        itemBg.setStrokeStyle(2, parseInt(getRarityColor(item.rarity).replace('#', '0x')), 0.8);
         
         // 確定枠の場合は特別な枠
-        if (this.guaranteedItemIndex !== -1 && entry.index === this.guaranteedItemIndex) {
+        if (this.guaranteedItemIndex !== -1 && index === this.guaranteedItemIndex) {
           itemBg.setStrokeStyle(3, 0xFFD700, 1);
           
           // 「確定」テキスト
@@ -346,22 +345,22 @@ export class GachaResultScene extends Scene {
         }
         
         // アイテム名
-        const itemText = this.add.text(-120, y, entry.item.name, {
+        const itemText = this.add.text(-120, y, item.name, {
           fontSize: '14px',
-          color: getRarityColor(entry.item.rarity),
-          fontStyle: entry.item.rarity === 'S' || entry.item.rarity === 'A' ? 'bold' : 'normal'
+          color: getRarityColor(item.rarity),
+          fontStyle: item.rarity === 'S' || item.rarity === 'A' ? 'bold' : 'normal'
         }).setOrigin(0, 0.5);
         
         // レア度（星で表現）
-        const stars = getRarityStars(entry.item.rarity);
+        const stars = getRarityStars(item.rarity);
         const starText = '★'.repeat(stars);
         const starDisplay = this.add.text(0, y, starText, {
           fontSize: '12px',
-          color: getRarityColor(entry.item.rarity)
+          color: getRarityColor(item.rarity)
         }).setOrigin(0.5, 0.5);
         
         // 獲得数
-        const countText = this.add.text(100, y, `×${entry.count}`, {
+        const countText = this.add.text(100, y, `×1`, {
           fontSize: '14px',
           color: '#FFFFFF'
         }).setOrigin(1, 0.5);
@@ -369,7 +368,7 @@ export class GachaResultScene extends Scene {
         this.resultContainer.add([itemBg, itemText, starDisplay, countText]);
         
         // S・Aレアの場合は簡易的なエフェクト
-        if (entry.item.rarity === 'S' || entry.item.rarity === 'A') {
+        if (item.rarity === 'S' || item.rarity === 'A') {
           const glowBg = this.add.rectangle(0, y, 290, lineHeight, 0xFFD700, 0.2);
           this.resultContainer.add(glowBg);
           
@@ -383,6 +382,18 @@ export class GachaResultScene extends Scene {
         }
       });
       
+      // 表示しきれないアイテムがある場合の表示
+      if (this.drawnItems.length > maxVisibleItems) {
+        const moreY = startY + maxVisibleItems * lineHeight + 10;
+        const moreText = this.add.text(0, moreY, `...他 ${this.drawnItems.length - maxVisibleItems} アイテム`, {
+          fontSize: '14px',
+          color: '#CCCCCC',
+          fontStyle: 'italic'
+        }).setOrigin(0.5);
+        
+        this.resultContainer.add(moreText);
+      }
+      
       // S・Aレアが含まれている場合は特別表示
       if (this.isRare) {
         const rareItems = this.drawnItems.filter(item => 
@@ -390,7 +401,7 @@ export class GachaResultScene extends Scene {
         );
         
         if (rareItems.length > 0) {
-          const specialY = startY + entries.length * lineHeight + 20;
+          const specialY = startY + Math.min(this.drawnItems.length, maxVisibleItems) * lineHeight + 20;
           
           const specialBg = this.add.rectangle(0, specialY, 300, 40, 0xFFD700, 0.3);
           specialBg.setStrokeStyle(2, 0xFFD700, 0.8);
