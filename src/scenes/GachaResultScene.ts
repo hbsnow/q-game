@@ -246,23 +246,23 @@ export class GachaResultScene extends Scene {
     const { width, height } = this.cameras.main;
     
     // タイトルエリア（赤色）
-    this.debugHelper.addAreaBorder(width / 2, 50, 250, 50, 0xFF0000, 'タイトルエリア');
+    this.debugHelper.addAreaBorder(width / 2, 50, width, 50, 0xFF0000, 'タイトルエリア');
     
     // 宝箱表示エリア（黄色）
-    this.debugHelper.addAreaBorder(width / 2, height / 2 - 50, 150, 150, 0xFFFF00, '宝箱表示エリア');
+    this.debugHelper.addAreaBorder(width / 2, height / 2 - 50, width, 150, 0xFFFF00, '宝箱表示エリア');
     
     // 結果表示エリア（黄色）
     if (this.drawCount === 1) {
       // 1回引きの場合
-      this.debugHelper.addAreaBorder(width / 2, height / 2, 300, 200, 0xFFFF00, '結果表示エリア');
+      this.debugHelper.addAreaBorder(width / 2, height / 2 + 100, width, 200, 0xFFFF00, '結果表示エリア');
     } else {
       // 10連の場合
       const itemsHeight = Math.min(this.drawnItems.length, 10) * 30 + 50;
-      this.debugHelper.addAreaBorder(width / 2, height / 2, 300, itemsHeight, 0xFFFF00, '結果表示エリア');
+      this.debugHelper.addAreaBorder(width / 2, height / 2 + 100, width, itemsHeight, 0xFFFF00, '結果表示エリア');
     }
     
     // ボタンエリア（紫色）
-    this.debugHelper.addAreaBorder(width / 2, height - 120, 280, 50, 0xFF00FF, 'ボタンエリア');
+    this.debugHelper.addAreaBorder(width / 2, height - 120, width, 50, 0xFF00FF, 'ボタンエリア');
   }
   
   private createRareBackgroundEffect() {
