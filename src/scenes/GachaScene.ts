@@ -568,8 +568,12 @@ export class GachaScene extends Scene {
       this.rateDetailsContainer = null;
     });
     
+    // パネルサイズを調整（高さを小さくする）
+    const panelWidth = width - 60;
+    const panelHeight = height - 100; // 高さを小さくして画面内に収める
+    
     // 詳細パネル
-    const panel = this.add.rectangle(0, 0, width - 60, height - 200, 0x1A3A5A, 0.9);
+    const panel = this.add.rectangle(0, 0, panelWidth, panelHeight, 0x1A3A5A, 0.9);
     panel.setStrokeStyle(2, 0x87CEEB, 0.8);
     
     // タイトル
@@ -598,7 +602,7 @@ export class GachaScene extends Scene {
     
     // レア度ごとの確率表示（表形式）
     const tableWidth = panel.width - 100;
-    const tableHeight = 40;
+    const tableHeight = 30; // 行の高さを少し小さくする
     const tableX = 0;
     
     // テーブルヘッダー
@@ -658,23 +662,23 @@ export class GachaScene extends Scene {
     });
     
     // 10連ガチャの確定枠説明
-    rateY += 20;
-    const guaranteedBg = this.add.rectangle(tableX, rateY, tableWidth, 60, 0x32CD32, 0.2);
+    rateY += 15; // 間隔を縮める
+    const guaranteedBg = this.add.rectangle(tableX, rateY, tableWidth, 50, 0x32CD32, 0.2);
     guaranteedBg.setStrokeStyle(1, 0x32CD32, 0.5);
     
-    this.add.text(tableX, rateY, '10連ガチャ: Dレア以上1枠確定!', {
+    this.add.text(tableX, rateY - 10, '10連ガチャ: Dレア以上1枠確定!', {
       fontSize: '16px',
       color: '#32CD32',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    this.add.text(tableX, rateY + 25, '（通常の抽選でDレア以上が出なかった場合のみ）', {
+    this.add.text(tableX, rateY + 15, '（通常の抽選でDレア以上が出なかった場合のみ）', {
       fontSize: '12px',
       color: '#CCCCCC'
     }).setOrigin(0.5);
     
     // 出現アイテム一覧
-    rateY += 100;
+    rateY += 80; // 間隔を縮める
     this.add.text(0, rateY, '出現アイテム一覧', {
       fontSize: '18px',
       color: '#FFFFFF',
@@ -701,7 +705,7 @@ export class GachaScene extends Scene {
       if (!items || items.length === 0) return;
       
       // レア度ヘッダー
-      const rarityBg = this.add.rectangle(0, currentY, tableWidth, 30, parseInt(getRarityColor(rarity as any).replace('#', '0x')), 0.3);
+      const rarityBg = this.add.rectangle(0, currentY, tableWidth, 25, parseInt(getRarityColor(rarity as any).replace('#', '0x')), 0.3);
       rarityBg.setStrokeStyle(1, parseInt(getRarityColor(rarity as any).replace('#', '0x')), 0.5);
       
       this.add.text(0, currentY, `${rarity}レア (${items.length}個)`, {
@@ -710,7 +714,7 @@ export class GachaScene extends Scene {
         fontStyle: 'bold'
       }).setOrigin(0.5);
       
-      currentY += 35;
+      currentY += 30; // 間隔を縮める
       
       // アイテム一覧（3列に分ける）
       const columns = 3;
@@ -721,7 +725,7 @@ export class GachaScene extends Scene {
         const row = Math.floor(index / columns);
         
         const x = -tableWidth / 2 + columnWidth / 2 + col * columnWidth;
-        const y = currentY + row * 25;
+        const y = currentY + row * 20; // 行間を縮める
         
         this.add.text(x, y, item.name, {
           fontSize: '12px',
@@ -729,7 +733,7 @@ export class GachaScene extends Scene {
         }).setOrigin(0.5);
       });
       
-      currentY += Math.ceil(items.length / columns) * 25 + 15;
+      currentY += Math.ceil(items.length / columns) * 20 + 10; // 間隔を縮める
     });
     
     // 閉じるボタン（下部）
@@ -755,8 +759,25 @@ export class GachaScene extends Scene {
     
     // スクロール可能なコンテンツエリアを作成（必要に応じて）
     if (currentY > panel.height / 2 - 50) {
-      // スクロール機能の実装（Phaserのマスク機能を使用）
-      // 実装は複雑になるため、必要に応じて追加
+      // コンテンツが多すぎる場合は、アイテム一覧を省略表示
+      const maxRarities = 4; // 表示するレア度の最大数
+      let displayedRarities = 0;
+      
+      // コンテナから既存のアイテム一覧を削除
+      this.rateDetailsContainer.each((child) => {
+        if (child.y > rateY + 30) {
+          child.destroy();
+        }
+      });
+      
+      // 省略メッセージを追加
+      const moreText = this.add.text(0, rateY + 60, '※ 一部のアイテムは省略表示されています', {
+        fontSize: '12px',
+        color: '#CCCCCC',
+        fontStyle: 'italic'
+      }).setOrigin(0.5);
+      
+      this.rateDetailsContainer.add(moreText);
     }
   }
 }
