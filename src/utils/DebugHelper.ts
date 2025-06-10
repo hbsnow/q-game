@@ -42,9 +42,11 @@ export class DebugHelper {
     for (let i = 1; i <= 9; i++) {
       this.scene.input.keyboard?.on(`keydown-${i}`, (event: KeyboardEvent) => {
         if (event.altKey) {
-          this.skipToStage(i * 10 + 1); // Alt+1 → ステージ11, Alt+2 → ステージ21
-        } else if (event.ctrlKey || event.metaKey) {
-          this.skipToStage(i); // Ctrl+1 → ステージ1, Ctrl+2 → ステージ2
+          // Option+1 → ステージ11, Option+2 → ステージ21
+          this.skipToStage(i * 10 + 1);
+        } else if (event.metaKey) {
+          // Command+1 → ステージ1, Command+2 → ステージ2
+          this.skipToStage(i);
         }
       });
     }
@@ -52,8 +54,8 @@ export class DebugHelper {
     console.log('🔧 Debug shortcuts setup:');
     console.log('  - Press "D" to toggle debug lines');
     console.log('  - Press "Shift+D" to log debug info');
-    console.log('  - Press "Ctrl+[1-9]" to skip to stages 1-9');
-    console.log('  - Press "Alt+[1-9]" to skip to stages 11,21,31...');
+    console.log('  - Press "Command+[1-9]" to skip to stages 1-9');
+    console.log('  - Press "Option+[1-9]" to skip to stages 11,21,31...');
   }
 
   /**

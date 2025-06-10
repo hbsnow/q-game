@@ -119,13 +119,13 @@ export class MainScene extends Scene {
       });
       
       // ステージスキップ説明
-      this.add.text(10, height - 70, 'Ctrl+[1-9]: ステージ1-9へ', {
+      this.add.text(10, height - 70, 'Command+[1-9]: ステージ1-9へ', {
         fontSize: '10px',
         color: '#FFFF00',
         backgroundColor: '#000000'
       });
       
-      this.add.text(10, height - 90, 'Alt+[1-9]: ステージ11,21,31...へ', {
+      this.add.text(10, height - 90, 'Option+[1-9]: ステージ11,21,31...へ', {
         fontSize: '10px',
         color: '#FFFF00',
         backgroundColor: '#000000'
