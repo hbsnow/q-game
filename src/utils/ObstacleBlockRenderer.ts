@@ -58,32 +58,43 @@ export class ObstacleBlockRenderer {
   }
   
   /**
-   * 氷結テクスチャを生成
+   * 氷結テクスチャを生成（改良版）
    */
   private createIceTexture(key: string, alpha: number): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 氷の結晶パターン
-    graphics.lineStyle(2, 0xFFFFFF, alpha);
-    graphics.beginPath();
+    // 氷の基本形状（半透明の青色）
+    graphics.fillStyle(0x87CEFA, alpha);
+    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
     
-    // 氷の結晶線（横）
-    for (let y = 0; y < this.blockSize; y += 8) {
+    // 氷の結晶パターン（より明確な白線）
+    graphics.lineStyle(3, 0xFFFFFF, 0.9);
+    
+    // 氷の結晶線（横）- より少なく、より目立つ
+    for (let y = this.blockSize * 0.25; y <= this.blockSize * 0.75; y += this.blockSize * 0.25) {
       graphics.moveTo(0, y);
       graphics.lineTo(this.blockSize, y);
     }
     
-    // 氷の結晶線（縦）
-    for (let x = 0; x < this.blockSize; x += 8) {
+    // 氷の結晶線（縦）- より少なく、より目立つ
+    for (let x = this.blockSize * 0.25; x <= this.blockSize * 0.75; x += this.blockSize * 0.25) {
       graphics.moveTo(x, 0);
       graphics.lineTo(x, this.blockSize);
     }
     
     graphics.strokePath();
     
-    // 半透明の氷のオーバーレイ
-    graphics.fillStyle(0xADD8E6, alpha);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
+    // 氷の輪郭を強調
+    graphics.lineStyle(4, 0xADD8E6, 1);
+    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
+    
+    // 光沢効果（右上から左下への白いグラデーション）
+    graphics.fillStyle(0xFFFFFF, 0.3);
+    graphics.fillTriangle(
+      0, 0,
+      this.blockSize * 0.5, 0,
+      0, this.blockSize * 0.5
+    );
     
     // テクスチャとして保存
     graphics.generateTexture(key, this.blockSize, this.blockSize);
@@ -91,18 +102,41 @@ export class ObstacleBlockRenderer {
   }
   
   /**
-   * カウンターテクスチャを生成
+   * カウンターテクスチャを生成（改良版）
    */
   private createCounterTexture(key: string, isPlus: boolean): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // カウンターの背景（円形）
-    graphics.fillStyle(0xFFFFFF, 0.7);
-    graphics.fillCircle(this.blockSize / 2, this.blockSize / 2, this.blockSize / 2.5);
+    // カウンターの背景（円形）- より明確に
+    graphics.fillStyle(0xFFFFFF, 0.9);
+    graphics.fillCircle(this.blockSize / 2, this.blockSize / 2, this.blockSize / 2.2);
     
-    // 枠線
-    graphics.lineStyle(2, 0x000000, 1);
-    graphics.strokeCircle(this.blockSize / 2, this.blockSize / 2, this.blockSize / 2.5);
+    // 枠線 - より太く
+    graphics.lineStyle(3, 0x000000, 1);
+    graphics.strokeCircle(this.blockSize / 2, this.blockSize / 2, this.blockSize / 2.2);
+    
+    // カウンターの装飾（内側の円）
+    graphics.lineStyle(2, 0x000000, 0.5);
+    graphics.strokeCircle(this.blockSize / 2, this.blockSize / 2, this.blockSize / 3);
+    
+    // プラス記号の装飾（カウンター+の場合）
+    if (isPlus) {
+      graphics.fillStyle(0x000000, 0.7);
+      // プラス記号の横線
+      graphics.fillRect(
+        this.blockSize * 0.35, 
+        this.blockSize * 0.48, 
+        this.blockSize * 0.3, 
+        this.blockSize * 0.04
+      );
+      // プラス記号の縦線
+      graphics.fillRect(
+        this.blockSize * 0.48, 
+        this.blockSize * 0.35, 
+        this.blockSize * 0.04, 
+        this.blockSize * 0.3
+      );
+    }
     
     // テクスチャとして保存
     graphics.generateTexture(key, this.blockSize, this.blockSize);
@@ -110,7 +144,7 @@ export class ObstacleBlockRenderer {
   }
   
   /**
-   * 岩ブロックテクスチャを生成
+   * 岩ブロックテクスチャを生成（改良版）
    */
   private createRockTexture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
@@ -119,21 +153,39 @@ export class ObstacleBlockRenderer {
     graphics.fillStyle(0x808080, 1);
     graphics.fillRect(0, 0, this.blockSize, this.blockSize);
     
-    // 岩の凹凸表現
-    graphics.lineStyle(2, 0x606060, 1);
+    // 岩の凹凸表現 - より明確に
+    graphics.lineStyle(3, 0x606060, 1);
     
-    // ランダムな線で岩の質感を表現
-    for (let i = 0; i < 8; i++) {
-      const x1 = Math.random() * this.blockSize;
-      const y1 = Math.random() * this.blockSize;
-      const x2 = Math.random() * this.blockSize;
-      const y2 = Math.random() * this.blockSize;
+    // 岩の亀裂パターン（ランダムではなく、より明確なパターン）
+    // 中央から放射状に亀裂を入れる
+    const centerX = this.blockSize / 2;
+    const centerY = this.blockSize / 2;
+    const cracks = 6; // 亀裂の数
+    
+    for (let i = 0; i < cracks; i++) {
+      const angle = (Math.PI * 2 * i) / cracks;
+      const endX = centerX + Math.cos(angle) * (this.blockSize / 2);
+      const endY = centerY + Math.sin(angle) * (this.blockSize / 2);
       
       graphics.beginPath();
-      graphics.moveTo(x1, y1);
-      graphics.lineTo(x2, y2);
+      graphics.moveTo(centerX, centerY);
+      graphics.lineTo(endX, endY);
       graphics.strokePath();
     }
+    
+    // 岩の質感を表現する小さな円
+    for (let i = 0; i < 10; i++) {
+      const x = Math.random() * this.blockSize;
+      const y = Math.random() * this.blockSize;
+      const radius = Math.random() * 3 + 1;
+      
+      graphics.fillStyle(0x606060, 0.8);
+      graphics.fillCircle(x, y, radius);
+    }
+    
+    // 岩の輪郭を強調
+    graphics.lineStyle(4, 0x606060, 1);
+    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
     
     // テクスチャとして保存
     graphics.generateTexture('rockTexture', this.blockSize, this.blockSize);
@@ -141,29 +193,40 @@ export class ObstacleBlockRenderer {
   }
   
   /**
-   * 鋼鉄ブロックテクスチャを生成
+   * 鋼鉄ブロックテクスチャを生成（改良版）
    */
   private createSteelTexture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 鋼鉄の基本形状
-    graphics.fillStyle(0xC0C0C0, 1);
+    // 鋼鉄の基本形状 - より明るく
+    graphics.fillStyle(0xD0D0D0, 1);
     graphics.fillRect(0, 0, this.blockSize, this.blockSize);
     
-    // 金属光沢の表現
-    graphics.fillStyle(0xFFFFFF, 0.5);
+    // 金属光沢の表現 - より明確に
+    graphics.fillStyle(0xFFFFFF, 0.7);
     graphics.fillRect(this.blockSize * 0.1, this.blockSize * 0.1, this.blockSize * 0.8, this.blockSize * 0.2);
     
-    // 鋼鉄の枠
-    graphics.lineStyle(3, 0x808080, 1);
+    // 鋼鉄の枠 - より太く
+    graphics.lineStyle(4, 0x808080, 1);
     graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
     
-    // リベット（ネジ）の表現
-    graphics.fillStyle(0x808080, 1);
-    graphics.fillCircle(this.blockSize * 0.2, this.blockSize * 0.2, this.blockSize * 0.1);
-    graphics.fillCircle(this.blockSize * 0.8, this.blockSize * 0.2, this.blockSize * 0.1);
-    graphics.fillCircle(this.blockSize * 0.2, this.blockSize * 0.8, this.blockSize * 0.1);
-    graphics.fillCircle(this.blockSize * 0.8, this.blockSize * 0.8, this.blockSize * 0.1);
+    // リベット（ネジ）の表現 - より大きく
+    graphics.fillStyle(0x606060, 1);
+    const rivetSize = this.blockSize * 0.15;
+    
+    // 四隅にリベットを配置
+    graphics.fillCircle(this.blockSize * 0.2, this.blockSize * 0.2, rivetSize);
+    graphics.fillCircle(this.blockSize * 0.8, this.blockSize * 0.2, rivetSize);
+    graphics.fillCircle(this.blockSize * 0.2, this.blockSize * 0.8, rivetSize);
+    graphics.fillCircle(this.blockSize * 0.8, this.blockSize * 0.8, rivetSize);
+    
+    // リベットの中心に光沢
+    graphics.fillStyle(0xFFFFFF, 0.7);
+    const highlightSize = rivetSize * 0.4;
+    graphics.fillCircle(this.blockSize * 0.2 - 1, this.blockSize * 0.2 - 1, highlightSize);
+    graphics.fillCircle(this.blockSize * 0.8 - 1, this.blockSize * 0.2 - 1, highlightSize);
+    graphics.fillCircle(this.blockSize * 0.2 - 1, this.blockSize * 0.8 - 1, highlightSize);
+    graphics.fillCircle(this.blockSize * 0.8 - 1, this.blockSize * 0.8 - 1, highlightSize);
     
     // テクスチャとして保存
     graphics.generateTexture('steelTexture', this.blockSize, this.blockSize);
@@ -171,40 +234,62 @@ export class ObstacleBlockRenderer {
   }
   
   /**
-   * 氷結カウンターテクスチャを生成
+   * 氷結カウンターテクスチャを生成（改良版）
    */
   private createIceCounterTexture(key: string, isPlus: boolean): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 氷の結晶パターン（氷結テクスチャと同様）
-    graphics.lineStyle(2, 0xFFFFFF, 0.7);
-    graphics.beginPath();
+    // 氷の基本形状（半透明の青色）
+    graphics.fillStyle(0x87CEFA, 0.7);
+    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
     
-    // 氷の結晶線（横）
-    for (let y = 0; y < this.blockSize; y += 8) {
+    // 氷の結晶パターン（より明確な白線）
+    graphics.lineStyle(2, 0xFFFFFF, 0.9);
+    
+    // 氷の結晶線（横）- より少なく、より目立つ
+    for (let y = this.blockSize * 0.25; y <= this.blockSize * 0.75; y += this.blockSize * 0.25) {
       graphics.moveTo(0, y);
       graphics.lineTo(this.blockSize, y);
     }
     
-    // 氷の結晶線（縦）
-    for (let x = 0; x < this.blockSize; x += 8) {
+    // 氷の結晶線（縦）- より少なく、より目立つ
+    for (let x = this.blockSize * 0.25; x <= this.blockSize * 0.75; x += this.blockSize * 0.25) {
       graphics.moveTo(x, 0);
       graphics.lineTo(x, this.blockSize);
     }
     
     graphics.strokePath();
     
-    // 半透明の氷のオーバーレイ
-    graphics.fillStyle(0xADD8E6, 0.7);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
-    
-    // カウンターの背景（円形）
-    graphics.fillStyle(0xFFFFFF, 0.5);
+    // カウンターの背景（円形）- より明確に
+    graphics.fillStyle(0xFFFFFF, 0.8);
     graphics.fillCircle(this.blockSize / 2, this.blockSize / 2, this.blockSize / 2.5);
     
-    // 枠線
-    graphics.lineStyle(2, 0x000000, 0.7);
+    // 枠線 - より太く
+    graphics.lineStyle(3, 0x000000, 0.8);
     graphics.strokeCircle(this.blockSize / 2, this.blockSize / 2, this.blockSize / 2.5);
+    
+    // プラス記号の装飾（カウンター+の場合）
+    if (isPlus) {
+      graphics.fillStyle(0x000000, 0.7);
+      // プラス記号の横線
+      graphics.fillRect(
+        this.blockSize * 0.35, 
+        this.blockSize * 0.48, 
+        this.blockSize * 0.3, 
+        this.blockSize * 0.04
+      );
+      // プラス記号の縦線
+      graphics.fillRect(
+        this.blockSize * 0.48, 
+        this.blockSize * 0.35, 
+        this.blockSize * 0.04, 
+        this.blockSize * 0.3
+      );
+    }
+    
+    // 氷の輪郭を強調
+    graphics.lineStyle(4, 0xADD8E6, 1);
+    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
     
     // テクスチャとして保存
     graphics.generateTexture(key, this.blockSize, this.blockSize);
@@ -247,7 +332,7 @@ export class ObstacleBlockRenderer {
   }
   
   /**
-   * 妨害ブロックスプライトを作成
+   * 妨害ブロックスプライトを作成（改良版）
    */
   private createObstacleBlockSprite(block: Block): Phaser.GameObjects.Container | null {
     const renderInfo = this.obstacleBlockManager.getObstacleBlockRenderInfo(block.id);
@@ -260,11 +345,14 @@ export class ObstacleBlockRenderer {
     // コンテナを作成
     const container = this.scene.add.container(x, y);
     
-    // 基本ブロック（色付き）
+    // 基本ブロック（色付き）- 少し小さく
     const baseBlock = this.scene.add.rectangle(
-      0, 0, this.blockSize - 2, this.blockSize - 2, 
+      0, 0, this.blockSize - 4, this.blockSize - 4, 
       this.getColorValue(renderInfo.mainColor)
     );
+    
+    // 基本ブロックの枠線を追加
+    baseBlock.setStrokeStyle(2, 0x000000, 0.5);
     container.add(baseBlock);
     
     // 妨害ブロックのオーバーレイ
@@ -307,14 +395,15 @@ export class ObstacleBlockRenderer {
       container.add(overlay);
     }
     
-    // カウンター値のテキスト
+    // カウンター値のテキスト - より大きく、より目立つ
     if (renderInfo.text) {
       const text = this.scene.add.text(0, 0, renderInfo.text, {
         fontFamily: 'Arial',
-        fontSize: '24px',
+        fontSize: '28px',
         color: '#000000',
         stroke: '#FFFFFF',
-        strokeThickness: 2
+        strokeThickness: 3,
+        fontStyle: 'bold'
       }).setOrigin(0.5);
       
       container.add(text);
