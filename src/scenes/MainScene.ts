@@ -19,15 +19,21 @@ export class MainScene extends Scene {
   create() {
     const { width, height } = this.cameras.main;
 
-    // デバッグヘルパーを初期化
-    this.debugHelper = new DebugHelper(this);
-
     // 🏷️ 画面名をコンソールに表示
     console.log('🎬 === MAIN SCENE ===');
     console.log('📍 Current Scene: メイン画面');
     console.log('🎯 Purpose: ステージ選択・メニュー画面');
     console.log('📊 Current Stage:', this.gameStateManager.getCurrentStage());
     console.log('💰 Current Gold:', this.gameStateManager.getGold());
+
+    // デバッグヘルパーを初期化（GameStateManagerを渡す）
+    this.debugHelper = new DebugHelper(this);
+    
+    // 明示的にGameStateManagerを設定
+    if ((this.debugHelper as any).gameStateManager === undefined) {
+      (this.debugHelper as any).gameStateManager = this.gameStateManager;
+      console.log('Explicitly set GameStateManager to DebugHelper');
+    }
 
     // 背景色設定（海のテーマ）
     this.cameras.main.setBackgroundColor('#1E5799');

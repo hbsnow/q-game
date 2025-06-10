@@ -14,15 +14,24 @@ export class DebugHelper {
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
     this.debugContainer = scene.add.container(0, 0);
-    this.setupShortcuts();
     
-    // GameStateManagerを取得（存在する場合）
-    try {
-      const GameStateManager = require('../utils/GameStateManager').GameStateManager;
-      this.gameStateManager = GameStateManager.getInstance();
-    } catch (e) {
-      console.log('GameStateManager not available in this context');
+    // GameStateManagerを取得
+    // MainSceneから直接受け取る
+    if (scene.scene.key === 'MainScene' && (scene as any).gameStateManager) {
+      this.gameStateManager = (scene as any).gameStateManager;
+      console.log('GameStateManager received from MainScene');
+    } else {
+      // フォールバック: 直接インポート
+      try {
+        const GameStateManager = require('../utils/GameStateManager').GameStateManager;
+        this.gameStateManager = GameStateManager.getInstance();
+        console.log('GameStateManager loaded via require');
+      } catch (e) {
+        console.log('GameStateManager not available in this context');
+      }
     }
+    
+    this.setupShortcuts();
     
     // デバッグパネルボタンを追加（MainSceneの場合のみ）
     if (scene.scene.key === 'MainScene') {
@@ -184,7 +193,14 @@ export class DebugHelper {
   private changeStage(delta: number) {
     if (!this.gameStateManager) {
       console.log('GameStateManager not available');
-      return;
+      
+      // MainSceneから再取得を試みる
+      if (this.scene.scene.key === 'MainScene' && (this.scene as any).gameStateManager) {
+        this.gameStateManager = (this.scene as any).gameStateManager;
+        console.log('GameStateManager re-acquired from MainScene');
+      } else {
+        return;
+      }
     }
     
     try {
