@@ -4,6 +4,8 @@ import { BlockGenerator, AssetGenerator, BlockRemover, GravityProcessor, getConn
 import { GameStateManager } from '../utils/GameStateManager';
 import { ItemManager } from '../utils/ItemManager';
 import { ItemEffectManager } from '../utils/ItemEffectManager';
+import { ObstacleBlockManager } from '../utils/ObstacleBlockManager';
+import { ObstacleBlockRenderer } from '../utils/ObstacleBlockRenderer';
 
 export class GameScene extends Scene {
   private gameStateManager!: GameStateManager;
@@ -23,6 +25,11 @@ export class GameScene extends Scene {
   private isItemSelectionMode: boolean = false;
   private selectedItemType: string | null = null;
   private selectedItemSlotIndex: number | null = null;
+  
+  // 妨害ブロック関連
+  private obstacleBlockManager!: ObstacleBlockManager;
+  private obstacleBlockRenderer!: ObstacleBlockRenderer;
+  private blockContainer!: Phaser.GameObjects.Container;
   
   // デバッグライン管理
   private debugElements: Phaser.GameObjects.GameObject[] = [];
@@ -74,6 +81,11 @@ export class GameScene extends Scene {
     console.log('🎮 Stage:', this.gameState.currentStage);
     console.log('🎯 Target Score:', this.gameState.targetScore);
     console.log('📊 Current Score:', this.gameState.score);
+    
+    // ステージ設定を取得
+    const stageManager = this.gameStateManager.getStageManager();
+    const stageConfig = stageManager.getStageConfig(this.gameState.currentStage);
+    console.log('🎮 Stage Config:', stageConfig);
     
     // デバッグショートカットキーを設定
     this.setupDebugShortcut();
@@ -210,13 +222,9 @@ export class GameScene extends Scene {
   }
 
   private initializeBoard() {
-    // ステージ設定（Phase 1で実装したBlockGeneratorを使用）
-    const stageConfig = {
-      stage: this.gameState.currentStage,
-      colors: Math.min(3 + Math.floor(this.gameState.currentStage / 3), 6),
-      targetScore: 500,
-      obstacles: []
-    };
+    // ステージ管理システムからステージ設定を取得
+    const stageManager = this.gameStateManager.getStageManager();
+    const stageConfig = stageManager.getStageConfig(this.gameState.currentStage);
 
     // ブロック配置生成（静的メソッドを使用）
     this.currentBlocks = BlockGenerator.generateStageBlocks(stageConfig);
@@ -231,6 +239,13 @@ export class GameScene extends Scene {
     for (let row = 0; row < this.BOARD_HEIGHT; row++) {
       this.blockSprites[row] = [];
     }
+
+    // ブロックコンテナを作成（全てのブロックスプライトの親）
+    this.blockContainer = this.add.container(0, 0);
+    
+    // 妨害ブロック管理システムを初期化
+    this.obstacleBlockManager = new ObstacleBlockManager(this.currentBlocks);
+    this.obstacleBlockRenderer = new ObstacleBlockRenderer(this, this.obstacleBlockManager);
 
     // ブロック配列からスプライトを作成
     this.currentBlocks.forEach(block => {
@@ -247,7 +262,11 @@ export class GameScene extends Scene {
       sprite.setData('col', block.x);
       
       this.blockSprites[block.y][block.x] = sprite;
+      this.blockContainer.add(sprite);
     });
+    
+    // 妨害ブロックを描画
+    this.obstacleBlockRenderer.renderObstacleBlocks(this.currentBlocks, this.blockContainer);
   }
 
   private getBlockTexture(block: Block): string {
@@ -256,8 +275,9 @@ export class GameScene extends Scene {
       return `block-normal-${block.color}`;
     }
     
-    // 妨害ブロックの場合（Phase 7で実装予定）
-    return 'block-normal-blue'; // デフォルト
+    // 妨害ブロックの場合は通常ブロックのテクスチャを使用
+    // 実際の描画はObstacleBlockRendererが担当
+    return `block-normal-${block.color}`;
   }
 
   private setupInput() {
@@ -397,9 +417,17 @@ export class GameScene extends Scene {
     
     console.log(`📦 Found block at position:`, actualBlock);
     
-    // 通常ブロック以外はクリック無効
+    // 妨害ブロックの場合は特別な処理
     if (actualBlock.type !== 'normal') {
-      console.log('Non-normal block clicked, ignoring');
+      // 消去可能な妨害ブロックかチェック
+      const removableIds = this.obstacleBlockManager.getRemovableObstacleBlocks(this.currentBlocks);
+      if (removableIds.includes(actualBlock.id)) {
+        console.log('Removable obstacle block clicked:', actualBlock.type);
+        this.handleRemovableObstacleBlock(actualBlock);
+        return;
+      }
+      
+      console.log('Non-removable obstacle block clicked, ignoring');
       return;
     }
     
@@ -560,6 +588,15 @@ export class GameScene extends Scene {
     
     // ブロックデータを更新（消去後）
     this.currentBlocks = removalResult.remainingBlocks;
+    
+    // 妨害ブロックの状態を更新
+    this.currentBlocks = this.obstacleBlockManager.updateObstacleBlocks(
+      removalResult.removedBlocks, 
+      this.currentBlocks
+    );
+    
+    // 妨害ブロックの描画を更新
+    this.obstacleBlockRenderer.updateObstacleBlocks(this.currentBlocks, this.blockContainer);
     
     // 重力処理
     await this.applyGravity();
@@ -888,6 +925,9 @@ export class GameScene extends Scene {
       }
     }
     
+    // ブロックコンテナをクリア
+    this.blockContainer.removeAll(true);
+    
     // 位置計算用の定数
     const boardPixelWidth = this.BOARD_WIDTH * this.BLOCK_SIZE;
     const startX = (this.scale.width - boardPixelWidth) / 2;
@@ -909,8 +949,14 @@ export class GameScene extends Scene {
         sprite.setData('block', block);
         sprite.setData('row', block.y);
         sprite.setData('col', block.x);
+        
+        // ブロックコンテナに追加
+        this.blockContainer.add(sprite);
       }
     });
+    
+    // 妨害ブロックの描画を更新
+    this.obstacleBlockRenderer.renderObstacleBlocks(this.currentBlocks, this.blockContainer);
     
     console.log('✅ Sprite-block mapping rebuilt successfully');
     console.log(`📊 Mapped ${this.currentBlocks.length} blocks to sprites`);
@@ -1194,8 +1240,14 @@ export class GameScene extends Scene {
       });
     });
     
+    // ブロックコンテナをクリア
+    this.blockContainer.removeAll(true);
+    
     // 新しいスプライトを作成
     this.createBlockSprites();
+    
+    // 妨害ブロックを描画
+    this.obstacleBlockRenderer.renderObstacleBlocks(this.currentBlocks, this.blockContainer);
   }
 
   private createBlockSprites() {
@@ -1225,6 +1277,7 @@ export class GameScene extends Scene {
       sprite.setData('col', block.x);
       
       this.blockSprites[block.y][block.x] = sprite;
+      this.blockContainer.add(sprite);
     });
   }
 
@@ -1782,6 +1835,49 @@ export class GameScene extends Scene {
    */
   getNormalBlocks(): Block[] {
     return this.currentBlocks.filter(block => block.type === 'normal');
+  }
+  
+  /**
+   * 消去可能な妨害ブロックの処理
+   */
+  private async handleRemovableObstacleBlock(block: Block) {
+    console.log('Processing removable obstacle block:', block);
+    
+    // 処理開始フラグを設定
+    this.setProcessingState(true);
+    
+    try {
+      // 消去対象のブロックを配列に格納
+      const blocksToRemove = [block];
+      
+      // 視覚的な消去エフェクト
+      await this.playRemovalAnimation(blocksToRemove);
+      
+      // 消去されたブロックのスプライトを削除
+      const sprite = this.blockSprites[block.y][block.x];
+      if (sprite) {
+        sprite.destroy();
+        this.blockSprites[block.y][block.x] = null as any;
+      }
+      
+      // ブロックデータを更新（消去後）
+      this.currentBlocks = this.currentBlocks.filter(b => b.id !== block.id);
+      
+      // 妨害ブロックマネージャーからも削除
+      this.obstacleBlockManager.removeObstacleBlock(block.id);
+      
+      // 重力処理
+      await this.applyGravity();
+      
+      // ステージクリア判定（UI更新のみ）
+      this.checkStageComplete();
+      
+      // 行き詰まり判定
+      this.checkGameOver();
+    } finally {
+      // 処理完了後にフラグをリセット
+      this.setProcessingState(false);
+    }
   }
 
   /**
