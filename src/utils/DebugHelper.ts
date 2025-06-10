@@ -91,31 +91,32 @@ export class DebugHelper {
     // ボタンの配置
     const buttonWidth = 40;
     const buttonHeight = 30;
-    const buttonSpacing = 50;
     
     // -10 ボタン
     const minus10Button = this.scene.add.rectangle(-100, 0, buttonWidth, buttonHeight, 0x444444)
       .setInteractive();
+    minus10Button.on('pointerdown', () => {
+      console.log('Clicked -10 button');
+      this.changeStage(-10);
+    });
+    
     const minus10Text = this.scene.add.text(-100, 0, "-10", { 
       fontSize: '16px',
       color: '#FFFFFF'
     }).setOrigin(0.5);
     
-    minus10Button.on('pointerdown', () => {
-      this.changeStage(-10);
-    });
-    
     // -1 ボタン
     const minus1Button = this.scene.add.rectangle(-50, 0, buttonWidth, buttonHeight, 0x444444)
       .setInteractive();
+    minus1Button.on('pointerdown', () => {
+      console.log('Clicked -1 button');
+      this.changeStage(-1);
+    });
+    
     const minus1Text = this.scene.add.text(-50, 0, "-1", { 
       fontSize: '16px',
       color: '#FFFFFF'
     }).setOrigin(0.5);
-    
-    minus1Button.on('pointerdown', () => {
-      this.changeStage(-1);
-    });
     
     // ステージ番号表示
     this.stageNumberText = this.scene.add.text(0, 0, "1", { 
@@ -127,29 +128,32 @@ export class DebugHelper {
     // +1 ボタン
     const plus1Button = this.scene.add.rectangle(50, 0, buttonWidth, buttonHeight, 0x444444)
       .setInteractive();
+    plus1Button.on('pointerdown', () => {
+      console.log('Clicked +1 button');
+      this.changeStage(1);
+    });
+    
     const plus1Text = this.scene.add.text(50, 0, "+1", { 
       fontSize: '16px',
       color: '#FFFFFF'
     }).setOrigin(0.5);
     
-    plus1Button.on('pointerdown', () => {
-      this.changeStage(1);
-    });
-    
     // +10 ボタン
     const plus10Button = this.scene.add.rectangle(100, 0, buttonWidth, buttonHeight, 0x444444)
       .setInteractive();
+    plus10Button.on('pointerdown', () => {
+      console.log('Clicked +10 button');
+      this.changeStage(10);
+    });
+    
     const plus10Text = this.scene.add.text(100, 0, "+10", { 
       fontSize: '16px',
       color: '#FFFFFF'
     }).setOrigin(0.5);
     
-    plus10Button.on('pointerdown', () => {
-      this.changeStage(10);
-    });
-    
     // パネルにボタンを追加
     this.stageControlPanel.add([
+      panelBg,
       minus10Button, minus10Text,
       minus1Button, minus1Text,
       this.stageNumberText,
@@ -178,19 +182,40 @@ export class DebugHelper {
    * ステージを変更（相対値）
    */
   private changeStage(delta: number) {
-    if (!this.gameStateManager) return;
+    if (!this.gameStateManager) {
+      console.log('GameStateManager not available');
+      return;
+    }
     
-    const currentStage = this.gameStateManager.getCurrentStage();
-    const maxStage = this.gameStateManager.getStageManager().getMaxStage();
-    
-    // 新しいステージ番号（1-100の範囲に制限）
-    const newStage = Math.max(1, Math.min(maxStage, currentStage + delta));
-    
-    // 変更がなければ何もしない
-    if (newStage === currentStage) return;
-    
-    // ステージをスキップ
-    this.skipToStage(newStage);
+    try {
+      const currentStage = this.gameStateManager.getCurrentStage();
+      console.log(`Current stage: ${currentStage}, delta: ${delta}`);
+      
+      // StageManagerを取得
+      const stageManager = this.gameStateManager.getStageManager();
+      if (!stageManager) {
+        console.log('StageManager not available');
+        return;
+      }
+      
+      const maxStage = stageManager.getMaxStage();
+      console.log(`Max stage: ${maxStage}`);
+      
+      // 新しいステージ番号（1-100の範囲に制限）
+      const newStage = Math.max(1, Math.min(maxStage, currentStage + delta));
+      console.log(`New stage: ${newStage}`);
+      
+      // 変更がなければ何もしない
+      if (newStage === currentStage) {
+        console.log('No change in stage number');
+        return;
+      }
+      
+      // ステージをスキップ
+      this.skipToStage(newStage);
+    } catch (e) {
+      console.error('Error in changeStage:', e);
+    }
   }
 
   /**
