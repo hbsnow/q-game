@@ -1,13 +1,11 @@
 import { Scene } from 'phaser';
 import { GameStateManager } from '../utils/GameStateManager';
+import { DebugHelper } from '../utils/DebugHelper';
 
 export class MainScene extends Scene {
   private gameStateManager!: GameStateManager;
+  private debugHelper!: DebugHelper;
   
-  // デバッグライン管理
-  private debugElements: Phaser.GameObjects.GameObject[] = [];
-  private debugVisible = true; // 初期表示ON
-
   constructor() {
     super({ key: 'MainScene' });
   }
@@ -21,15 +19,15 @@ export class MainScene extends Scene {
   create() {
     const { width, height } = this.cameras.main;
 
+    // デバッグヘルパーを初期化
+    this.debugHelper = new DebugHelper(this);
+
     // 🏷️ 画面名をコンソールに表示
     console.log('🎬 === MAIN SCENE ===');
     console.log('📍 Current Scene: メイン画面');
     console.log('🎯 Purpose: ステージ選択・メニュー画面');
     console.log('📊 Current Stage:', this.gameStateManager.getCurrentStage());
     console.log('💰 Current Gold:', this.gameStateManager.getGold());
-
-    // デバッグショートカットキーを設定
-    this.setupDebugShortcut();
 
     // 背景色設定（海のテーマ）
     this.cameras.main.setBackgroundColor('#1E5799');
@@ -112,38 +110,30 @@ export class MainScene extends Scene {
         fontSize: '12px',
         color: '#CCCCCC'
       });
+      
+      // デバッグモード表示
+      this.add.text(10, height - 50, 'デバッグモード: ON', {
+        fontSize: '12px',
+        color: '#FFFF00',
+        backgroundColor: '#000000'
+      });
+      
+      // ステージスキップ説明
+      this.add.text(10, height - 70, 'Ctrl+[1-9]: ステージ1-9へ', {
+        fontSize: '10px',
+        color: '#FFFF00',
+        backgroundColor: '#000000'
+      });
+      
+      this.add.text(10, height - 90, 'Alt+[1-9]: ステージ11,21,31...へ', {
+        fontSize: '10px',
+        color: '#FFFF00',
+        backgroundColor: '#000000'
+      });
     }
 
     // デバッグライン追加
     this.addDebugLines(width, height);
-  }
-
-  private setupDebugShortcut() {
-    // Dキーでデバッグライン切り替え
-    this.input.keyboard?.on('keydown-D', (event: KeyboardEvent) => {
-      if (event.shiftKey) {
-        // Shift+D: 詳細デバッグ情報出力
-        this.logDetailedDebugInfo();
-      } else {
-        // D: デバッグライン切り替え
-        this.toggleDebugLines();
-      }
-    });
-    
-    console.log('🔧 [MAIN SCENE] Debug shortcut setup:');
-    console.log('  - Press "D" to toggle debug lines');
-    console.log('  - Press "Shift+D" to log detailed debug info');
-  }
-
-  private toggleDebugLines() {
-    this.debugVisible = !this.debugVisible;
-    
-    // 全てのデバッグ要素の表示/非表示を切り替え
-    this.debugElements.forEach(element => {
-      element.setVisible(this.debugVisible);
-    });
-    
-    console.log(`🔧 [MAIN SCENE] Debug lines ${this.debugVisible ? 'SHOWN' : 'HIDDEN'} (Press D to toggle)`);
   }
 
   private addDebugLines(width: number, height: number) {
@@ -154,90 +144,15 @@ export class MainScene extends Scene {
     const menuButtonY = 350;
     
     // ヘッダーエリア（Y=0-120）- 赤色
-    const headerRect = this.add.rectangle(width / 2, 60, width - 4, 116, 0x000000, 0)
-      .setStrokeStyle(3, 0xFF0000);
-    const headerText = this.add.text(10, 5, 'ヘッダーエリア Y=0-120', {
-      fontSize: '12px',
-      color: '#FF0000',
-      backgroundColor: '#000000',
-      fontStyle: 'bold'
-    });
-    this.debugElements.push(headerRect, headerText);
+    this.debugHelper.addAreaBorder(width / 2, 60, width - 4, 116, 0xFF0000, 'ヘッダーエリア Y=0-120');
     
     // ステージ情報エリア（Y=120-220）- 緑色
-    const stageRect = this.add.rectangle(width / 2, 170, width - 4, 96, 0x000000, 0)
-      .setStrokeStyle(3, 0x00FF00);
-    const stageText = this.add.text(10, 125, 'ステージ情報エリア Y=120-220', {
-      fontSize: '12px',
-      color: '#00FF00',
-      backgroundColor: '#000000',
-      fontStyle: 'bold'
-    });
-    this.debugElements.push(stageRect, stageText);
+    this.debugHelper.addAreaBorder(width / 2, 170, width - 4, 96, 0x00FF00, 'ステージ情報エリア Y=120-220');
     
     // プレイボタンエリア（Y=220-280）- 青色（実際のプレイボタン位置Y=250を含む）
-    const playRect = this.add.rectangle(width / 2, 250, width - 4, 56, 0x000000, 0)
-      .setStrokeStyle(3, 0x0000FF);
-    const playText = this.add.text(10, 225, `プレイボタンエリア Y=220-280 (実際: ${playButtonY})`, {
-      fontSize: '12px',
-      color: '#0000FF',
-      backgroundColor: '#000000',
-      fontStyle: 'bold'
-    });
-    this.debugElements.push(playRect, playText);
+    this.debugHelper.addAreaBorder(width / 2, 250, width - 4, 56, 0x0000FF, `プレイボタンエリア Y=220-280 (実際: ${playButtonY})`);
     
     // メニューボタンエリア（Y=320-380）- 黄色（実際のメニューボタン位置Y=350を含む）
-    const menuRect = this.add.rectangle(width / 2, 350, width - 4, 56, 0x000000, 0)
-      .setStrokeStyle(3, 0xFFFF00);
-    const menuText = this.add.text(10, 325, `メニューボタンエリア Y=320-380 (実際: ${menuButtonY})`, {
-      fontSize: '12px',
-      color: '#FFFF00',
-      backgroundColor: '#000000',
-      fontStyle: 'bold'
-    });
-    this.debugElements.push(menuRect, menuText);
-    
-    // 空白フッターエリアは削除（実際のコンテンツがないため）
-    
-    console.log('🔧 [MAIN SCENE] Debug elements count:', this.debugElements.length);
-  }
-
-  private logDetailedDebugInfo() {
-    const { width, height } = this.cameras.main;
-    console.log('🔍 === DETAILED DEBUG INFO [MAIN SCENE] ===');
-    console.log('📍 Current Screen:', {
-      sceneName: 'MainScene',
-      displayName: 'メイン画面',
-      purpose: 'ステージ選択・メニュー画面',
-      sceneKey: this.scene.key,
-      isActive: this.scene.isActive(),
-      isPaused: this.scene.isPaused(),
-      isVisible: this.scene.isVisible()
-    });
-    console.log('📱 Screen Info:', {
-      width: width,
-      height: height,
-      devicePixelRatio: window.devicePixelRatio
-    });
-    console.log('🎮 Game State:', {
-      currentStage: this.currentStage,
-      gold: this.gold
-    });
-    console.log('📦 Mock Items:', {
-      totalItems: mockItems.length,
-      itemsByRarity: mockItems.reduce((acc, item) => {
-        acc[item.rarity] = (acc[item.rarity] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>)
-    });
-    console.log('🎨 Debug Elements:', {
-      count: this.debugElements.length,
-      visible: this.debugVisible
-    });
-    console.log('🔧 Performance:', {
-      fps: this.game.loop.actualFps.toFixed(1),
-      delta: this.game.loop.delta
-    });
-    console.log('=== END DEBUG INFO ===');
+    this.debugHelper.addAreaBorder(width / 2, 350, width - 4, 56, 0xFFFF00, `メニューボタンエリア Y=320-380 (実際: ${menuButtonY})`);
   }
 }
