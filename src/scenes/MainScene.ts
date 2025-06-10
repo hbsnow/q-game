@@ -91,7 +91,7 @@ export class MainScene extends Scene {
     }).setOrigin(0.5);
 
     // ガチャボタン
-    const gachaButton = this.add.rectangle(width / 2 + 70, buttonY, buttonWidth, buttonHeight, 0xFF6347, 0.8);
+    const gachaButton = this.scene.add.rectangle(width / 2 + 70, buttonY, buttonWidth, buttonHeight, 0xFF6347, 0.8);
     gachaButton.setInteractive();
     gachaButton.on('pointerdown', () => {
       this.scene.start('GachaScene', {
@@ -118,14 +118,14 @@ export class MainScene extends Scene {
         backgroundColor: '#000000'
       });
       
-      // ステージスキップ説明
-      this.add.text(10, height - 70, 'Command+[1-9]: ステージ1-9へ', {
+      // デバッグ操作説明
+      this.add.text(10, height - 70, 'D: デバッグライン表示/非表示', {
         fontSize: '10px',
         color: '#FFFF00',
         backgroundColor: '#000000'
       });
       
-      this.add.text(10, height - 90, 'Option+[1-9]: ステージ11,21,31...へ', {
+      this.add.text(10, height - 90, '🔧: ステージ移動パネル', {
         fontSize: '10px',
         color: '#FFFF00',
         backgroundColor: '#000000'

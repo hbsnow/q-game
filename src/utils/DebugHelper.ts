@@ -7,6 +7,9 @@ export class DebugHelper {
   private debugContainer: Phaser.GameObjects.Container;
   private debugVisible: boolean = true;
   private gameStateManager: any;
+  private stageControlPanel: Phaser.GameObjects.Container | null = null;
+  private stageNumberText: Phaser.GameObjects.Text | null = null;
+  private isPanelVisible: boolean = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -20,6 +23,174 @@ export class DebugHelper {
     } catch (e) {
       console.log('GameStateManager not available in this context');
     }
+    
+    // デバッグパネルボタンを追加（MainSceneの場合のみ）
+    if (scene.scene.key === 'MainScene') {
+      this.addDebugPanelButton();
+    }
+  }
+
+  /**
+   * デバッグパネルボタンを追加
+   */
+  private addDebugPanelButton() {
+    const { width, height } = this.scene.cameras.main;
+    
+    // デバッグパネルボタン
+    const debugButton = this.scene.add.text(width - 30, height - 30, "🔧", { 
+      fontSize: '24px',
+      backgroundColor: '#000000',
+      padding: { x: 8, y: 4 }
+    }).setOrigin(1, 1).setInteractive();
+    
+    // クリックでデバッグパネル表示/非表示を切り替え
+    debugButton.on('pointerdown', () => {
+      this.toggleStageControlPanel();
+    });
+    
+    // デバッグコンテナに追加
+    this.debugContainer.add(debugButton);
+  }
+
+  /**
+   * ステージ操作パネルの表示/非表示を切り替え
+   */
+  private toggleStageControlPanel() {
+    if (this.isPanelVisible && this.stageControlPanel) {
+      // パネルを非表示
+      this.stageControlPanel.setVisible(false);
+      this.isPanelVisible = false;
+    } else {
+      // パネルを表示
+      if (!this.stageControlPanel) {
+        this.createStageControlPanel();
+      } else {
+        this.stageControlPanel.setVisible(true);
+      }
+      this.isPanelVisible = true;
+      
+      // 現在のステージ番号を更新
+      this.updateStageNumberDisplay();
+    }
+  }
+
+  /**
+   * ステージ操作パネルを作成
+   */
+  private createStageControlPanel() {
+    const { width, height } = this.scene.cameras.main;
+    
+    // パネルコンテナ
+    this.stageControlPanel = this.scene.add.container(width / 2, height - 100);
+    
+    // 背景
+    const panelBg = this.scene.add.rectangle(0, 0, 300, 50, 0x000000, 0.8)
+      .setStrokeStyle(2, 0xFFFFFF);
+    this.stageControlPanel.add(panelBg);
+    
+    // ボタンの配置
+    const buttonWidth = 40;
+    const buttonHeight = 30;
+    const buttonSpacing = 50;
+    
+    // -10 ボタン
+    const minus10Button = this.scene.add.rectangle(-100, 0, buttonWidth, buttonHeight, 0x444444)
+      .setInteractive();
+    const minus10Text = this.scene.add.text(-100, 0, "-10", { 
+      fontSize: '16px',
+      color: '#FFFFFF'
+    }).setOrigin(0.5);
+    
+    minus10Button.on('pointerdown', () => {
+      this.changeStage(-10);
+    });
+    
+    // -1 ボタン
+    const minus1Button = this.scene.add.rectangle(-50, 0, buttonWidth, buttonHeight, 0x444444)
+      .setInteractive();
+    const minus1Text = this.scene.add.text(-50, 0, "-1", { 
+      fontSize: '16px',
+      color: '#FFFFFF'
+    }).setOrigin(0.5);
+    
+    minus1Button.on('pointerdown', () => {
+      this.changeStage(-1);
+    });
+    
+    // ステージ番号表示
+    this.stageNumberText = this.scene.add.text(0, 0, "1", { 
+      fontSize: '18px',
+      color: '#FFFF00',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    // +1 ボタン
+    const plus1Button = this.scene.add.rectangle(50, 0, buttonWidth, buttonHeight, 0x444444)
+      .setInteractive();
+    const plus1Text = this.scene.add.text(50, 0, "+1", { 
+      fontSize: '16px',
+      color: '#FFFFFF'
+    }).setOrigin(0.5);
+    
+    plus1Button.on('pointerdown', () => {
+      this.changeStage(1);
+    });
+    
+    // +10 ボタン
+    const plus10Button = this.scene.add.rectangle(100, 0, buttonWidth, buttonHeight, 0x444444)
+      .setInteractive();
+    const plus10Text = this.scene.add.text(100, 0, "+10", { 
+      fontSize: '16px',
+      color: '#FFFFFF'
+    }).setOrigin(0.5);
+    
+    plus10Button.on('pointerdown', () => {
+      this.changeStage(10);
+    });
+    
+    // パネルにボタンを追加
+    this.stageControlPanel.add([
+      minus10Button, minus10Text,
+      minus1Button, minus1Text,
+      this.stageNumberText,
+      plus1Button, plus1Text,
+      plus10Button, plus10Text
+    ]);
+    
+    // デバッグコンテナに追加
+    this.debugContainer.add(this.stageControlPanel);
+    
+    // 現在のステージ番号を表示
+    this.updateStageNumberDisplay();
+  }
+
+  /**
+   * ステージ番号表示を更新
+   */
+  private updateStageNumberDisplay() {
+    if (!this.stageNumberText || !this.gameStateManager) return;
+    
+    const currentStage = this.gameStateManager.getCurrentStage();
+    this.stageNumberText.setText(`${currentStage}`);
+  }
+
+  /**
+   * ステージを変更（相対値）
+   */
+  private changeStage(delta: number) {
+    if (!this.gameStateManager) return;
+    
+    const currentStage = this.gameStateManager.getCurrentStage();
+    const maxStage = this.gameStateManager.getStageManager().getMaxStage();
+    
+    // 新しいステージ番号（1-100の範囲に制限）
+    const newStage = Math.max(1, Math.min(maxStage, currentStage + delta));
+    
+    // 変更がなければ何もしない
+    if (newStage === currentStage) return;
+    
+    // ステージをスキップ
+    this.skipToStage(newStage);
   }
 
   /**
@@ -38,24 +209,10 @@ export class DebugHelper {
       }
     });
 
-    // 数字キー: ステージスキップ
-    for (let i = 1; i <= 9; i++) {
-      this.scene.input.keyboard?.on(`keydown-${i}`, (event: KeyboardEvent) => {
-        if (event.altKey) {
-          // Option+1 → ステージ11, Option+2 → ステージ21
-          this.skipToStage(i * 10 + 1);
-        } else if (event.metaKey) {
-          // Command+1 → ステージ1, Command+2 → ステージ2
-          this.skipToStage(i);
-        }
-      });
-    }
-
     console.log('🔧 Debug shortcuts setup:');
     console.log('  - Press "D" to toggle debug lines');
     console.log('  - Press "Shift+D" to log debug info');
-    console.log('  - Press "Command+[1-9]" to skip to stages 1-9');
-    console.log('  - Press "Option+[1-9]" to skip to stages 11,21,31...');
+    console.log('  - Click 🔧 button for stage navigation');
   }
 
   /**
