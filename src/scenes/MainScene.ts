@@ -91,7 +91,7 @@ export class MainScene extends Scene {
     }).setOrigin(0.5);
 
     // ガチャボタン
-    const gachaButton = this.scene.add.rectangle(width / 2 + 70, buttonY, buttonWidth, buttonHeight, 0xFF6347, 0.8);
+    const gachaButton = this.add.rectangle(width / 2 + 70, buttonY, buttonWidth, buttonHeight, 0xFF6347, 0.8);
     gachaButton.setInteractive();
     gachaButton.on('pointerdown', () => {
       this.scene.start('GachaScene', {
