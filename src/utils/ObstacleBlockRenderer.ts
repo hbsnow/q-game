@@ -217,25 +217,33 @@ export class ObstacleBlockRenderer {
    * @param blockContainer ブロックを配置するコンテナ
    */
   public renderObstacleBlocks(blocks: Block[], blockContainer: Phaser.GameObjects.Container): void {
-    // 引数チェック
-    if (!blockContainer || !blockContainer.scene || !blockContainer.scene.sys) {
-      console.error('Invalid blockContainer provided to renderObstacleBlocks');
-      return;
-    }
-    
-    // 既存のスプライトをクリア
-    this.clearSprites();
-    
-    // 妨害ブロックを描画
-    blocks.forEach(block => {
-      if (this.obstacleBlockManager.isObstacleBlock(block.id)) {
-        const sprite = this.createObstacleBlockSprite(block);
-        if (sprite) {
-          blockContainer.add(sprite);
-          this.blockSprites.set(block.id, sprite);
-        }
+    try {
+      // 引数チェック
+      if (!blockContainer || !blockContainer.scene || !blockContainer.scene.sys) {
+        console.error('Invalid blockContainer provided to renderObstacleBlocks');
+        return;
       }
-    });
+      
+      // 既存のスプライトをクリア
+      this.clearSprites();
+      
+      // 妨害ブロックを描画
+      blocks.forEach(block => {
+        try {
+          if (this.obstacleBlockManager.isObstacleBlock(block.id)) {
+            const sprite = this.createObstacleBlockSprite(block);
+            if (sprite) {
+              blockContainer.add(sprite);
+              this.blockSprites.set(block.id, sprite);
+            }
+          }
+        } catch (error) {
+          console.error(`Error creating obstacle block sprite for block ${block.id}:`, error);
+        }
+      });
+    } catch (error) {
+      console.error('Error in renderObstacleBlocks:', error);
+    }
   }
   
   /**
@@ -335,10 +343,16 @@ export class ObstacleBlockRenderer {
    * 既存のスプライトをクリア
    */
   private clearSprites(): void {
-    this.blockSprites.forEach(sprite => {
-      sprite.destroy();
-    });
-    this.blockSprites.clear();
+    try {
+      this.blockSprites.forEach(sprite => {
+        if (sprite && !sprite.destroyed) {
+          sprite.destroy();
+        }
+      });
+      this.blockSprites.clear();
+    } catch (error) {
+      console.error('Error clearing obstacle block sprites:', error);
+    }
   }
   
   /**

@@ -925,8 +925,8 @@ export class GameScene extends Scene {
       }
     }
     
-    // ブロックコンテナをクリア
-    this.blockContainer.removeAll(true);
+    // ブロックコンテナをクリア（スプライトは破棄せずに保持）
+    this.blockContainer.removeAll(false);
     
     // 位置計算用の定数
     const boardPixelWidth = this.BOARD_WIDTH * this.BLOCK_SIZE;
@@ -936,30 +936,38 @@ export class GameScene extends Scene {
     // 現在のブロックデータに基づいて再配置
     this.currentBlocks.forEach(block => {
       const sprite = spriteMap.get(block.id);
-      if (sprite) {
-        // 正しい位置に配置
-        this.blockSprites[block.y][block.x] = sprite;
-        
-        // スプライトの物理的位置を更新
-        const newX = startX + block.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
-        const newY = startY + block.y * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
-        sprite.setPosition(newX, newY);
-        
-        // スプライトデータを最新のブロックデータで更新
-        sprite.setData('block', block);
-        sprite.setData('row', block.y);
-        sprite.setData('col', block.x);
-        
-        // ブロックコンテナに追加
-        this.blockContainer.add(sprite);
+      if (sprite && !sprite.destroyed) {
+        try {
+          // 正しい位置に配置
+          this.blockSprites[block.y][block.x] = sprite;
+          
+          // スプライトの物理的位置を更新
+          const newX = startX + block.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
+          const newY = startY + block.y * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
+          sprite.setPosition(newX, newY);
+          
+          // スプライトデータを最新のブロックデータで更新
+          sprite.setData('block', block);
+          sprite.setData('row', block.y);
+          sprite.setData('col', block.x);
+          
+          // ブロックコンテナに追加
+          this.blockContainer.add(sprite);
+        } catch (error) {
+          console.error(`Error updating sprite for block ${block.id}:`, error);
+        }
       }
     });
     
-    // 妨害ブロックの描画を更新
-    if (this.blockContainer && this.blockContainer.scene && this.blockContainer.scene.sys) {
-      this.obstacleBlockRenderer.renderObstacleBlocks(this.currentBlocks, this.blockContainer);
-    } else {
-      console.error('Invalid blockContainer when updating obstacle blocks');
+    try {
+      // 妨害ブロックの描画を更新
+      if (this.blockContainer && this.blockContainer.scene && this.blockContainer.scene.sys) {
+        this.obstacleBlockRenderer.renderObstacleBlocks(this.currentBlocks, this.blockContainer);
+      } else {
+        console.error('Invalid blockContainer when updating obstacle blocks');
+      }
+    } catch (error) {
+      console.error('Error rendering obstacle blocks:', error);
     }
     
     console.log('✅ Sprite-block mapping rebuilt successfully');
