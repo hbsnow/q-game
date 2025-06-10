@@ -956,7 +956,11 @@ export class GameScene extends Scene {
     });
     
     // 妨害ブロックの描画を更新
-    this.obstacleBlockRenderer.renderObstacleBlocks(this.currentBlocks, this.blockContainer);
+    if (this.blockContainer && this.blockContainer.scene && this.blockContainer.scene.sys) {
+      this.obstacleBlockRenderer.renderObstacleBlocks(this.currentBlocks, this.blockContainer);
+    } else {
+      console.error('Invalid blockContainer when updating obstacle blocks');
+    }
     
     console.log('✅ Sprite-block mapping rebuilt successfully');
     console.log(`📊 Mapped ${this.currentBlocks.length} blocks to sprites`);

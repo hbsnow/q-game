@@ -217,6 +217,12 @@ export class ObstacleBlockRenderer {
    * @param blockContainer ブロックを配置するコンテナ
    */
   public renderObstacleBlocks(blocks: Block[], blockContainer: Phaser.GameObjects.Container): void {
+    // 引数チェック
+    if (!blockContainer || !blockContainer.scene || !blockContainer.scene.sys) {
+      console.error('Invalid blockContainer provided to renderObstacleBlocks');
+      return;
+    }
+    
     // 既存のスプライトをクリア
     this.clearSprites();
     
