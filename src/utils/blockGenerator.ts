@@ -1,4 +1,4 @@
-import { Block, BlockColor, StageConfig, ObstacleConfig } from "@/types";
+import { Block, BlockColor, StageConfig, ObstacleConfig, BlockType } from "@/types";
 import { GAME_CONFIG } from "@/config/gameConfig";
 import {
   generateId,
@@ -53,17 +53,22 @@ export class BlockGenerator {
     // 通常ブロックを配置
     for (let y = 0; y < boardHeight; y++) {
       for (let x = 0; x < boardWidth; x++) {
-        const posKey = `${x},${y}`;
-
-        if (!obstaclePositions.has(posKey)) {
-          blocks.push({
-            id: generateId(),
-            type: "normal",
-            color: randomChoice(availableColors),
-            x,
-            y,
-          });
+        // 妨害ブロックがある位置はスキップ
+        if (obstaclePositions.has(`${x},${y}`)) {
+          continue;
         }
+
+        // ランダムな色を選択
+        const color = randomChoice(availableColors);
+        
+        // 通常ブロックを作成
+        blocks.push({
+          id: generateId(),
+          type: 'normal',
+          color: color as BlockColor,
+          x,
+          y,
+        });
       }
     }
 
@@ -73,132 +78,56 @@ export class BlockGenerator {
   /**
    * 妨害ブロックを作成
    */
-  private static createObstacleBlock(
-    obstacle: ObstacleConfig,
-    x: number,
-    y: number
-  ): Block {
-    const baseBlock: Block = {
+  private static createObstacleBlock(obstacle: ObstacleConfig, x: number, y: number): Block {
+    // 基本的な妨害ブロック
+    const block: Block = {
       id: generateId(),
       type: obstacle.type,
-      color: randomChoice(GAME_CONFIG.colors), // 妨害ブロックも色を持つ
+      color: this.getObstacleColor(obstacle.type),
       x,
       y,
     };
 
-    // 妨害ブロック固有のプロパティを設定
-    if (obstacle.iceLevel) {
-      baseBlock.iceLevel = obstacle.iceLevel;
+    // 妨害ブロック固有のパラメータを設定
+    switch (obstacle.type) {
+      case 'ice1':
+      case 'ice2':
+      case 'iceCounter':
+      case 'iceCounterPlus':
+        block.iceLevel = obstacle.iceLevel || 1;
+        break;
+      case 'counter':
+      case 'counterPlus':
+      case 'iceCounter':
+      case 'iceCounterPlus':
+        block.counterValue = obstacle.counterValue || 3;
+        block.isCounterPlus = obstacle.isCounterPlus || false;
+        break;
     }
 
-    if (obstacle.counterValue) {
-      baseBlock.counterValue = obstacle.counterValue;
-    }
-
-    if (obstacle.isCounterPlus) {
-      baseBlock.isCounterPlus = obstacle.isCounterPlus;
-    }
-
-    return baseBlock;
+    return block;
   }
 
   /**
-   * 配置が有効かチェック（消去可能なブロックが存在するか）
+   * 妨害ブロックの色を取得
+   */
+  private static getObstacleColor(type: BlockType): BlockColor {
+    // 岩ブロックと鋼鉄ブロックは固定色
+    if (type === 'rock' || type === 'steel') {
+      return 'pearlWhite';
+    }
+
+    // その他の妨害ブロックはランダムな色
+    const availableColors = GAME_CONFIG.colors.slice(0, 3); // 基本3色から選択
+    return randomChoice(availableColors) as BlockColor;
+  }
+
+  /**
+   * 配置が有効かどうかをチェック
    */
   private static isValidLayout(blocks: Block[]): boolean {
-    const normalBlocks = blocks.filter((b) => b.type === "normal");
-
-    // 最低1箇所は消去可能である必要がある
-    if (!hasRemovableBlocks(normalBlocks)) {
-      return false;
-    }
-
-    // 消去可能箇所が多すぎる場合もNG（30%超）
-    const removableCount = this.countRemovableGroups(normalBlocks);
-    const totalGroups = this.countTotalGroups(normalBlocks);
-
-    if (totalGroups > 0 && removableCount / totalGroups > 0.3) {
-      return false;
-    }
-
-    return true;
-  }
-
-  /**
-   * 消去可能なグループ数をカウント
-   */
-  private static countRemovableGroups(blocks: Block[]): number {
-    const visited = new Set<string>();
-    let removableGroups = 0;
-
-    for (const block of blocks) {
-      if (visited.has(block.id)) continue;
-
-      const group = this.getConnectedGroup(block, blocks, visited);
-      if (group.length >= 2) {
-        removableGroups++;
-      }
-    }
-
-    return removableGroups;
-  }
-
-  /**
-   * 総グループ数をカウント
-   */
-  private static countTotalGroups(blocks: Block[]): number {
-    const visited = new Set<string>();
-    let totalGroups = 0;
-
-    for (const block of blocks) {
-      if (visited.has(block.id)) continue;
-
-      this.getConnectedGroup(block, blocks, visited);
-      totalGroups++;
-    }
-
-    return totalGroups;
-  }
-
-  /**
-   * 連結グループを取得（visited更新あり）
-   */
-  private static getConnectedGroup(
-    startBlock: Block,
-    allBlocks: Block[],
-    visited: Set<string>
-  ): Block[] {
-    const group: Block[] = [];
-    const queue: Block[] = [startBlock];
-
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-
-      if (visited.has(current.id)) continue;
-      visited.add(current.id);
-      group.push(current);
-
-      // 隣接する同色ブロックを探す
-      const adjacent = allBlocks.filter(
-        (b) =>
-          !visited.has(b.id) &&
-          b.color === startBlock.color &&
-          this.isAdjacent(current, b)
-      );
-
-      queue.push(...adjacent);
-    }
-
-    return group;
-  }
-
-  /**
-   * 隣接判定
-   */
-  private static isAdjacent(block1: Block, block2: Block): boolean {
-    const dx = Math.abs(block1.x - block2.x);
-    const dy = Math.abs(block1.y - block2.y);
-    return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+    // 消去可能なブロックがあるかチェック
+    return hasRemovableBlocks(blocks);
   }
 
   /**
@@ -206,34 +135,70 @@ export class BlockGenerator {
    */
   private static createForcedValidLayout(stageConfig: StageConfig): Block[] {
     const blocks = this.createInitialBlocks(stageConfig);
-    const normalBlocks = blocks.filter((b) => b.type === "normal");
-
-    // 最低限の消去可能グループを作成
-    if (normalBlocks.length >= 2) {
-      const firstBlock = normalBlocks[0];
-      const secondBlock = normalBlocks.find((b) =>
-        this.isAdjacent(firstBlock, b)
-      );
-
-      if (secondBlock) {
-        secondBlock.color = firstBlock.color;
-      }
+    
+    // 消去可能なブロックがない場合は強制的に作成
+    if (!this.isValidLayout(blocks)) {
+      this.forceRemovableBlocks(blocks);
     }
-
+    
     return blocks;
   }
 
   /**
-   * 新しいブロックを生成（重力処理後の補充用）
+   * 強制的に消去可能なブロックを作成
    */
-  static generateNewBlocks(
-    positions: { x: number; y: number }[],
-    availableColors: BlockColor[]
-  ): Block[] {
-    return positions.map((pos) => ({
+  private static forceRemovableBlocks(blocks: Block[]): void {
+    const normalBlocks = blocks.filter(block => block.type === 'normal');
+    
+    if (normalBlocks.length < 2) {
+      return; // 通常ブロックが2つ未満の場合は何もしない
+    }
+    
+    // 隣接する2つの通常ブロックを探す
+    for (let i = 0; i < normalBlocks.length - 1; i++) {
+      const block1 = normalBlocks[i];
+      
+      for (let j = i + 1; j < normalBlocks.length; j++) {
+        const block2 = normalBlocks[j];
+        
+        // 隣接しているかチェック
+        if (
+          (Math.abs(block1.x - block2.x) === 1 && block1.y === block2.y) ||
+          (Math.abs(block1.y - block2.y) === 1 && block1.x === block2.x)
+        ) {
+          // 同じ色にする
+          const targetColor = block1.color;
+          
+          // block2の色を変更
+          const block2Index = blocks.findIndex(b => b.id === block2.id);
+          if (block2Index !== -1) {
+            blocks[block2Index].color = targetColor;
+          }
+          
+          return; // 1組作成したら終了
+        }
+      }
+    }
+    
+    // 隣接するブロックが見つからない場合は、最初の2つのブロックを同じ色にする
+    if (normalBlocks.length >= 2) {
+      const targetColor = normalBlocks[0].color;
+      
+      const block2Index = blocks.findIndex(b => b.id === normalBlocks[1].id);
+      if (block2Index !== -1) {
+        blocks[block2Index].color = targetColor;
+      }
+    }
+  }
+
+  /**
+   * 指定した位置に新しいブロックを生成（テスト用）
+   */
+  static generateNewBlocks(positions: { x: number; y: number }[], colors: BlockColor[]): Block[] {
+    return positions.map(pos => ({
       id: generateId(),
-      type: "normal",
-      color: randomChoice(availableColors),
+      type: 'normal',
+      color: randomChoice(colors),
       x: pos.x,
       y: pos.y,
     }));

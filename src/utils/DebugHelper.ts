@@ -40,6 +40,14 @@ export class DebugHelper {
   }
 
   /**
+   * GameStateManagerを設定
+   */
+  setGameStateManager(gameStateManager: any) {
+    this.gameStateManager = gameStateManager;
+    console.log('GameStateManager explicitly set to DebugHelper');
+  }
+
+  /**
    * デバッグパネルボタンを追加
    */
   private addDebugPanelButton() {

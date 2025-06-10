@@ -197,6 +197,17 @@ export class ItemManager {
   }
 
   /**
+   * アイテムをリセット（全て削除）
+   */
+  public resetItems(): void {
+    this.items = new Map();
+    this.equipSlots = [
+      { type: 'special', item: null, used: false },
+      { type: 'normal', item: null, used: false }
+    ];
+  }
+
+  /**
    * デバッグ用：アイテム管理状態をコンソール出力
    */
   debugLog(): void {

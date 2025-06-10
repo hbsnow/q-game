@@ -1366,9 +1366,14 @@ export class GameScene extends Scene {
     // 消去不可能ブロック：岩ブロック、鋼鉄ブロック（全消し条件に含まれない）
     
     const removableBlocks = this.currentBlocks.filter(block => {
-      // Phase 1では通常ブロックのみ実装されているため、通常ブロックのみをチェック
-      // Phase 7で妨害ブロック実装時に条件を拡張
-      return block.type === 'normal';
+      // 消去可能なブロックタイプかどうかをチェック
+      return block.type === 'normal' || 
+             block.type === 'ice1' || 
+             block.type === 'ice2' || 
+             block.type === 'counter' || 
+             block.type === 'counterPlus' ||
+             block.type === 'iceCounter' ||
+             block.type === 'iceCounterPlus';
     });
     
     // 消去可能ブロックが全て消去されている場合は全消し

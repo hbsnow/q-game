@@ -197,46 +197,6 @@ export class ObstacleBlockManager {
   }
   
   /**
-   * 隣接する同色ブロックを取得
-   */
-  private getAdjacentSameColorBlocks(obstacleBlock: ObstacleBlock, allBlocks: Block[]): Block[] {
-    const visited = new Set<string>();
-    const group: Block[] = [];
-    const queue: Block[] = [obstacleBlock.getBlock()];
-    const color = obstacleBlock.getColor();
-    
-    while (queue.length > 0) {
-      const current = queue.shift()!;
-      
-      if (visited.has(current.id)) continue;
-      visited.add(current.id);
-      
-      // 自分自身は結果に含めない
-      if (current.id !== obstacleBlock.getId()) {
-        group.push(current);
-      }
-      
-      // 隣接する同色ブロックを探す
-      const adjacentPositions = this.getAdjacentPositions(current);
-      
-      for (const pos of adjacentPositions) {
-        const adjacentBlock = allBlocks.find(b => b.x === pos.x && b.y === pos.y);
-        
-        if (adjacentBlock && 
-            !visited.has(adjacentBlock.id) && 
-            adjacentBlock.color === color &&
-            (adjacentBlock.type === 'normal' || 
-             adjacentBlock.type === 'counter' || 
-             adjacentBlock.type === 'counterPlus')) {
-          queue.push(adjacentBlock);
-        }
-      }
-    }
-    
-    return group;
-  }
-  
-  /**
    * 妨害ブロックの描画情報を取得
    */
   public getObstacleBlockRenderInfo(blockId: string): {

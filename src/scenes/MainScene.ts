@@ -30,10 +30,8 @@ export class MainScene extends Scene {
     this.debugHelper = new DebugHelper(this);
     
     // 明示的にGameStateManagerを設定
-    if ((this.debugHelper as any).gameStateManager === undefined) {
-      (this.debugHelper as any).gameStateManager = this.gameStateManager;
-      console.log('Explicitly set GameStateManager to DebugHelper');
-    }
+    this.debugHelper.setGameStateManager(this.gameStateManager);
+    console.log('Explicitly set GameStateManager to DebugHelper');
 
     // 背景色設定（海のテーマ）
     this.cameras.main.setBackgroundColor('#1E5799');

@@ -24,6 +24,10 @@ export class TitleScene extends Scene {
     // 背景色設定（深い海のイメージ）
     this.cameras.main.setBackgroundColor('#0F3460');
 
+    // ゲーム状態をリセット
+    const gameStateManager = GameStateManager.getInstance();
+    gameStateManager.resetGameState();
+
     // タイトルロゴ
     this.add.text(width / 2, height / 2 - 100, '🌊 さめがめ', {
       fontSize: '32px',
@@ -42,7 +46,6 @@ export class TitleScene extends Scene {
     startButton.setInteractive();
     startButton.on('pointerdown', () => {
       // GameStateManagerのシングルトンインスタンスを取得してMainSceneに渡す
-      const gameStateManager = GameStateManager.getInstance();
       this.scene.start('MainScene', {
         gameStateManager: gameStateManager
       });
@@ -70,7 +73,7 @@ export class TitleScene extends Scene {
 
     // 開発情報（開発時のみ）
     if (process.env.NODE_ENV === 'development') {
-      this.add.text(10, 10, 'Phase 3: UI/画面システム実装中', {
+      this.add.text(10, 10, 'Phase 6: ステージシステム実装中', {
         fontSize: '12px',
         color: '#CCCCCC'
       });

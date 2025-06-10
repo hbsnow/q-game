@@ -33,6 +33,9 @@ export class ResultScene extends Scene {
     const currentGold = this.gameStateManager.getGold();
     const isTargetAchieved = this.gameStateManager.isTargetScoreAchieved();
     
+    // 最終ステージかどうかをチェック
+    const isFinalStage = this.gameStateManager.isFinalStage();
+    
     // 🏷️ 画面名をコンソールに表示
     console.log('🎬 === RESULT SCENE ===');
     console.log('📍 Current Scene: リザルト画面');
@@ -41,6 +44,7 @@ export class ResultScene extends Scene {
     console.log('📊 Score:', currentScore, '/', targetScore);
     console.log('🏆 All Clear:', this.isAllClear);
     console.log('💰 Gold Total:', currentGold);
+    console.log('🏁 Final Stage:', isFinalStage);
     
     // デバッグショートカットキーを設定
     this.setupDebugShortcut();
@@ -48,105 +52,150 @@ export class ResultScene extends Scene {
     // 背景
     this.add.rectangle(width / 2, height / 2, width, height, 0x001122, 0.9);
     
-    // タイトル
-    const titleText = isTargetAchieved 
-      ? `ステージ ${currentStage} クリア！`
-      : `ステージ ${currentStage} 失敗`;
+    // ヘッダー
+    this.add.rectangle(width / 2, 40, width, 80, 0x2E8B57, 0.8);
     
-    const titleColor = isTargetAchieved ? '#00FF00' : '#FF6347';
-    
-    this.add.text(width / 2, 100, titleText, {
+    // ステージクリア表示
+    this.add.text(width / 2, 40, `ステージ ${currentStage} ${isTargetAchieved ? 'クリア！' : '未クリア'}`, {
       fontSize: '24px',
-      color: titleColor,
+      color: '#FFFFFF',
       fontStyle: 'bold'
     }).setOrigin(0.5);
     
-    // スコア詳細
-    const scoreY = 180;
-    this.add.text(width / 2, scoreY, `スコア: ${currentScore}`, {
-      fontSize: '20px',
-      color: '#FFFFFF'
-    }).setOrigin(0.5);
-    
-    const targetColor = isTargetAchieved ? '#00FF00' : '#FF6347';
-    const targetSymbol = isTargetAchieved ? '✓' : '✗';
-    
-    this.add.text(width / 2, scoreY + 40, `目標: ${targetScore} ${targetSymbol}`, {
+    // スコア表示
+    this.add.text(width / 2 - 80, 120, 'スコア:', {
       fontSize: '18px',
-      color: targetColor
-    }).setOrigin(0.5);
+      color: '#FFFFFF'
+    }).setOrigin(0, 0.5);
     
-    // 全消しボーナス表示
-    if (this.isAllClear) {
-      this.add.text(width / 2, scoreY + 80, '🏆 全消しボーナス達成！', {
-        fontSize: '16px',
-        color: '#FFD700',
+    this.add.text(width / 2 + 80, 120, `${currentScore}`, {
+      fontSize: '18px',
+      color: isTargetAchieved ? '#7FFF7F' : '#FFFFFF',
+      fontStyle: isTargetAchieved ? 'bold' : 'normal'
+    }).setOrigin(1, 0.5);
+    
+    // 目標スコア表示
+    this.add.text(width / 2 - 80, 150, '目標:', {
+      fontSize: '18px',
+      color: '#FFFFFF'
+    }).setOrigin(0, 0.5);
+    
+    const targetScoreText = this.add.text(width / 2 + 60, 150, `${targetScore}`, {
+      fontSize: '18px',
+      color: '#FFFFFF'
+    }).setOrigin(1, 0.5);
+    
+    // 達成チェックマーク
+    if (isTargetAchieved) {
+      this.add.text(width / 2 + 80, 150, '✓', {
+        fontSize: '18px',
+        color: '#7FFF7F',
         fontStyle: 'bold'
-      }).setOrigin(0.5);
+      }).setOrigin(1, 0.5);
     }
     
-    // 獲得ゴールド（今回のスコア分）
-    this.add.text(width / 2, scoreY + 120, `獲得ゴールド: ${currentScore}`, {
-      fontSize: '18px',
-      color: '#FFFF00'
-    }).setOrigin(0.5);
+    // 獲得ゴールド表示（クリア時のみ）
+    if (isTargetAchieved) {
+      this.add.text(width / 2 - 80, 200, '獲得ゴールド:', {
+        fontSize: '18px',
+        color: '#FFFFFF'
+      }).setOrigin(0, 0.5);
+      
+      this.add.text(width / 2 + 80, 200, `${currentScore}`, {
+        fontSize: '18px',
+        color: '#FFD700',
+        fontStyle: 'bold'
+      }).setOrigin(1, 0.5);
+    }
     
-    // 総ゴールド
-    this.add.text(width / 2, scoreY + 150, `総ゴールド: ${currentGold}`, {
-      fontSize: '16px',
-      color: '#FFFF00'
-    }).setOrigin(0.5);
+    // 使用アイテム表示
+    this.add.text(width / 2, 250, '使用アイテム:', {
+      fontSize: '18px',
+      color: '#FFFFFF'
+    }).setOrigin(0.5, 0.5);
+    
+    // 使用アイテムリスト（仮）
+    const usedItems = gameState.usedItems;
+    if (usedItems.length > 0) {
+      usedItems.forEach((itemId, index) => {
+        const item = gameState.items.find(i => i.id === itemId);
+        if (item) {
+          this.add.text(width / 2, 280 + index * 30, `• ${item.name} ×1`, {
+            fontSize: '16px',
+            color: '#CCCCCC'
+          }).setOrigin(0.5, 0.5);
+        }
+      });
+    } else {
+      this.add.text(width / 2, 280, '• なし', {
+        fontSize: '16px',
+        color: '#CCCCCC'
+      }).setOrigin(0.5, 0.5);
+    }
     
     // ボタン配置
-    this.createButtons();
-  }
-  
-  private createButtons() {
-    const { width, height } = this.cameras.main;
-    const buttonY = 450;
-    const currentStage = this.gameStateManager.getCurrentStage();
-    const isTargetAchieved = this.gameStateManager.isTargetScoreAchieved();
+    const buttonY = height - 100;
+    const buttonWidth = 150;
+    const buttonHeight = 50;
+    const buttonSpacing = 20;
     
-    if (isTargetAchieved) {
-      // クリア時：次のステージまたはメイン画面
-      if (currentStage < 100) {
-        // 次のステージボタン
-        const nextButton = this.add.rectangle(width / 2 - 80, buttonY, 120, 50, 0x4CAF50, 0.8);
-        nextButton.setInteractive();
-        nextButton.on('pointerdown', () => {
-          this.goToNextStage();
+    // 最終ステージクリア時はゲームクリア画面へ
+    if (isTargetAchieved && isFinalStage) {
+      // ゲームクリアボタン
+      const gameCompleteButton = this.add.rectangle(width / 2, buttonY, buttonWidth, buttonHeight, 0x4CAF50, 0.9);
+      gameCompleteButton.setInteractive();
+      gameCompleteButton.on('pointerdown', () => {
+        this.scene.start('GameCompleteScene', {
+          gameStateManager: this.gameStateManager
         });
-        
-        this.add.text(width / 2 - 80, buttonY, '次へ', {
-          fontSize: '16px',
-          color: '#FFFFFF',
-          fontStyle: 'bold'
-        }).setOrigin(0.5);
-      } else {
-        // 最終ステージクリア：ゲームクリア画面へ
-        const gameCompleteButton = this.add.rectangle(width / 2 - 80, buttonY, 120, 50, 0xFFD700, 0.8);
-        gameCompleteButton.setInteractive();
-        gameCompleteButton.on('pointerdown', () => {
-          this.scene.start('GameCompleteScene', {
-            gameStateManager: this.gameStateManager
-          });
-        });
-        
-        this.add.text(width / 2 - 80, buttonY, 'エンディング', {
-          fontSize: '14px',
-          color: '#000000',
-          fontStyle: 'bold'
-        }).setOrigin(0.5);
-      }
-    } else {
-      // 失敗時：リトライボタン
-      const retryButton = this.add.rectangle(width / 2 - 80, buttonY, 120, 50, 0xFF9800, 0.8);
-      retryButton.setInteractive();
-      retryButton.on('pointerdown', () => {
-        this.retryStage();
       });
       
-      this.add.text(width / 2 - 80, buttonY, 'リトライ', {
+      this.add.text(width / 2, buttonY, 'ゲームクリア', {
+        fontSize: '16px',
+        color: '#FFFFFF',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+      
+      return; // 他のボタンは表示しない
+    }
+    
+    // 次へボタン（クリア時のみ）
+    if (isTargetAchieved) {
+      const nextButton = this.add.rectangle(width / 2 - buttonWidth / 2 - buttonSpacing / 2, buttonY, buttonWidth, buttonHeight, 0x4CAF50, 0.9);
+      nextButton.setInteractive();
+      nextButton.on('pointerdown', () => {
+        // ステージクリア処理
+        this.gameStateManager.onStageClear();
+        
+        // 次のステージへ進む
+        this.gameStateManager.nextStage();
+        
+        // アイテム選択画面へ
+        this.scene.start('ItemSelectScene', {
+          gameStateManager: this.gameStateManager
+        });
+      });
+      
+      this.add.text(width / 2 - buttonWidth / 2 - buttonSpacing / 2, buttonY, '次へ', {
+        fontSize: '16px',
+        color: '#FFFFFF',
+        fontStyle: 'bold'
+      }).setOrigin(0.5);
+    } else {
+      // リトライボタン（未クリア時）
+      const retryButton = this.add.rectangle(width / 2 - buttonWidth / 2 - buttonSpacing / 2, buttonY, buttonWidth, buttonHeight, 0xFF9800, 0.9);
+      retryButton.setInteractive();
+      retryButton.on('pointerdown', () => {
+        // 現在のステージをリトライ
+        this.gameStateManager.retryStage();
+        
+        // アイテム選択画面へ
+        this.scene.start('ItemSelectScene', {
+          gameStateManager: this.gameStateManager
+        });
+      });
+      
+      this.add.text(width / 2 - buttonWidth / 2 - buttonSpacing / 2, buttonY, 'リトライ', {
         fontSize: '16px',
         color: '#FFFFFF',
         fontStyle: 'bold'
@@ -154,55 +203,29 @@ export class ResultScene extends Scene {
     }
     
     // メイン画面ボタン
-    const mainButton = this.add.rectangle(width / 2 + 80, buttonY, 120, 50, 0x2196F3, 0.8);
+    const mainButton = this.add.rectangle(width / 2 + buttonWidth / 2 + buttonSpacing / 2, buttonY, buttonWidth, buttonHeight, 0x2196F3, 0.9);
     mainButton.setInteractive();
     mainButton.on('pointerdown', () => {
+      // クリア時のみゴールドを獲得
+      if (isTargetAchieved) {
+        this.gameStateManager.onStageClear();
+      }
+      
+      // メイン画面へ
       this.scene.start('MainScene', {
         gameStateManager: this.gameStateManager
       });
     });
     
-    this.add.text(width / 2 + 80, buttonY, 'メイン画面', {
-      fontSize: '14px',
-      color: '#FFFFFF',
-      fontStyle: 'bold'
+    this.add.text(width / 2 + buttonWidth / 2 + buttonSpacing / 2, buttonY, 'メイン画面', {
+      fontSize: '16px',
+      color: '#FFFFFF'
     }).setOrigin(0.5);
     
-    // デバッグライン追加は create() メソッドで既に実行されているため削除
+    // デバッグライン追加
+    this.addDebugLines(width, height);
   }
 
-  // 次のステージに進む
-  private goToNextStage() {
-    console.log('🎯 次のステージに進みます');
-    
-    // 次のステージに進む
-    this.gameStateManager.nextStage();
-    
-    const nextStage = this.gameStateManager.getCurrentStage();
-    console.log('📊 次のステージ:', nextStage);
-    
-    // アイテム選択画面に遷移
-    this.scene.start('ItemSelectScene', {
-      gameStateManager: this.gameStateManager
-    });
-  }
-
-  // ステージをリトライする
-  private retryStage() {
-    console.log('🔄 ステージをリトライします');
-    
-    // リトライ処理
-    this.gameStateManager.retryStage();
-    
-    const currentStage = this.gameStateManager.getCurrentStage();
-    console.log('📊 リトライするステージ:', currentStage);
-    
-    // アイテム選択画面に遷移
-    this.scene.start('ItemSelectScene', {
-      gameStateManager: this.gameStateManager
-    });
-  }
-  
   private setupDebugShortcut() {
     // Dキーでデバッグライン切り替え
     this.input.keyboard?.on('keydown-D', (event: KeyboardEvent) => {
@@ -234,21 +257,21 @@ export class ResultScene extends Scene {
   private addDebugLines(width: number, height: number) {
     console.log('🔧 [RESULT SCENE] Adding debug rectangles for area visualization...');
     
-    // タイトルエリア（Y=0-150）- 赤色
-    const titleRect = this.add.rectangle(width / 2, 75, width - 4, 146, 0x000000, 0)
+    // ヘッダーエリア（Y=0-80）- 赤色
+    const headerRect = this.add.rectangle(width / 2, 40, width - 4, 76, 0x000000, 0)
       .setStrokeStyle(3, 0xFF0000);
-    const titleText = this.add.text(10, 5, 'タイトルエリア Y=0-150', {
+    const headerText = this.add.text(10, 5, 'ヘッダーエリア Y=0-80', {
       fontSize: '12px',
       color: '#FF0000',
       backgroundColor: '#000000',
       fontStyle: 'bold'
     });
-    this.debugElements.push(titleRect, titleText);
+    this.debugElements.push(headerRect, headerText);
     
-    // スコア情報エリア（Y=150-400）- 緑色
-    const scoreRect = this.add.rectangle(width / 2, 275, width - 4, 246, 0x000000, 0)
+    // スコア表示エリア（Y=80-230）- 緑色
+    const scoreRect = this.add.rectangle(width / 2, 155, width - 4, 150, 0x000000, 0)
       .setStrokeStyle(3, 0x00FF00);
-    const scoreText = this.add.text(10, 155, 'スコア情報エリア Y=150-400', {
+    const scoreText = this.add.text(10, 85, 'スコア表示エリア Y=80-230', {
       fontSize: '12px',
       color: '#00FF00',
       backgroundColor: '#000000',
@@ -256,21 +279,21 @@ export class ResultScene extends Scene {
     });
     this.debugElements.push(scoreRect, scoreText);
     
-    // 報酬・詳細エリア（Y=400-550）- 青色
-    const rewardRect = this.add.rectangle(width / 2, 475, width - 4, 146, 0x000000, 0)
+    // アイテム表示エリア（Y=230-350）- 青色
+    const itemRect = this.add.rectangle(width / 2, 290, width - 4, 120, 0x000000, 0)
       .setStrokeStyle(3, 0x0000FF);
-    const rewardText = this.add.text(10, 405, '報酬・詳細エリア Y=400-550', {
+    const itemText = this.add.text(10, 235, 'アイテム表示エリア Y=230-350', {
       fontSize: '12px',
       color: '#0000FF',
       backgroundColor: '#000000',
       fontStyle: 'bold'
     });
-    this.debugElements.push(rewardRect, rewardText);
+    this.debugElements.push(itemRect, itemText);
     
-    // ボタンエリア（Y=550-710）- 紫色
-    const buttonRect = this.add.rectangle(width / 2, 630, width - 4, 156, 0x000000, 0)
+    // ボタンエリア（Y=610-660）- 紫色
+    const buttonRect = this.add.rectangle(width / 2, height - 100, width - 4, 50, 0x000000, 0)
       .setStrokeStyle(3, 0xFF00FF);
-    const buttonText = this.add.text(10, 555, 'ボタンエリア Y=550-710', {
+    const buttonText = this.add.text(10, height - 125, 'ボタンエリア Y=610-660', {
       fontSize: '12px',
       color: '#FF00FF',
       backgroundColor: '#000000',
@@ -298,34 +321,19 @@ export class ResultScene extends Scene {
       height: height,
       devicePixelRatio: window.devicePixelRatio
     });
-    
-    const gameState = this.gameStateManager.getGameState();
-    const currentStage = this.gameStateManager.getCurrentStage();
-    const currentScore = this.gameStateManager.getScore();
-    const targetScore = this.gameStateManager.getTargetScore();
-    const currentGold = this.gameStateManager.getGold();
-    const isTargetAchieved = this.gameStateManager.isTargetScoreAchieved();
-    
-    console.log('🏆 Result Data:', {
-      stage: currentStage,
-      score: currentScore,
-      targetScore: targetScore,
+    console.log('🎮 Game State:', {
+      currentStage: this.gameStateManager.getCurrentStage(),
+      score: this.gameStateManager.getScore(),
+      targetScore: this.gameStateManager.getTargetScore(),
+      isTargetAchieved: this.gameStateManager.isTargetScoreAchieved(),
+      gold: this.gameStateManager.getGold(),
       isAllClear: this.isAllClear,
-      gold: currentGold,
-      isSuccess: isTargetAchieved
-    });
-    console.log('📊 Score Analysis:', {
-      scorePercentage: ((currentScore / targetScore) * 100).toFixed(1) + '%',
-      bonusScore: this.isAllClear ? Math.floor(currentScore * 0.5) : 0,
-      goldEarned: currentScore
+      isFinalStage: this.gameStateManager.isFinalStage()
     });
     console.log('🎨 Debug Elements:', {
       count: this.debugElements.length,
-      visible: this.debugVisible
-    });
-    console.log('🔧 Performance:', {
-      fps: this.game.loop.actualFps.toFixed(1),
-      delta: this.game.loop.delta
+      visible: this.debugVisible,
+      types: this.debugElements.map(el => el.type)
     });
     console.log('=== END DEBUG INFO ===');
   }

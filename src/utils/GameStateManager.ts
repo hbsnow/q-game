@@ -1,6 +1,8 @@
 import { GameState, Item, EquipSlot } from '../types';
 import { ItemManager } from './ItemManager';
+import { StageManager } from './StageManager';
 import { ITEM_DATA } from '../data/ItemData';
+import { SCORE_CONFIG } from '../config/gameConfig';
 
 /**
  * ゲーム状態管理クラス
@@ -10,14 +12,18 @@ export class GameStateManager {
   private static instance: GameStateManager;
   private gameState: GameState;
   private itemManager: ItemManager;
+  private stageManager: StageManager;
 
   private constructor() {
+    // ステージ管理システムを初期化
+    this.stageManager = StageManager.getInstance();
+    
     // 初期ゲーム状態
     this.gameState = {
       currentStage: 1,
       gold: 0,
       score: 0,
-      targetScore: 500,
+      targetScore: this.stageManager.getTargetScore(1),
       items: [],
       equipSlots: [
         { type: 'special', item: null, used: false },
@@ -64,6 +70,13 @@ export class GameStateManager {
    */
   public getItemManager(): ItemManager {
     return this.itemManager;
+  }
+
+  /**
+   * ステージ管理システムを取得
+   */
+  public getStageManager(): StageManager {
+    return this.stageManager;
   }
 
   /**
@@ -119,6 +132,9 @@ export class GameStateManager {
   public goToNextStage(): void {
     // 現在のステージをクリア
     this.gameState.currentStage++;
+    
+    // 次のステージの目標スコアを設定
+    this.gameState.targetScore = this.stageManager.getTargetScore(this.gameState.currentStage);
     
     // スコアをリセット
     this.gameState.score = 0;
@@ -249,6 +265,49 @@ export class GameStateManager {
   }
 
   /**
+   * 最終ステージかどうかをチェック
+   */
+  public isFinalStage(): boolean {
+    return this.stageManager.isFinalStage(this.gameState.currentStage);
+  }
+
+  /**
+   * 妨害ブロック登場ステージかどうかをチェック
+   */
+  public isObstacleIntroductionStage(): boolean {
+    return this.stageManager.isObstacleIntroductionStage(this.gameState.currentStage);
+  }
+
+  /**
+   * ゲーム状態を初期化（リセット）
+   */
+  public resetGameState(): void {
+    // ステージを1に戻す
+    this.gameState.currentStage = 1;
+    
+    // 目標スコアを設定
+    this.gameState.targetScore = this.stageManager.getTargetScore(1);
+    
+    // スコアとゴールドをリセット
+    this.gameState.score = 0;
+    this.gameState.gold = 0;
+    
+    // アイテムをリセット
+    this.itemManager.resetItems();
+    
+    // 使用済みアイテムリストをリセット
+    this.resetUsedItems();
+    
+    // スコアブースター状態をリセット
+    this.gameState.isScoreBoosterActive = false;
+    
+    // 開発用：モックアイテムを再追加
+    this.initializeWithMockItems();
+    
+    console.log('Game state has been reset to initial state');
+  }
+
+  /**
    * デバッグ用：ゲーム状態をコンソール出力
    */
   public debugLog(): void {
@@ -264,6 +323,9 @@ export class GameStateManager {
     
     // アイテム管理システムのデバッグ情報も出力
     this.itemManager.debugLog();
+    
+    // ステージ管理システムのデバッグ情報も出力
+    this.stageManager.debugLog(this.gameState.currentStage);
   }
 
   /**
@@ -286,5 +348,12 @@ export class GameStateManager {
    */
   public getGold(): number {
     return this.gameState.gold;
+  }
+
+  /**
+   * テスト用：シングルトンインスタンスをリセット
+   */
+  public static resetInstance(): void {
+    GameStateManager.instance = undefined as unknown as GameStateManager;
   }
 }
