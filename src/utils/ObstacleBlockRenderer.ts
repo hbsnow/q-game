@@ -413,14 +413,24 @@ export class ObstacleBlockRenderer {
     const colorValue = this.getColorValue(renderInfo.mainColor);
     const isIce2 = renderInfo.overlayType === 'ice2';
     
-    // 氷結ブロック - 単一のブロックとして描画
-    // 青みがかった色で氷結状態を表現
+    // 氷結ブロック - 完全に単一のブロックとして描画
+    // 色付きのブロックをベースに、氷の質感を表現
     const iceBlock = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4, 
-      0xADD8E6
+      colorValue
     );
     
-    // 氷の質感を表現
+    // 氷の質感を表現（半透明の青色オーバーレイではなく、色自体を青みがかった色に）
+    const blendedColor = Phaser.Display.Color.ValueToColor(colorValue);
+    const iceColor = Phaser.Display.Color.ValueToColor(0xADD8E6);
+    const finalColor = Phaser.Display.Color.Interpolate.ColorWithColor(
+      blendedColor, 
+      iceColor,
+      100, 
+      isIce2 ? 60 : 40 // 氷結Lv2はより青みが強い
+    );
+    
+    iceBlock.setFillStyle(finalColor.color, 1); // 完全不透明
     iceBlock.setStrokeStyle(3, 0x87CEFA, 1);
     
     // 氷の結晶パターン
@@ -457,14 +467,8 @@ export class ObstacleBlockRenderer {
       container.add(outerBorder);
     }
     
-    // 色を表す小さな円（ブロックの色を示す）
-    const colorIndicator = this.scene.add.circle(
-      0, 0, this.blockSize / 6,
-      colorValue
-    );
-    
-    // コンテナに追加
-    container.add([iceBlock, icePattern, colorIndicator]);
+    // コンテナに追加（色を示す小さな円は不要 - ブロック自体が色を持つ）
+    container.add([iceBlock, icePattern]);
   }
   
   /**
@@ -519,12 +523,24 @@ export class ObstacleBlockRenderer {
     // 氷結カウンターブロックの色（ブロック自体の色）
     const colorValue = this.getColorValue(renderInfo.mainColor);
     
-    // 氷結カウンターブロック - 単一のブロックとして描画
-    // 青みがかった色で氷結状態を表現
+    // 氷結カウンターブロック - 完全に単一のブロックとして描画
+    // 色付きのブロックをベースに、氷の質感を表現
     const iceCounterBlock = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4, 
-      0xADD8E6
+      colorValue
     );
+    
+    // 氷の質感を表現（半透明の青色オーバーレイではなく、色自体を青みがかった色に）
+    const blendedColor = Phaser.Display.Color.ValueToColor(colorValue);
+    const iceColor = Phaser.Display.Color.ValueToColor(0xADD8E6);
+    const finalColor = Phaser.Display.Color.Interpolate.ColorWithColor(
+      blendedColor, 
+      iceColor,
+      100, 
+      50 // 50%の青みを加える
+    );
+    
+    iceCounterBlock.setFillStyle(finalColor.color, 1); // 完全不透明
     iceCounterBlock.setStrokeStyle(3, 0x87CEFA, 1);
     
     // 氷の結晶パターン
@@ -555,12 +571,6 @@ export class ObstacleBlockRenderer {
     );
     counterCircle.setStrokeStyle(2, 0x000000, 0.8);
     
-    // 色を表す小さな円（ブロックの色を示す）
-    const colorIndicator = this.scene.add.circle(
-      0, 0, this.blockSize / 6,
-      colorValue
-    );
-    
     // カウンター+の場合はプラス記号を追加
     const isPlus = renderInfo.overlayType === 'iceCounterPlus';
     if (isPlus) {
@@ -576,9 +586,9 @@ export class ObstacleBlockRenderer {
         0x000000
       );
       
-      container.add([iceCounterBlock, icePattern, counterCircle, colorIndicator, horizontalLine, verticalLine]);
+      container.add([iceCounterBlock, icePattern, counterCircle, horizontalLine, verticalLine]);
     } else {
-      container.add([iceCounterBlock, icePattern, counterCircle, colorIndicator]);
+      container.add([iceCounterBlock, icePattern, counterCircle]);
     }
   }
   
