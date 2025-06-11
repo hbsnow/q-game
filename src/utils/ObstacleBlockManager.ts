@@ -208,7 +208,9 @@ export class ObstacleBlockManager {
   } | undefined {
     const obstacleBlock = this.obstacleBlocks.get(blockId);
     if (obstacleBlock) {
-      return obstacleBlock.getRenderInfo();
+      const renderInfo = obstacleBlock.getRenderInfo();
+      console.log(`ObstacleBlockManager.getObstacleBlockRenderInfo for ${blockId}:`, renderInfo);
+      return renderInfo;
     }
     return undefined;
   }
@@ -217,7 +219,9 @@ export class ObstacleBlockManager {
    * 妨害ブロックかどうかをチェック
    */
   public isObstacleBlock(blockId: string): boolean {
-    return this.obstacleBlocks.has(blockId);
+    const result = this.obstacleBlocks.has(blockId);
+    console.log(`ObstacleBlockManager.isObstacleBlock ${blockId}: ${result}`);
+    return result;
   }
   
   /**

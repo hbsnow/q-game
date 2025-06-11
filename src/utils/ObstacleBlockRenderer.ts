@@ -309,18 +309,22 @@ export class ObstacleBlockRenderer {
         return;
       }
       
+      console.log(`Rendering obstacle blocks. Total blocks: ${blocks.length}`);
+      
       // 既存のスプライトをクリア
       this.clearSprites();
       
       // 妨害ブロックを描画
-      blocks.forEach(block => {
+      const obstacleBlocks = blocks.filter(block => this.obstacleBlockManager.isObstacleBlock(block.id));
+      console.log(`Found ${obstacleBlocks.length} obstacle blocks to render`);
+      
+      obstacleBlocks.forEach(block => {
         try {
-          if (this.obstacleBlockManager.isObstacleBlock(block.id)) {
-            const sprite = this.createObstacleBlockSprite(block);
-            if (sprite) {
-              blockContainer.add(sprite);
-              this.blockSprites.set(block.id, sprite);
-            }
+          console.log(`Rendering obstacle block: ${block.id}, type: ${block.type}, color: ${block.color}, position: (${block.x}, ${block.y})`);
+          const sprite = this.createObstacleBlockSprite(block);
+          if (sprite) {
+            blockContainer.add(sprite);
+            this.blockSprites.set(block.id, sprite);
           }
         } catch (error) {
           console.error(`Error creating obstacle block sprite for block ${block.id}:`, error);
@@ -338,6 +342,8 @@ export class ObstacleBlockRenderer {
   private createObstacleBlockSprite(block: Block): Phaser.GameObjects.Container | null {
     const renderInfo = this.obstacleBlockManager.getObstacleBlockRenderInfo(block.id);
     if (!renderInfo) return null;
+    
+    console.log(`Creating obstacle block: ${block.id}, type: ${block.type}, color: ${block.color}, renderInfo:`, renderInfo);
     
     // ブロックの座標
     const x = block.x * this.blockSize + this.blockSize / 2;
@@ -378,6 +384,7 @@ export class ObstacleBlockRenderer {
         
       default:
         // 未知のタイプの場合はデフォルトブロック
+        console.log(`Unknown obstacle block type: ${renderInfo.overlayType}`);
         const baseBlock = this.scene.add.rectangle(
           0, 0, this.blockSize - 4, this.blockSize - 4, 
           this.getColorValue(renderInfo.mainColor)
@@ -389,6 +396,7 @@ export class ObstacleBlockRenderer {
     
     // カウンター値のテキスト - より大きく、より目立つ
     if (renderInfo.text) {
+      console.log(`Adding counter text: ${renderInfo.text}`);
       const text = this.scene.add.text(0, 0, renderInfo.text, {
         fontFamily: 'Arial',
         fontSize: '28px',
@@ -413,6 +421,8 @@ export class ObstacleBlockRenderer {
     const colorValue = this.getColorValue(renderInfo.mainColor);
     const isIce2 = renderInfo.overlayType === 'ice2';
     
+    console.log(`Creating ice block with color: ${renderInfo.mainColor}, colorValue: ${colorValue}, isIce2: ${isIce2}`);
+    
     // 氷結ブロック - 完全に単一のブロックとして描画
     // 色付きのブロックをベースに、氷の質感を表現
     const iceBlock = this.scene.add.rectangle(
@@ -429,6 +439,8 @@ export class ObstacleBlockRenderer {
       100, 
       isIce2 ? 60 : 40 // 氷結Lv2はより青みが強い
     );
+    
+    console.log(`Ice block color blend - original: ${colorValue.toString(16)}, ice: 0xADD8E6, final: ${finalColor.color.toString(16)}`);
     
     iceBlock.setFillStyle(finalColor.color, 1); // 完全不透明
     iceBlock.setStrokeStyle(3, 0x87CEFA, 1);
@@ -466,6 +478,8 @@ export class ObstacleBlockRenderer {
       outerBorder.setStrokeStyle(2, 0x87CEFA, 1);
       container.add(outerBorder);
     }
+    
+    console.log(`Adding ice block components to container: iceBlock, icePattern`);
     
     // コンテナに追加（色を示す小さな円は不要 - ブロック自体が色を持つ）
     container.add([iceBlock, icePattern]);
@@ -523,6 +537,8 @@ export class ObstacleBlockRenderer {
     // 氷結カウンターブロックの色（ブロック自体の色）
     const colorValue = this.getColorValue(renderInfo.mainColor);
     
+    console.log(`Creating ice counter block with color: ${renderInfo.mainColor}, colorValue: ${colorValue}`);
+    
     // 氷結カウンターブロック - 完全に単一のブロックとして描画
     // 色付きのブロックをベースに、氷の質感を表現
     const iceCounterBlock = this.scene.add.rectangle(
@@ -539,6 +555,8 @@ export class ObstacleBlockRenderer {
       100, 
       50 // 50%の青みを加える
     );
+    
+    console.log(`Ice counter block color blend - original: ${colorValue.toString(16)}, ice: 0xADD8E6, final: ${finalColor.color.toString(16)}`);
     
     iceCounterBlock.setFillStyle(finalColor.color, 1); // 完全不透明
     iceCounterBlock.setStrokeStyle(3, 0x87CEFA, 1);
@@ -573,6 +591,8 @@ export class ObstacleBlockRenderer {
     
     // カウンター+の場合はプラス記号を追加
     const isPlus = renderInfo.overlayType === 'iceCounterPlus';
+    console.log(`Ice counter is plus type: ${isPlus}`);
+    
     if (isPlus) {
       // プラス記号の横線
       const horizontalLine = this.scene.add.rectangle(
@@ -586,8 +606,10 @@ export class ObstacleBlockRenderer {
         0x000000
       );
       
+      console.log(`Adding ice counter block components to container: iceCounterBlock, icePattern, counterCircle, horizontalLine, verticalLine`);
       container.add([iceCounterBlock, icePattern, counterCircle, horizontalLine, verticalLine]);
     } else {
+      console.log(`Adding ice counter block components to container: iceCounterBlock, icePattern, counterCircle`);
       container.add([iceCounterBlock, icePattern, counterCircle]);
     }
   }
