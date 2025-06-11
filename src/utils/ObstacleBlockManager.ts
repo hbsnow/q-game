@@ -3,10 +3,11 @@ import { ObstacleBlock, ObstacleBlockFactory } from './ObstacleBlock';
 
 /**
  * 妨害ブロック管理クラス
- * 妨害ブロックの状態管理と更新を担当
  * 
- * 重要: 妨害ブロックは「オーバーレイ」ではなく「単一のエンティティ」として扱う
- * 1つのマスには1種類のブロックのみ存在する
+ * 重要な原則:
+ * - 単一エンティティの原則: 妨害ブロックは「オーバーレイ」ではなく「単一のエンティティ」
+ * - マス占有の原則: 1つのマスには1種類のブロックのみ存在する
+ * - 視覚的一貫性: 妨害ブロックは見た目でも単一のブロックとして表現
  */
 export class ObstacleBlockManager {
   private obstacleBlocks: Map<string, ObstacleBlock> = new Map();
@@ -29,9 +30,15 @@ export class ObstacleBlockManager {
     // 妨害ブロックを抽出して登録
     blocks.filter(block => block.type !== 'normal')
       .forEach(block => {
-        const obstacleBlock = ObstacleBlockFactory.createFromBlock(block);
-        this.obstacleBlocks.set(block.id, obstacleBlock);
+        try {
+          const obstacleBlock = ObstacleBlockFactory.createFromBlock(block);
+          this.obstacleBlocks.set(block.id, obstacleBlock);
+        } catch (error) {
+          console.error(`Failed to create obstacle block from block ${block.id}:`, error);
+        }
       });
+    
+    console.log(`Initialized ${this.obstacleBlocks.size} obstacle blocks`);
   }
   
   /**
@@ -106,11 +113,12 @@ export class ObstacleBlockManager {
             updatedBlocks[blockIndex] = updatedBlock;
             updatedBlockIds.add(updatedBlock.id);
             
-            // タイプが変わった場合、妨害ブロック管理からも削除
+            // タイプが変わった場合、妨害ブロック管理も更新
             if (updatedBlock.type === 'normal') {
+              // 通常ブロックになった場合は妨害ブロック管理から削除
               this.obstacleBlocks.delete(updatedBlock.id);
-            } else if (updatedBlock.type === 'ice1' && obstacleBlock.getType() === 'ice2') {
-              // ice2 → ice1 の場合は新しいObstacleBlockインスタンスを作成
+            } else if (updatedBlock.type !== obstacleBlock.getType()) {
+              // タイプが変わった場合は新しいObstacleBlockインスタンスを作成
               const newObstacleBlock = ObstacleBlockFactory.createFromBlock(updatedBlock);
               this.obstacleBlocks.set(updatedBlock.id, newObstacleBlock);
             }
@@ -203,10 +211,8 @@ export class ObstacleBlockManager {
    * 妨害ブロックの描画情報を取得
    */
   public getObstacleBlockRenderInfo(blockId: string): {
-    mainColor: BlockColor;
-    overlayType: string;
+    textureKey: string;
     text?: string;
-    alpha?: number;
     tint?: number;
   } | undefined {
     const obstacleBlock = this.obstacleBlocks.get(blockId);
@@ -223,7 +229,6 @@ export class ObstacleBlockManager {
    */
   public isObstacleBlock(blockId: string): boolean {
     const result = this.obstacleBlocks.has(blockId);
-    console.log(`ObstacleBlockManager.isObstacleBlock ${blockId}: ${result}`);
     return result;
   }
   
@@ -233,8 +238,27 @@ export class ObstacleBlockManager {
   public isFixedObstacleBlock(blockId: string): boolean {
     const obstacleBlock = this.obstacleBlocks.get(blockId);
     if (obstacleBlock) {
-      return obstacleBlock.getType() === 'steel';
+      return !obstacleBlock.isAffectedByGravity();
     }
     return false;
+  }
+  
+  /**
+   * 妨害ブロックを生成
+   */
+  public createObstacleBlock(
+    type: BlockType,
+    color: BlockColor,
+    x: number,
+    y: number,
+    params: {
+      counterValue?: number;
+    } = {}
+  ): ObstacleBlock {
+    const obstacleBlock = ObstacleBlockFactory.createObstacleBlock(
+      type, color, x, y, params
+    );
+    this.obstacleBlocks.set(obstacleBlock.getId(), obstacleBlock);
+    return obstacleBlock;
   }
 }

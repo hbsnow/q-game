@@ -3,13 +3,18 @@ import { generateId } from './index';
 
 /**
  * 妨害ブロック基底クラス
- * 全ての妨害ブロックの共通機能を提供する
  * 
- * 重要: 妨害ブロックは「オーバーレイ」ではなく「単一のエンティティ」として扱う
- * 1つのマスには1種類のブロックのみ存在する
+ * 重要な原則:
+ * - 単一エンティティの原則: 妨害ブロックは「オーバーレイ」ではなく「単一のエンティティ」
+ * - マス占有の原則: 1つのマスには1種類のブロックのみ存在する
+ * - 視覚的一貫性: 妨害ブロックは見た目でも単一のブロックとして表現
  */
 export abstract class ObstacleBlock {
-  protected block: Block;
+  protected id: string;
+  protected type: BlockType;
+  protected color: BlockColor;
+  protected x: number;
+  protected y: number;
   
   /**
    * コンストラクタ
@@ -19,63 +24,75 @@ export abstract class ObstacleBlock {
    * @param y Y座標
    */
   constructor(type: BlockType, color: BlockColor, x: number, y: number) {
-    this.block = {
-      id: generateId(),
-      type,
-      color,
-      x,
-      y
-    };
+    this.id = generateId();
+    this.type = type;
+    this.color = color;
+    this.x = x;
+    this.y = y;
   }
   
   /**
    * ブロックデータを取得
    */
   public getBlock(): Block {
-    return this.block;
+    return {
+      id: this.id,
+      type: this.type,
+      color: this.color,
+      x: this.x,
+      y: this.y,
+      ...this.getAdditionalProperties()
+    };
+  }
+  
+  /**
+   * 追加プロパティを取得（サブクラスでオーバーライド）
+   */
+  protected getAdditionalProperties(): Record<string, any> {
+    return {};
   }
   
   /**
    * ブロックIDを取得
    */
   public getId(): string {
-    return this.block.id;
+    return this.id;
   }
   
   /**
    * ブロックタイプを取得
    */
   public getType(): BlockType {
-    return this.block.type;
+    return this.type;
   }
   
   /**
    * ブロック色を取得
    */
   public getColor(): BlockColor {
-    return this.block.color;
+    return this.color;
   }
   
   /**
    * X座標を取得
    */
   public getX(): number {
-    return this.block.x;
+    return this.x;
   }
   
   /**
    * Y座標を取得
    */
   public getY(): number {
-    return this.block.y;
+    return this.y;
   }
   
   /**
    * 座標を設定
    */
   public setPosition(x: number, y: number): void {
-    this.block.x = x;
-    this.block.y = y;
+    this.x = x;
+    this.y = y;
   }
   
   /**
@@ -96,12 +113,18 @@ export abstract class ObstacleBlock {
    * @returns 描画に必要な情報
    */
   public abstract getRenderInfo(): {
-    mainColor: BlockColor;
-    overlayType: string;
+    textureKey: string;
     text?: string;
-    alpha?: number;
     tint?: number;
   };
+  
+  /**
+   * 重力の影響を受けるかどうか
+   */
+  public isAffectedByGravity(): boolean {
+    // デフォルトでは重力の影響を受ける
+    return true;
+  }
 }
 
 /**
@@ -111,7 +134,10 @@ export abstract class ObstacleBlock {
 export class IceBlock1 extends ObstacleBlock {
   constructor(color: BlockColor, x: number, y: number) {
     super('ice1', color, x, y);
-    this.block.iceLevel = 1;
+  }
+  
+  protected getAdditionalProperties(): Record<string, any> {
+    return { iceLevel: 1 };
   }
   
   public isRemovable(adjacentBlocks: Block[]): boolean {
@@ -122,13 +148,12 @@ export class IceBlock1 extends ObstacleBlock {
   public updateState(adjacentBlocks: Block[]): boolean {
     // 隣接する同色ブロックが消去されたかチェック
     const sameColorAdjacent = adjacentBlocks.some(block => 
-      block.color === this.block.color
+      block.color === this.color
     );
     
     if (sameColorAdjacent) {
       // 氷結解除：通常ブロックに変化
-      this.block.type = 'normal';
-      delete this.block.iceLevel;
+      this.type = 'normal';
       return true;
     }
     
@@ -137,11 +162,22 @@ export class IceBlock1 extends ObstacleBlock {
   
   public getRenderInfo() {
     return {
-      mainColor: this.block.color,
-      overlayType: 'ice1',
-      alpha: 0.7, // 氷の透明度
-      tint: 0xADD8E6 // 氷の色合い
+      textureKey: 'ice1Texture',
+      tint: this.getColorTint(this.color)
     };
+  }
+  
+  private getColorTint(color: BlockColor): number {
+    const colorMap: Record<BlockColor, number> = {
+      'blue': 0x1E5799,
+      'lightBlue': 0x7DB9E8,
+      'seaGreen': 0x2E8B57,
+      'coralRed': 0xFF6347,
+      'sandGold': 0xF4D03F,
+      'pearlWhite': 0xF5F5F5
+    };
+    
+    return colorMap[color] || 0xFFFFFF;
   }
 }
 
@@ -150,9 +186,14 @@ export class IceBlock1 extends ObstacleBlock {
  * 隣接する同色ブロックが2回消去されると解除される
  */
 export class IceBlock2 extends ObstacleBlock {
+  private iceLevel: number = 2;
+  
   constructor(color: BlockColor, x: number, y: number) {
     super('ice2', color, x, y);
-    this.block.iceLevel = 2;
+  }
+  
+  protected getAdditionalProperties(): Record<string, any> {
+    return { iceLevel: this.iceLevel };
   }
   
   public isRemovable(adjacentBlocks: Block[]): boolean {
@@ -163,20 +204,19 @@ export class IceBlock2 extends ObstacleBlock {
   public updateState(adjacentBlocks: Block[]): boolean {
     // 隣接する同色ブロックが消去されたかチェック
     const sameColorAdjacent = adjacentBlocks.some(block => 
-      block.color === this.block.color
+      block.color === this.color
     );
     
-    if (sameColorAdjacent && this.block.iceLevel) {
+    if (sameColorAdjacent) {
       // 氷結レベルを下げる
-      this.block.iceLevel--;
+      this.iceLevel--;
       
       // 氷結レベルが0になったら通常ブロックに変化
-      if (this.block.iceLevel <= 0) {
-        this.block.type = 'normal';
-        delete this.block.iceLevel;
+      if (this.iceLevel <= 0) {
+        this.type = 'normal';
       } else {
         // 氷結Lv1に変化
-        this.block.type = 'ice1';
+        this.type = 'ice1';
       }
       
       return true;
@@ -187,11 +227,22 @@ export class IceBlock2 extends ObstacleBlock {
   
   public getRenderInfo() {
     return {
-      mainColor: this.block.color,
-      overlayType: 'ice2',
-      alpha: 0.5, // より濃い氷の透明度
-      tint: 0x87CEFA // より濃い氷の色合い
+      textureKey: 'ice2Texture',
+      tint: this.getColorTint(this.color)
     };
+  }
+  
+  private getColorTint(color: BlockColor): number {
+    const colorMap: Record<BlockColor, number> = {
+      'blue': 0x1E5799,
+      'lightBlue': 0x7DB9E8,
+      'seaGreen': 0x2E8B57,
+      'coralRed': 0xFF6347,
+      'sandGold': 0xF4D03F,
+      'pearlWhite': 0xF5F5F5
+    };
+    
+    return colorMap[color] || 0xFFFFFF;
   }
 }
 
@@ -200,22 +251,28 @@ export class IceBlock2 extends ObstacleBlock {
  * 指定数以上の同色ブロックグループで消去可能
  */
 export class CounterPlusBlock extends ObstacleBlock {
+  private counterValue: number;
+  
   constructor(color: BlockColor, x: number, y: number, counterValue: number = 3) {
     super('counterPlus', color, x, y);
-    this.block.counterValue = counterValue;
-    this.block.isCounterPlus = true;
+    this.counterValue = counterValue;
+  }
+  
+  protected getAdditionalProperties(): Record<string, any> {
+    return { 
+      counterValue: this.counterValue,
+      isCounterPlus: true
+    };
   }
   
   public isRemovable(adjacentBlocks: Block[]): boolean {
-    if (!this.block.counterValue) return false;
-    
     // 同色ブロックの数をカウント（自身を含む）
     const sameColorCount = 1 + adjacentBlocks.filter(block => 
-      block.color === this.block.color
+      block.color === this.color
     ).length;
     
     // 指定数以上なら消去可能
-    return sameColorCount >= this.block.counterValue;
+    return sameColorCount >= this.counterValue;
   }
   
   public updateState(adjacentBlocks: Block[]): boolean {
@@ -225,11 +282,23 @@ export class CounterPlusBlock extends ObstacleBlock {
   
   public getRenderInfo() {
     return {
-      mainColor: this.block.color,
-      overlayType: 'counterPlus',
-      text: `${this.block.counterValue}+`,
-      tint: 0xFFFFFF // 白色
+      textureKey: 'counterPlusTexture',
+      text: `${this.counterValue}+`,
+      tint: this.getColorTint(this.color)
     };
+  }
+  
+  private getColorTint(color: BlockColor): number {
+    const colorMap: Record<BlockColor, number> = {
+      'blue': 0x1E5799,
+      'lightBlue': 0x7DB9E8,
+      'seaGreen': 0x2E8B57,
+      'coralRed': 0xFF6347,
+      'sandGold': 0xF4D03F,
+      'pearlWhite': 0xF5F5F5
+    };
+    
+    return colorMap[color] || 0xFFFFFF;
   }
 }
 
@@ -238,22 +307,28 @@ export class CounterPlusBlock extends ObstacleBlock {
  * ちょうど指定数の同色ブロックグループで消去可能
  */
 export class CounterBlock extends ObstacleBlock {
+  private counterValue: number;
+  
   constructor(color: BlockColor, x: number, y: number, counterValue: number = 3) {
     super('counter', color, x, y);
-    this.block.counterValue = counterValue;
-    this.block.isCounterPlus = false;
+    this.counterValue = counterValue;
+  }
+  
+  protected getAdditionalProperties(): Record<string, any> {
+    return { 
+      counterValue: this.counterValue,
+      isCounterPlus: false
+    };
   }
   
   public isRemovable(adjacentBlocks: Block[]): boolean {
-    if (!this.block.counterValue) return false;
-    
     // 同色ブロックの数をカウント（自身を含む）
     const sameColorCount = 1 + adjacentBlocks.filter(block => 
-      block.color === this.block.color
+      block.color === this.color
     ).length;
     
     // ちょうど指定数なら消去可能
-    return sameColorCount === this.block.counterValue;
+    return sameColorCount === this.counterValue;
   }
   
   public updateState(adjacentBlocks: Block[]): boolean {
@@ -263,11 +338,23 @@ export class CounterBlock extends ObstacleBlock {
   
   public getRenderInfo() {
     return {
-      mainColor: this.block.color,
-      overlayType: 'counter',
-      text: `${this.block.counterValue}`,
-      tint: 0xFFFFFF // 白色
+      textureKey: 'counterTexture',
+      text: `${this.counterValue}`,
+      tint: this.getColorTint(this.color)
     };
+  }
+  
+  private getColorTint(color: BlockColor): number {
+    const colorMap: Record<BlockColor, number> = {
+      'blue': 0x1E5799,
+      'lightBlue': 0x7DB9E8,
+      'seaGreen': 0x2E8B57,
+      'coralRed': 0xFF6347,
+      'sandGold': 0xF4D03F,
+      'pearlWhite': 0xF5F5F5
+    };
+    
+    return colorMap[color] || 0xFFFFFF;
   }
 }
 
@@ -293,9 +380,7 @@ export class RockBlock extends ObstacleBlock {
   
   public getRenderInfo() {
     return {
-      mainColor: 'pearlWhite',
-      overlayType: 'rock',
-      tint: 0x808080 // 灰色
+      textureKey: 'rockTexture'
     };
   }
 }
@@ -322,10 +407,13 @@ export class SteelBlock extends ObstacleBlock {
   
   public getRenderInfo() {
     return {
-      mainColor: 'pearlWhite',
-      overlayType: 'steel',
-      tint: 0xC0C0C0 // 銀色
+      textureKey: 'steelTexture'
     };
+  }
+  
+  public isAffectedByGravity(): boolean {
+    // 鋼鉄ブロックは重力の影響を受けない
+    return false;
   }
 }
 
@@ -334,11 +422,19 @@ export class SteelBlock extends ObstacleBlock {
  * 氷結が解除されるとカウンター+ブロックになる
  */
 export class IceCounterPlusBlock extends ObstacleBlock {
+  private counterValue: number;
+  
   constructor(color: BlockColor, x: number, y: number, counterValue: number = 3) {
     super('iceCounterPlus', color, x, y);
-    this.block.iceLevel = 1;
-    this.block.counterValue = counterValue;
-    this.block.isCounterPlus = true;
+    this.counterValue = counterValue;
+  }
+  
+  protected getAdditionalProperties(): Record<string, any> {
+    return { 
+      iceLevel: 1,
+      counterValue: this.counterValue,
+      isCounterPlus: true
+    };
   }
   
   public isRemovable(adjacentBlocks: Block[]): boolean {
@@ -349,13 +445,12 @@ export class IceCounterPlusBlock extends ObstacleBlock {
   public updateState(adjacentBlocks: Block[]): boolean {
     // 隣接する同色ブロックが消去されたかチェック
     const sameColorAdjacent = adjacentBlocks.some(block => 
-      block.color === this.block.color
+      block.color === this.color
     );
     
     if (sameColorAdjacent) {
       // 氷結解除：カウンター+ブロックに変化
-      this.block.type = 'counterPlus';
-      delete this.block.iceLevel;
+      this.type = 'counterPlus';
       return true;
     }
     
@@ -364,12 +459,23 @@ export class IceCounterPlusBlock extends ObstacleBlock {
   
   public getRenderInfo() {
     return {
-      mainColor: this.block.color,
-      overlayType: 'iceCounterPlus',
-      text: `${this.block.counterValue}+`,
-      alpha: 0.7,
-      tint: 0xADD8E6
+      textureKey: 'iceCounterPlusTexture',
+      text: `${this.counterValue}+`,
+      tint: this.getColorTint(this.color)
     };
+  }
+  
+  private getColorTint(color: BlockColor): number {
+    const colorMap: Record<BlockColor, number> = {
+      'blue': 0x1E5799,
+      'lightBlue': 0x7DB9E8,
+      'seaGreen': 0x2E8B57,
+      'coralRed': 0xFF6347,
+      'sandGold': 0xF4D03F,
+      'pearlWhite': 0xF5F5F5
+    };
+    
+    return colorMap[color] || 0xFFFFFF;
   }
 }
 
@@ -378,11 +484,19 @@ export class IceCounterPlusBlock extends ObstacleBlock {
  * 氷結が解除されるとカウンターブロックになる
  */
 export class IceCounterBlock extends ObstacleBlock {
+  private counterValue: number;
+  
   constructor(color: BlockColor, x: number, y: number, counterValue: number = 3) {
     super('iceCounter', color, x, y);
-    this.block.iceLevel = 1;
-    this.block.counterValue = counterValue;
-    this.block.isCounterPlus = false;
+    this.counterValue = counterValue;
+  }
+  
+  protected getAdditionalProperties(): Record<string, any> {
+    return { 
+      iceLevel: 1,
+      counterValue: this.counterValue,
+      isCounterPlus: false
+    };
   }
   
   public isRemovable(adjacentBlocks: Block[]): boolean {
@@ -393,13 +507,12 @@ export class IceCounterBlock extends ObstacleBlock {
   public updateState(adjacentBlocks: Block[]): boolean {
     // 隣接する同色ブロックが消去されたかチェック
     const sameColorAdjacent = adjacentBlocks.some(block => 
-      block.color === this.block.color
+      block.color === this.color
     );
     
     if (sameColorAdjacent) {
       // 氷結解除：カウンターブロックに変化
-      this.block.type = 'counter';
-      delete this.block.iceLevel;
+      this.type = 'counter';
       return true;
     }
     
@@ -408,12 +521,23 @@ export class IceCounterBlock extends ObstacleBlock {
   
   public getRenderInfo() {
     return {
-      mainColor: this.block.color,
-      overlayType: 'iceCounter',
-      text: `${this.block.counterValue}`,
-      alpha: 0.7,
-      tint: 0xADD8E6
+      textureKey: 'iceCounterTexture',
+      text: `${this.counterValue}`,
+      tint: this.getColorTint(this.color)
     };
+  }
+  
+  private getColorTint(color: BlockColor): number {
+    const colorMap: Record<BlockColor, number> = {
+      'blue': 0x1E5799,
+      'lightBlue': 0x7DB9E8,
+      'seaGreen': 0x2E8B57,
+      'coralRed': 0xFF6347,
+      'sandGold': 0xF4D03F,
+      'pearlWhite': 0xF5F5F5
+    };
+    
+    return colorMap[color] || 0xFFFFFF;
   }
 }
 
@@ -431,9 +555,7 @@ export class ObstacleBlockFactory {
     x: number,
     y: number,
     params: {
-      iceLevel?: number;
       counterValue?: number;
-      isCounterPlus?: boolean;
     } = {}
   ): ObstacleBlock {
     switch (type) {
@@ -468,9 +590,7 @@ export class ObstacleBlockFactory {
       block.x,
       block.y,
       {
-        iceLevel: block.iceLevel,
-        counterValue: block.counterValue,
-        isCounterPlus: block.isCounterPlus
+        counterValue: block.counterValue
       }
     );
   }
