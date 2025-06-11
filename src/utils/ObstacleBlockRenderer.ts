@@ -332,7 +332,8 @@ export class ObstacleBlockRenderer {
   }
   
   /**
-   * 妨害ブロックスプライトを作成（完全修正版）
+   * 妨害ブロックスプライトを作成
+   * 各妨害ブロックはブロック自体がその特性を持つ単一のエンティティとして描画
    */
   private createObstacleBlockSprite(block: Block): Phaser.GameObjects.Container | null {
     const renderInfo = this.obstacleBlockManager.getObstacleBlockRenderInfo(block.id);
@@ -349,29 +350,29 @@ export class ObstacleBlockRenderer {
     switch (renderInfo.overlayType) {
       case 'ice1':
       case 'ice2':
-        // 氷結ブロック - 単一のブロックとして描画
+        // 氷結ブロック - ブロック自体が氷結している状態
         this.createIceBlockSprite(container, renderInfo);
         break;
         
       case 'iceCounterPlus':
       case 'iceCounter':
-        // 氷結カウンターブロック - 単一のブロックとして描画
+        // 氷結カウンターブロック - ブロック自体が氷結カウンター状態
         this.createIceCounterBlockSprite(container, renderInfo);
         break;
         
       case 'counterPlus':
       case 'counter':
-        // カウンターブロック - 単一のブロックとして描画
+        // カウンターブロック - ブロック自体がカウンター機能を持つ
         this.createCounterBlockSprite(container, renderInfo);
         break;
         
       case 'rock':
-        // 岩ブロック - 単一のブロックとして描画
+        // 岩ブロック - ブロック自体が岩である
         this.createRockBlockSprite(container);
         break;
         
       case 'steel':
-        // 鋼鉄ブロック - 単一のブロックとして描画
+        // 鋼鉄ブロック - ブロック自体が鋼鉄である
         this.createSteelBlockSprite(container);
         break;
         
@@ -405,19 +406,25 @@ export class ObstacleBlockRenderer {
   
   /**
    * 氷結ブロックスプライトを作成
+   * ブロック自体が氷結している状態を表現
    */
   private createIceBlockSprite(container: Phaser.GameObjects.Container, renderInfo: any): void {
-    // 氷結ブロックの色（内部の色）
+    // 氷結ブロックの色（ブロック自体の色）
     const colorValue = this.getColorValue(renderInfo.mainColor);
     
-    // 氷の質感を表現
+    // 氷結レベルに応じた表現
     const isIce2 = renderInfo.overlayType === 'ice2';
-    const iceAlpha = isIce2 ? 0.8 : 0.6; // 氷結Lv2はより濃い
     
-    // 氷結ブロックの基本形状 - 色付きの氷
-    const iceBlock = this.scene.add.rectangle(
+    // 氷結ブロックの基本形状 - 色付きブロック
+    const baseBlock = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4, 
       colorValue
+    );
+    
+    // 氷結効果 - 半透明の青い氷の質感
+    const iceEffect = this.scene.add.rectangle(
+      0, 0, this.blockSize - 4, this.blockSize - 4,
+      0xADD8E6, isIce2 ? 0.7 : 0.5
     );
     
     // 氷の結晶パターン
@@ -461,33 +468,28 @@ export class ObstacleBlockRenderer {
       container.add(outerBorder);
     }
     
-    // 半透明の氷のオーバーレイ（色付きブロックの上に重ねる）
-    const iceOverlay = this.scene.add.rectangle(
-      0, 0, this.blockSize - 4, this.blockSize - 4,
-      0xADD8E6, iceAlpha
-    );
-    
     // コンテナに追加
-    container.add([iceBlock, iceOverlay, icePattern, iceBorder]);
+    container.add([baseBlock, iceEffect, icePattern, iceBorder]);
   }
   
   /**
    * カウンターブロックスプライトを作成
+   * ブロック自体がカウンター機能を持つ状態を表現
    */
   private createCounterBlockSprite(container: Phaser.GameObjects.Container, renderInfo: any): void {
-    // カウンターブロックの色
+    // カウンターブロックの色（ブロック自体の色）
     const colorValue = this.getColorValue(renderInfo.mainColor);
     
     // カウンターブロックの基本形状
-    const counterBlock = this.scene.add.rectangle(
+    const baseBlock = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4, 
       colorValue
     );
-    counterBlock.setStrokeStyle(2, 0x000000, 0.5);
+    baseBlock.setStrokeStyle(2, 0x000000, 0.5);
     
-    // カウンターの円形背景
+    // カウンターの円形部分
     const counterCircle = this.scene.add.circle(
-      0, 0, this.blockSize / 2.5,
+      0, 0, this.blockSize / 3,
       0xFFFFFF, 0.9
     );
     counterCircle.setStrokeStyle(2, 0x000000, 1);
@@ -497,51 +499,38 @@ export class ObstacleBlockRenderer {
     if (isPlus) {
       // プラス記号の横線
       const horizontalLine = this.scene.add.rectangle(
-        0, 0, this.blockSize * 0.25, this.blockSize * 0.05,
+        0, 0, this.blockSize * 0.2, this.blockSize * 0.05,
         0x000000
       );
       
       // プラス記号の縦線
       const verticalLine = this.scene.add.rectangle(
-        0, 0, this.blockSize * 0.05, this.blockSize * 0.25,
+        0, 0, this.blockSize * 0.05, this.blockSize * 0.2,
         0x000000
       );
       
-      container.add([counterBlock, counterCircle, horizontalLine, verticalLine]);
+      container.add([baseBlock, counterCircle, horizontalLine, verticalLine]);
     } else {
-      container.add([counterBlock, counterCircle]);
-    }
-    
-    // カウンター値のテキスト
-    if (renderInfo.text) {
-      const text = this.scene.add.text(0, 0, renderInfo.text, {
-        fontFamily: 'Arial',
-        fontSize: '28px',
-        color: '#000000',
-        stroke: '#FFFFFF',
-        strokeThickness: 3,
-        fontStyle: 'bold'
-      }).setOrigin(0.5);
-      
-      container.add(text);
+      container.add([baseBlock, counterCircle]);
     }
   }
   
   /**
    * 氷結カウンターブロックスプライトを作成
+   * ブロック自体が氷結カウンター状態を表現
    */
   private createIceCounterBlockSprite(container: Phaser.GameObjects.Container, renderInfo: any): void {
-    // 氷結カウンターブロックの色
+    // 氷結カウンターブロックの色（ブロック自体の色）
     const colorValue = this.getColorValue(renderInfo.mainColor);
     
-    // 氷結カウンターブロックの基本形状 - 色付きの氷
-    const iceBlock = this.scene.add.rectangle(
+    // 氷結カウンターブロックの基本形状
+    const baseBlock = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4, 
       colorValue
     );
     
-    // 半透明の氷のオーバーレイ
-    const iceOverlay = this.scene.add.rectangle(
+    // 氷結効果 - 半透明の青い氷の質感
+    const iceEffect = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4,
       0xADD8E6, 0.5
     );
@@ -574,9 +563,9 @@ export class ObstacleBlockRenderer {
     );
     iceBorder.setStrokeStyle(3, 0xADD8E6, 1);
     
-    // カウンターの円形背景
+    // カウンターの円形部分
     const counterCircle = this.scene.add.circle(
-      0, 0, this.blockSize / 3,
+      0, 0, this.blockSize / 3.5,
       0xFFFFFF, 0.8
     );
     counterCircle.setStrokeStyle(2, 0x000000, 0.8);
@@ -586,38 +575,25 @@ export class ObstacleBlockRenderer {
     if (isPlus) {
       // プラス記号の横線
       const horizontalLine = this.scene.add.rectangle(
-        0, 0, this.blockSize * 0.2, this.blockSize * 0.05,
+        0, 0, this.blockSize * 0.15, this.blockSize * 0.04,
         0x000000
       );
       
       // プラス記号の縦線
       const verticalLine = this.scene.add.rectangle(
-        0, 0, this.blockSize * 0.05, this.blockSize * 0.2,
+        0, 0, this.blockSize * 0.04, this.blockSize * 0.15,
         0x000000
       );
       
-      container.add([iceBlock, iceOverlay, icePattern, iceBorder, counterCircle, horizontalLine, verticalLine]);
+      container.add([baseBlock, iceEffect, icePattern, iceBorder, counterCircle, horizontalLine, verticalLine]);
     } else {
-      container.add([iceBlock, iceOverlay, icePattern, iceBorder, counterCircle]);
-    }
-    
-    // カウンター値のテキスト
-    if (renderInfo.text) {
-      const text = this.scene.add.text(0, 0, renderInfo.text, {
-        fontFamily: 'Arial',
-        fontSize: '24px',
-        color: '#000000',
-        stroke: '#FFFFFF',
-        strokeThickness: 2,
-        fontStyle: 'bold'
-      }).setOrigin(0.5);
-      
-      container.add(text);
+      container.add([baseBlock, iceEffect, icePattern, iceBorder, counterCircle]);
     }
   }
   
   /**
    * 岩ブロックスプライトを作成
+   * ブロック自体が岩である状態を表現
    */
   private createRockBlockSprite(container: Phaser.GameObjects.Container): void {
     // 岩ブロックの基本形状
@@ -669,6 +645,7 @@ export class ObstacleBlockRenderer {
   
   /**
    * 鋼鉄ブロックスプライトを作成
+   * ブロック自体が鋼鉄である状態を表現
    */
   private createSteelBlockSprite(container: Phaser.GameObjects.Container): void {
     // 鋼鉄ブロックの基本形状
