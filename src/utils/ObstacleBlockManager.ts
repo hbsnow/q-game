@@ -4,6 +4,9 @@ import { ObstacleBlock, ObstacleBlockFactory } from './ObstacleBlock';
 /**
  * 妨害ブロック管理クラス
  * 妨害ブロックの状態管理と更新を担当
+ * 
+ * 重要: 妨害ブロックは「オーバーレイ」ではなく「単一のエンティティ」として扱う
+ * 1つのマスには1種類のブロックのみ存在する
  */
 export class ObstacleBlockManager {
   private obstacleBlocks: Map<string, ObstacleBlock> = new Map();

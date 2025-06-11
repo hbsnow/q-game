@@ -4,6 +4,9 @@ import { generateId } from './index';
 /**
  * 妨害ブロック基底クラス
  * 全ての妨害ブロックの共通機能を提供する
+ * 
+ * 重要: 妨害ブロックは「オーバーレイ」ではなく「単一のエンティティ」として扱う
+ * 1つのマスには1種類のブロックのみ存在する
  */
 export abstract class ObstacleBlock {
   protected block: Block;

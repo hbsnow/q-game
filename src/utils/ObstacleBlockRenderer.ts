@@ -412,6 +412,9 @@ export class ObstacleBlockRenderer {
   /**
    * 妨害ブロックスプライトを作成
    * 各妨害ブロックはブロック自体がその特性を持つ単一のエンティティとして描画
+   * 
+   * 重要: 妨害ブロックは「オーバーレイ」ではなく「単一のエンティティ」として扱う
+   * 1つのマスには1種類のブロックのみ存在する
    */
   private createObstacleBlockSprite(block: Block): Phaser.GameObjects.Container | null {
     const renderInfo = this.obstacleBlockManager.getObstacleBlockRenderInfo(block.id);
