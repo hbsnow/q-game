@@ -411,21 +411,17 @@ export class ObstacleBlockRenderer {
   private createIceBlockSprite(container: Phaser.GameObjects.Container, renderInfo: any): void {
     // 氷結ブロックの色（ブロック自体の色）
     const colorValue = this.getColorValue(renderInfo.mainColor);
-    
-    // 氷結レベルに応じた表現
     const isIce2 = renderInfo.overlayType === 'ice2';
     
-    // 氷結ブロックの基本形状 - 色付きブロック
-    const baseBlock = this.scene.add.rectangle(
+    // 氷結ブロック - 単一のブロックとして描画
+    const iceBlock = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4, 
       colorValue
     );
     
-    // 氷結効果 - 半透明の青い氷の質感
-    const iceEffect = this.scene.add.rectangle(
-      0, 0, this.blockSize - 4, this.blockSize - 4,
-      0xADD8E6, isIce2 ? 0.7 : 0.5
-    );
+    // 氷の質感を表現（色を少し青みがかった色に）
+    iceBlock.setFillStyle(colorValue, isIce2 ? 0.8 : 0.9);
+    iceBlock.setStrokeStyle(3, 0xADD8E6, 1);
     
     // 氷の結晶パターン
     const icePattern = this.scene.add.graphics();
@@ -451,13 +447,6 @@ export class ObstacleBlockRenderer {
     
     icePattern.strokePath();
     
-    // 氷の輪郭
-    const iceBorder = this.scene.add.rectangle(
-      0, 0, this.blockSize - 4, this.blockSize - 4,
-      0x000000, 0
-    );
-    iceBorder.setStrokeStyle(3, 0xADD8E6, 1);
-    
     // 氷結Lv2の場合は二重の輪郭
     if (isIce2) {
       const outerBorder = this.scene.add.rectangle(
@@ -469,7 +458,7 @@ export class ObstacleBlockRenderer {
     }
     
     // コンテナに追加
-    container.add([baseBlock, iceEffect, icePattern, iceBorder]);
+    container.add([iceBlock, icePattern]);
   }
   
   /**
@@ -480,14 +469,14 @@ export class ObstacleBlockRenderer {
     // カウンターブロックの色（ブロック自体の色）
     const colorValue = this.getColorValue(renderInfo.mainColor);
     
-    // カウンターブロックの基本形状
-    const baseBlock = this.scene.add.rectangle(
+    // カウンターブロックの基本形状 - 単一のブロックとして描画
+    const counterBlock = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4, 
       colorValue
     );
-    baseBlock.setStrokeStyle(2, 0x000000, 0.5);
+    counterBlock.setStrokeStyle(2, 0x000000, 0.5);
     
-    // カウンターの円形部分
+    // カウンターの円形部分 - ブロックの一部として描画
     const counterCircle = this.scene.add.circle(
       0, 0, this.blockSize / 3,
       0xFFFFFF, 0.9
@@ -509,9 +498,9 @@ export class ObstacleBlockRenderer {
         0x000000
       );
       
-      container.add([baseBlock, counterCircle, horizontalLine, verticalLine]);
+      container.add([counterBlock, counterCircle, horizontalLine, verticalLine]);
     } else {
-      container.add([baseBlock, counterCircle]);
+      container.add([counterBlock, counterCircle]);
     }
   }
   
@@ -523,17 +512,15 @@ export class ObstacleBlockRenderer {
     // 氷結カウンターブロックの色（ブロック自体の色）
     const colorValue = this.getColorValue(renderInfo.mainColor);
     
-    // 氷結カウンターブロックの基本形状
-    const baseBlock = this.scene.add.rectangle(
+    // 氷結カウンターブロック - 単一のブロックとして描画
+    const iceCounterBlock = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4, 
       colorValue
     );
     
-    // 氷結効果 - 半透明の青い氷の質感
-    const iceEffect = this.scene.add.rectangle(
-      0, 0, this.blockSize - 4, this.blockSize - 4,
-      0xADD8E6, 0.5
-    );
+    // 氷の質感を表現（色を少し青みがかった色に）
+    iceCounterBlock.setFillStyle(colorValue, 0.9);
+    iceCounterBlock.setStrokeStyle(3, 0xADD8E6, 1);
     
     // 氷の結晶パターン
     const icePattern = this.scene.add.graphics();
@@ -556,14 +543,7 @@ export class ObstacleBlockRenderer {
     
     icePattern.strokePath();
     
-    // 氷の輪郭
-    const iceBorder = this.scene.add.rectangle(
-      0, 0, this.blockSize - 4, this.blockSize - 4,
-      0x000000, 0
-    );
-    iceBorder.setStrokeStyle(3, 0xADD8E6, 1);
-    
-    // カウンターの円形部分
+    // カウンターの円形部分 - ブロックの一部として描画
     const counterCircle = this.scene.add.circle(
       0, 0, this.blockSize / 3.5,
       0xFFFFFF, 0.8
@@ -585,9 +565,9 @@ export class ObstacleBlockRenderer {
         0x000000
       );
       
-      container.add([baseBlock, iceEffect, icePattern, iceBorder, counterCircle, horizontalLine, verticalLine]);
+      container.add([iceCounterBlock, icePattern, counterCircle, horizontalLine, verticalLine]);
     } else {
-      container.add([baseBlock, iceEffect, icePattern, iceBorder, counterCircle]);
+      container.add([iceCounterBlock, icePattern, counterCircle]);
     }
   }
   
