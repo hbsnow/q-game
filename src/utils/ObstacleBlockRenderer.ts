@@ -347,8 +347,9 @@ export class ObstacleBlockRenderer {
     const maxX = Math.max(...blocks.map(b => b.x)) + 1;
     const maxY = Math.max(...blocks.map(b => b.y)) + 1;
     
-    console.log('=== BLOCK POSITIONS (ASCII ART) ===');
-    console.log(`Board size: ${maxX}x${maxY}`);
+    // 出力用の文字列を構築
+    let output = '=== BLOCK POSITIONS (ASCII ART) ===\n';
+    output += `Board size: ${maxX}x${maxY}\n`;
     
     // ブロックタイプを表す文字を定義
     const typeChars: Record<BlockType, string> = {
@@ -388,10 +389,10 @@ export class ObstacleBlockRenderer {
     for (let x = 0; x < maxX; x++) {
       header += ` ${x.toString().padStart(2)} `;
     }
-    console.log(header);
+    output += header + '\n';
     
     // 区切り線
-    console.log('   ' + '----'.repeat(maxX));
+    output += '   ' + '----'.repeat(maxX) + '\n';
     
     // グリッドを出力
     for (let y = 0; y < maxY; y++) {
@@ -399,10 +400,13 @@ export class ObstacleBlockRenderer {
       for (let x = 0; x < maxX; x++) {
         row += ` ${grid[y][x]} `;
       }
-      console.log(row);
+      output += row + '\n';
     }
     
-    console.log('=== END OF BLOCK POSITIONS ===');
+    output += '=== END OF BLOCK POSITIONS ===';
+    
+    // 1回のconsole.logで出力
+    console.log(output);
   }
   
   /**
