@@ -318,6 +318,9 @@ export class ObstacleBlockRenderer {
       const obstacleBlocks = blocks.filter(block => this.obstacleBlockManager.isObstacleBlock(block.id));
       console.log(`Found ${obstacleBlocks.length} obstacle blocks to render`);
       
+      // アスキーアートでブロック位置を出力
+      this.printBlockPositionsAsAsciiArt(blocks);
+      
       obstacleBlocks.forEach(block => {
         try {
           console.log(`Rendering obstacle block: ${block.id}, type: ${block.type}, color: ${block.color}, position: (${block.x}, ${block.y})`);
@@ -333,6 +336,73 @@ export class ObstacleBlockRenderer {
     } catch (error) {
       console.error('Error in renderObstacleBlocks:', error);
     }
+  }
+  
+  /**
+   * アスキーアートでブロック位置を出力
+   * @param blocks 全ブロック配列
+   */
+  private printBlockPositionsAsAsciiArt(blocks: Block[]): void {
+    // ボードのサイズを取得（最大のx, y座標 + 1）
+    const maxX = Math.max(...blocks.map(b => b.x)) + 1;
+    const maxY = Math.max(...blocks.map(b => b.y)) + 1;
+    
+    console.log('=== BLOCK POSITIONS (ASCII ART) ===');
+    console.log(`Board size: ${maxX}x${maxY}`);
+    
+    // ブロックタイプを表す文字を定義
+    const typeChars: Record<BlockType, string> = {
+      'normal': '□',
+      'ice1': '❄',
+      'ice2': '❅',
+      'counter': '①',
+      'counterPlus': '⊕',
+      'rock': '◆',
+      'steel': '■',
+      'iceCounter': '⓵',
+      'iceCounterPlus': '⊛'
+    };
+    
+    // 色を表す文字を定義
+    const colorChars: Record<BlockColor, string> = {
+      'blue': 'B',
+      'lightBlue': 'L',
+      'seaGreen': 'G',
+      'coralRed': 'R',
+      'sandGold': 'Y',
+      'pearlWhite': 'W'
+    };
+    
+    // 2次元配列を作成して初期化
+    const grid: string[][] = Array(maxY).fill(null).map(() => Array(maxX).fill('  '));
+    
+    // ブロックを配置
+    blocks.forEach(block => {
+      const typeChar = typeChars[block.type] || '?';
+      const colorChar = colorChars[block.color] || '?';
+      grid[block.y][block.x] = `${typeChar}${colorChar}`;
+    });
+    
+    // ヘッダー行（列番号）を出力
+    let header = '   ';
+    for (let x = 0; x < maxX; x++) {
+      header += ` ${x.toString().padStart(2)} `;
+    }
+    console.log(header);
+    
+    // 区切り線
+    console.log('   ' + '----'.repeat(maxX));
+    
+    // グリッドを出力
+    for (let y = 0; y < maxY; y++) {
+      let row = `${y.toString().padStart(2)}|`;
+      for (let x = 0; x < maxX; x++) {
+        row += ` ${grid[y][x]} `;
+      }
+      console.log(row);
+    }
+    
+    console.log('=== END OF BLOCK POSITIONS ===');
   }
   
   /**
