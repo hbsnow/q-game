@@ -349,29 +349,29 @@ export class ObstacleBlockRenderer {
     switch (renderInfo.overlayType) {
       case 'ice1':
       case 'ice2':
-        // 氷結ブロック - 独立したブロックとして描画
+        // 氷結ブロック - 単一のブロックとして描画
         this.createIceBlockSprite(container, renderInfo);
         break;
         
       case 'iceCounterPlus':
       case 'iceCounter':
-        // 氷結カウンターブロック - 独立したブロックとして描画
+        // 氷結カウンターブロック - 単一のブロックとして描画
         this.createIceCounterBlockSprite(container, renderInfo);
         break;
         
       case 'counterPlus':
       case 'counter':
-        // カウンターブロック - 独立したブロックとして描画
+        // カウンターブロック - 単一のブロックとして描画
         this.createCounterBlockSprite(container, renderInfo);
         break;
         
       case 'rock':
-        // 岩ブロック - 独立したブロックとして描画
+        // 岩ブロック - 単一のブロックとして描画
         this.createRockBlockSprite(container);
         break;
         
       case 'steel':
-        // 鋼鉄ブロック - 独立したブロックとして描画
+        // 鋼鉄ブロック - 単一のブロックとして描画
         this.createSteelBlockSprite(container);
         break;
         
@@ -410,21 +410,14 @@ export class ObstacleBlockRenderer {
     // 氷結ブロックの色（内部の色）
     const colorValue = this.getColorValue(renderInfo.mainColor);
     
-    // 氷結ブロックの基本形状
-    const iceBlock = this.scene.add.rectangle(
-      0, 0, this.blockSize - 4, this.blockSize - 4, 
-      colorValue
-    );
-    
     // 氷の質感を表現
     const isIce2 = renderInfo.overlayType === 'ice2';
     const iceAlpha = isIce2 ? 0.8 : 0.6; // 氷結Lv2はより濃い
-    const iceTint = isIce2 ? 0x87CEFA : 0xADD8E6; // 氷結Lv2はより青い
     
-    // 氷の層を追加
-    const iceLayer = this.scene.add.rectangle(
-      0, 0, this.blockSize - 4, this.blockSize - 4,
-      0xFFFFFF, iceAlpha
+    // 氷結ブロックの基本形状 - 色付きの氷
+    const iceBlock = this.scene.add.rectangle(
+      0, 0, this.blockSize - 4, this.blockSize - 4, 
+      colorValue
     );
     
     // 氷の結晶パターン
@@ -468,8 +461,14 @@ export class ObstacleBlockRenderer {
       container.add(outerBorder);
     }
     
+    // 半透明の氷のオーバーレイ（色付きブロックの上に重ねる）
+    const iceOverlay = this.scene.add.rectangle(
+      0, 0, this.blockSize - 4, this.blockSize - 4,
+      0xADD8E6, iceAlpha
+    );
+    
     // コンテナに追加
-    container.add([iceBlock, iceLayer, icePattern, iceBorder]);
+    container.add([iceBlock, iceOverlay, icePattern, iceBorder]);
   }
   
   /**
@@ -488,23 +487,23 @@ export class ObstacleBlockRenderer {
     
     // カウンターの円形背景
     const counterCircle = this.scene.add.circle(
-      0, 0, this.blockSize / 2.2,
+      0, 0, this.blockSize / 2.5,
       0xFFFFFF, 0.9
     );
-    counterCircle.setStrokeStyle(3, 0x000000, 1);
+    counterCircle.setStrokeStyle(2, 0x000000, 1);
     
     // カウンター+の場合はプラス記号を追加
     const isPlus = renderInfo.overlayType === 'counterPlus';
     if (isPlus) {
       // プラス記号の横線
       const horizontalLine = this.scene.add.rectangle(
-        0, 0, this.blockSize * 0.3, this.blockSize * 0.05,
+        0, 0, this.blockSize * 0.25, this.blockSize * 0.05,
         0x000000
       );
       
       // プラス記号の縦線
       const verticalLine = this.scene.add.rectangle(
-        0, 0, this.blockSize * 0.05, this.blockSize * 0.3,
+        0, 0, this.blockSize * 0.05, this.blockSize * 0.25,
         0x000000
       );
       
@@ -535,16 +534,16 @@ export class ObstacleBlockRenderer {
     // 氷結カウンターブロックの色
     const colorValue = this.getColorValue(renderInfo.mainColor);
     
-    // 氷結カウンターブロックの基本形状
-    const iceCounterBlock = this.scene.add.rectangle(
+    // 氷結カウンターブロックの基本形状 - 色付きの氷
+    const iceBlock = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4, 
       colorValue
     );
     
-    // 氷の質感を表現
-    const iceLayer = this.scene.add.rectangle(
+    // 半透明の氷のオーバーレイ
+    const iceOverlay = this.scene.add.rectangle(
       0, 0, this.blockSize - 4, this.blockSize - 4,
-      0xFFFFFF, 0.6
+      0xADD8E6, 0.5
     );
     
     // 氷の結晶パターン
@@ -575,9 +574,9 @@ export class ObstacleBlockRenderer {
     );
     iceBorder.setStrokeStyle(3, 0xADD8E6, 1);
     
-    // カウンターの円形背景（氷の下に少し見える）
+    // カウンターの円形背景
     const counterCircle = this.scene.add.circle(
-      0, 0, this.blockSize / 2.5,
+      0, 0, this.blockSize / 3,
       0xFFFFFF, 0.8
     );
     counterCircle.setStrokeStyle(2, 0x000000, 0.8);
@@ -587,29 +586,29 @@ export class ObstacleBlockRenderer {
     if (isPlus) {
       // プラス記号の横線
       const horizontalLine = this.scene.add.rectangle(
-        0, 0, this.blockSize * 0.25, this.blockSize * 0.05,
+        0, 0, this.blockSize * 0.2, this.blockSize * 0.05,
         0x000000
       );
       
       // プラス記号の縦線
       const verticalLine = this.scene.add.rectangle(
-        0, 0, this.blockSize * 0.05, this.blockSize * 0.25,
+        0, 0, this.blockSize * 0.05, this.blockSize * 0.2,
         0x000000
       );
       
-      container.add([iceCounterBlock, counterCircle, iceLayer, icePattern, iceBorder, horizontalLine, verticalLine]);
+      container.add([iceBlock, iceOverlay, icePattern, iceBorder, counterCircle, horizontalLine, verticalLine]);
     } else {
-      container.add([iceCounterBlock, counterCircle, iceLayer, icePattern, iceBorder]);
+      container.add([iceBlock, iceOverlay, icePattern, iceBorder, counterCircle]);
     }
     
     // カウンター値のテキスト
     if (renderInfo.text) {
       const text = this.scene.add.text(0, 0, renderInfo.text, {
         fontFamily: 'Arial',
-        fontSize: '28px',
+        fontSize: '24px',
         color: '#000000',
         stroke: '#FFFFFF',
-        strokeThickness: 3,
+        strokeThickness: 2,
         fontStyle: 'bold'
       }).setOrigin(0.5);
       
