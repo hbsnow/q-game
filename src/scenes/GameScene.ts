@@ -1,677 +1,150 @@
-import Phaser from 'phaser';
-import { GameConfig } from '../config/GameConfig';
-import { DebugHelper } from '../utils/DebugHelper';
-import { Block } from '../types/Block';
-import { BlockLogic } from '../utils/BlockLogic';
-import { GameStateManager } from '../utils/GameStateManager';
-
-/**
- * ゲーム画面
- */
-export class GameScene extends Phaser.Scene {
-  private debugHelper!: DebugHelper;
-  private currentStage: number = 1;
-  private score: number = 0;
-  private targetScore: number = GameConfig.TARGET_SCORE;
-  private blocks: Block[][] = [];
-  private blockSprites: Phaser.GameObjects.Sprite[][] = [];
-  private boardX: number = 0;
-  private boardY: number = 0;
-  private isProcessing: boolean = false;
-  private gameStateManager: GameStateManager;
-
-  constructor() {
-    super({ key: 'GameScene' });
-    this.gameStateManager = GameStateManager.getInstance();
-  }
-
-  init(data: any): void {
-    this.currentStage = data.stage || 1;
-    this.score = 0;
-  }
-
-  create(): void {
-    const { width, height } = this.cameras.main;
-    
-    // デバッグヘルパーを初期化
-    this.debugHelper = new DebugHelper(this);
-    
-    // ヘッダー（ステージ情報とスコア）
-    const headerText = this.add.text(10, 30, `Stage ${this.currentStage}  Score: ${this.score}`, {
-      fontSize: '18px',
-      color: '#FFFFFF',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setName('headerText');
-    
-    const targetText = this.add.text(10, 60, `Target: ${this.targetScore}`, {
-      fontSize: '16px',
-      color: '#FFFFFF',
-      stroke: '#000000',
-      strokeThickness: 2
-    });
-    
-    // ゲーム盤面の位置を計算 - デバッグラインに合わせて調整
-    const titleHeight = 90;
-    const titleCenterY = 45;
-    const titleBottomY = titleCenterY + titleHeight / 2;
-    const boardWidth = GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE;
-    const boardHeight = GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE;
-    
-    // タイトルエリアの直下にメインコンテンツエリアを配置
-    this.boardX = width / 2 - boardWidth / 2;
-    this.boardY = titleBottomY; // タイトルエリアの直下に配置
-    
-    // ゲーム盤面の背景 - デバッグラインに合わせて調整
-    const adjustedBoardCenterY = titleBottomY + boardHeight / 2;
-    const boardBg = this.add.rectangle(
-      width / 2,
-      adjustedBoardCenterY,
-      GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE,
-      GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE,
-      0x000033,
-      0.3
-    );
-    
-    // リタイアボタン - デバッグラインに合わせて調整
-    const buttonHeight = 60;
-    const buttonCenterY = height - buttonHeight / 2;
-    const retireButton = this.add.rectangle(width - 70, buttonCenterY, 120, 40, 0xAA2222)
-      .setInteractive({ useHandCursor: true })
-      .setName('retireButton');
-    
-    const retireText = this.add.text(width - 70, buttonCenterY, 'リタイア', {
-      fontSize: '16px',
-      color: '#FFFFFF'
-    }).setOrigin(0.5).setName('retireText');
-    
-    // ボタンクリックイベント
-    retireButton.on('pointerdown', () => {
-      this.scene.start('MainScene');
-    });
-    
-    // ブロックの初期配置
-    this.createInitialBlocks();
-    
-    // デバッグライン
-    if (GameConfig.DEBUG_MODE) {
-      this.addDebugLines();
-    }
-  }
-  
   /**
-   * ブロックの初期配置を作成
+   * 氷結ブロックの隣接ブロックをチェックする
    */
-  private createInitialBlocks(): void {
-    const { width } = this.cameras.main;
-    
-    // タイトルエリアの計算 - createInitialBlocks内でも使用できるように
-    const titleHeight = 90;
-    const titleCenterY = 45;
-    const titleBottomY = titleCenterY + titleHeight / 2;
-    
-    // 色の配列（ステージに応じて色数を変える）
-    const colorKeys = Object.keys(GameConfig.BLOCK_COLORS);
-    const colorCount = Math.min(3 + Math.floor(this.currentStage / 5), 6); // ステージが進むと色が増える
-    const availableColors = colorKeys.slice(0, colorCount);
-    
-    // ブロック配列の初期化
-    this.blocks = Array(GameConfig.BOARD_HEIGHT).fill(0).map(() => 
-      Array(GameConfig.BOARD_WIDTH).fill(null)
-    );
-    
-    this.blockSprites = Array(GameConfig.BOARD_HEIGHT).fill(0).map(() => 
-      Array(GameConfig.BOARD_WIDTH).fill(null)
-    );
-    
-    // ブロックの生成
-    for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
-      for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
-        // ランダムな色を選択
-        const colorKey = availableColors[Math.floor(Math.random() * availableColors.length)];
-        const color = GameConfig.BLOCK_COLORS[colorKey as keyof typeof GameConfig.BLOCK_COLORS];
-        
-        // ブロックオブジェクトの作成
-        this.blocks[y][x] = {
-          x,
-          y,
-          color,
-          type: 'normal'
-        };
-        
-        // ブロックのスプライトを作成 - デバッグラインに合わせて調整
-        const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-        const blockY = titleBottomY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-        
-        const blockSprite = this.add.sprite(blockX, blockY, '');
-        
-        // スプライトの代わりに円を描画
-        const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(color.replace('#', '0x')));
-        const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-        rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-        
-        blockSprite.setTexture(rt.texture);
-        blockSprite.setInteractive({ useHandCursor: true });
-        
-        this.blockSprites[y][x] = blockSprite;
-        
-        // ブロックオブジェクトにスプライト参照を追加
-        this.blocks[y][x].sprite = blockSprite;
-        
-        // クリックイベント
-        blockSprite.on('pointerdown', () => {
-          if (!this.isProcessing) {
-            this.onBlockClick(x, y);
-          }
-        });
-      }
-    }
-    
-    // 消去可能なブロックがない場合は再生成
-    const blockLogic = new BlockLogic();
-    if (!blockLogic.hasRemovableBlocks(this.blocks)) {
-      // スプライトを破棄
-      for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
-        for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
-          if (this.blockSprites[y][x]) {
-            this.blockSprites[y][x].destroy();
-          }
-        }
-      }
-      
-      // 再生成
-      this.createInitialBlocks();
-    }
-  }
-  
-  /**
-   * ブロッククリック時の処理
-   */
-  private onBlockClick(x: number, y: number): void {
-    if (this.isProcessing) return;
-    
-    this.isProcessing = true;
-    
-    // BlockLogicのインスタンスを作成
-    const blockLogic = new BlockLogic();
-    
-    // 隣接する同色ブロックを検索
-    const connectedBlocks = blockLogic.findConnectedBlocks(this.blocks, x, y);
-    
-    // 2つ以上のブロックが隣接している場合のみ消去（自分自身を含めて2つ以上）
-    if (connectedBlocks.length >= 2) {
-      // スコア計算
-      const score = blockLogic.calculateScore(connectedBlocks.length);
-      this.score += score;
-      
-      // スコア表示を更新
-      this.updateScoreDisplay();
-      
-      // ブロックを消去
-      this.removeBlocks(connectedBlocks);
-      
-      // 少し待ってから重力を適用（アニメーション完了を待つ）
-      this.time.delayedCall(300, () => {
-        // 重力を適用（ブロックを落下させる）
-        this.applyGravity();
-        
-        // 全消し判定
-        if (blockLogic.isAllCleared(this.blocks)) {
-          // 全消しボーナス
-          this.score = Math.floor(this.score * 1.5);
-          this.updateScoreDisplay();
-          
-          // 全消し演出
-          this.showAllClearedEffect();
-        }
-        
-        // 行き詰まり判定
-        if (!blockLogic.hasRemovableBlocks(this.blocks)) {
-          // 行き詰まり演出
-          this.showNoMovesEffect();
-        }
-        
-        // 目標スコア達成判定
-        if (this.score >= this.targetScore) {
-          // クリアボタンを表示
-          this.showClearButton();
-        }
-        
-        this.isProcessing = false;
-      });
-    } else {
-      this.isProcessing = false;
-    }
-  }
-  
-  /**
-   * ブロックを消去する
-   */
-  private removeBlocks(blocks: Block[]): void {
-    blocks.forEach(block => {
-      // ブロックの論理状態を更新
-      this.blocks[block.y][block.x] = null;
-      
-      // スプライトのアニメーション
-      if (block.sprite) {
-        const sprite = block.sprite;
-        // スプライト参照を先にnullに設定（メモリリーク防止）
-        block.sprite = null;
-        
-        // スプライト配列からも参照を削除
-        this.blockSprites[block.y][block.x] = null;
-        
-        this.tweens.add({
-          targets: sprite,
-          alpha: 0,
-          scale: 0.5,
-          duration: 200,
-          onComplete: () => {
-            // スプライトを破棄
-            sprite.destroy();
-          }
-        });
-      }
-    });
-  }
-  
-  /**
-   * 重力を適用し、ブロックを落下させる
-   */
-  private applyGravity(): void {
-    const blockLogic = new BlockLogic();
-    
-    // 論理状態の更新（重力適用）
-    let updatedBlocks = blockLogic.applyGravity(this.blocks);
-    
-    // 空の列を左にスライド
-    updatedBlocks = blockLogic.slideColumnsLeft(updatedBlocks);
-    
-    this.blocks = updatedBlocks;
-    
-    // 視覚表現を完全に再構築
-    this.updateBlockSprites();
-  }
-  
-  /**
-   * ブロックの移動をアニメーションで表現する
-   */
-  private animateBlockMovements(oldPositions: {[key: string]: {x: number, y: number}}): void {
-    // 移動が必要なブロックを特定し、アニメーションを適用
-    let animationsRunning = 0;
-    
-    // 各列ごとに処理（下から上に）
-    for (let x = 0; x < this.blocks[0].length; x++) {
-      // 各列の落下アニメーションを順番に処理
-      this.animateColumnMovements(x, oldPositions, () => {
-        animationsRunning--;
-        if (animationsRunning === 0) {
-          // 全ての列のアニメーションが完了したら処理を続行
-          this.isProcessing = false;
-        }
-      });
-      animationsRunning++;
-    }
-    
-    // アニメーションがない場合は即座に処理完了
-    if (animationsRunning === 0) {
-      this.isProcessing = false;
-    }
-  }
-  
-  /**
-   * 特定の列のブロック移動をアニメーションで表現する
-   */
-  private animateColumnMovements(column: number, oldPositions: {[key: string]: {x: number, y: number}}, onComplete: () => void): void {
-    const columnBlocks: {block: Block, oldY: number, newY: number}[] = [];
-    
-    // 列内の移動が必要なブロックを特定
-    for (let y = 0; y < this.blocks.length; y++) {
-      const block = this.blocks[y][column];
-      if (block) {
-        const oldPos = oldPositions[`${block.x},${block.y}`];
-        if (oldPos && (oldPos.y !== block.y || oldPos.x !== block.x)) {
-          columnBlocks.push({
-            block,
-            oldY: oldPos.y,
-            newY: y
-          });
-        } else {
-          // 移動していないブロック
-          const blockX = this.boardX + column * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-          const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-          
-          // 既存のスプライトがあれば再利用
-          if (oldPos && this.blockSprites[oldPos.y][oldPos.x]) {
-            const sprite = this.blockSprites[oldPos.y][oldPos.x];
-            this.blockSprites[y][column] = sprite;
-            this.blockSprites[oldPos.y][oldPos.x] = null;
-            
-            // ブロックオブジェクトにスプライト参照を設定
-            this.blocks[y][column].sprite = sprite;
-          } else {
-            // 新しいスプライトを作成（通常は発生しないはず）
-            this.createBlockSprite(column, y, block);
-          }
-        }
-      }
-    }
-    
-    // 移動が必要なブロックがない場合は即座に完了
-    if (columnBlocks.length === 0) {
-      onComplete();
+  private checkAdjacentBlocksForIce(x: number, y: number): void {
+    if (!this.blocks[y][x] || this.blocks[y][x].type !== 'iceLv1') {
       return;
     }
     
-    // 移動が必要なブロックを下から順にアニメーション
-    let blocksAnimated = 0;
+    const iceColor = this.blocks[y][x].color;
+    const directions = [
+      { dx: 0, dy: -1 }, // 上
+      { dx: 1, dy: 0 },  // 右
+      { dx: 0, dy: 1 },  // 下
+      { dx: -1, dy: 0 }  // 左
+    ];
     
-    // 下から順にアニメーション（配列を逆順にソート）
-    columnBlocks.sort((a, b) => b.newY - a.newY);
-    
-    // 各ブロックを順番にアニメーション
-    columnBlocks.forEach((item, index) => {
-      const { block, oldY, newY } = item;
-      const oldX = oldPositions[`${block.x},${block.y}`].x;
+    // 隣接する同色ブロックを探す
+    for (const dir of directions) {
+      const nx = x + dir.dx;
+      const ny = y + dir.dy;
       
-      // 元の位置のスプライトを取得
-      const sprite = this.blockSprites[oldY][oldX];
+      // 範囲外チェック
+      if (ny < 0 || ny >= this.blocks.length || nx < 0 || nx >= this.blocks[ny].length) {
+        continue;
+      }
       
-      if (sprite) {
-        // 新しい位置を計算
-        const newPosX = this.boardX + column * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-        const newPosY = this.boardY + newY * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+      // 隣接ブロックが存在し、同じ色で、通常ブロックの場合
+      if (this.blocks[ny][nx] && 
+          this.blocks[ny][nx].color === iceColor && 
+          this.blocks[ny][nx].type === 'normal') {
         
-        // 移動距離に応じてアニメーション時間を調整
-        const distance = Math.abs(newY - oldY);
-        const duration = Math.min(100 + distance * 50, 500); // 距離に応じて時間を増やすが上限あり
+        const blockLogic = new BlockLogic();
+        const connectedBlocks = blockLogic.findConnectedBlocks(this.blocks, nx, ny);
         
-        // 落下アニメーション（バウンドなし、または小さいバウンド）
-        this.tweens.add({
-          targets: sprite,
-          x: newPosX,
-          y: newPosY,
-          duration: duration,
-          // 最後のブロックのみ小さなバウンド、それ以外はバウンドなし
-          ease: index === 0 && distance > 2 ? 'Bounce.easeOut' : 'Cubic.easeIn',
-          delay: index * 30, // 下のブロックから順に少しずつ遅延をつける
-          onComplete: () => {
-            // スプライトを新しい位置に設定
-            this.blockSprites[newY][column] = sprite;
-            this.blockSprites[oldY][oldX] = null;
-            
-            // ブロックオブジェクトにスプライト参照を設定
-            this.blocks[newY][column].sprite = sprite;
-            
-            blocksAnimated++;
-            if (blocksAnimated === columnBlocks.length) {
-              // この列の全てのブロックのアニメーションが完了
-              onComplete();
-            }
-          }
-        });
-      } else {
-        // スプライトがない場合は新しく作成
-        this.createBlockSprite(column, newY, block);
-        blocksAnimated++;
-        if (blocksAnimated === columnBlocks.length) {
-          onComplete();
-        }
-      }
-    });
-  }
-  
-  /**
-   * 指定位置にブロックスプライトを作成
-   */
-  private createBlockSprite(x: number, y: number, block: Block): Phaser.GameObjects.Sprite {
-    const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-    const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-    
-    const blockSprite = this.add.sprite(blockX, blockY, '');
-    
-    // スプライトの代わりに円を描画
-    const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(block.color.replace('#', '0x')));
-    const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-    rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-    
-    blockSprite.setTexture(rt.texture);
-    blockSprite.setInteractive({ useHandCursor: true });
-    
-    this.blockSprites[y][x] = blockSprite;
-    
-    // ブロックオブジェクトにスプライト参照を追加
-    this.blocks[y][x].sprite = blockSprite;
-    
-    // クリックイベント
-    blockSprite.on('pointerdown', () => {
-      if (!this.isProcessing) {
-        this.onBlockClick(x, y);
-      }
-    });
-    
-    return blockSprite;
-  }
-  
-  /**
-   * ブロックスプライトを更新する（全て再作成）
-   */
-  private updateBlockSprites(): void {
-    // 既存のスプライトを全て破棄
-    for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
-      for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
-        if (this.blockSprites[y][x]) {
-          this.blockSprites[y][x].destroy();
-          this.blockSprites[y][x] = null;
-        }
-      }
-    }
-    
-    // 新しいスプライトを作成
-    for (let y = 0; y < this.blocks.length; y++) {
-      for (let x = 0; x < this.blocks[y].length; x++) {
-        const block = this.blocks[y][x];
-        if (block) {
-          const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-          const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+        // 2つ以上のブロックが隣接している場合のみ消去
+        if (connectedBlocks.length >= 2) {
+          // スコア計算
+          const score = blockLogic.calculateScore(connectedBlocks.length);
+          this.score += score;
           
-          const blockSprite = this.add.sprite(blockX, blockY, '');
+          // スコア表示を更新
+          this.updateScoreDisplay();
           
-          // スプライトの代わりに円を描画
-          const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(block.color.replace('#', '0x')));
-          const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-          rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
+          // ブロックを消去
+          this.removeBlocks(connectedBlocks);
           
-          blockSprite.setTexture(rt.texture);
-          blockSprite.setInteractive({ useHandCursor: true });
+          // 氷結ブロックを通常ブロックに変換
+          this.convertIceToNormal(x, y);
           
-          this.blockSprites[y][x] = blockSprite;
-          
-          // ブロックオブジェクトにスプライト参照を追加
-          this.blocks[y][x].sprite = blockSprite;
-          
-          // クリックイベント
-          blockSprite.on('pointerdown', () => {
-            if (!this.isProcessing) {
-              this.onBlockClick(x, y);
-            }
+          // 少し待ってから重力を適用
+          this.time.delayedCall(300, () => {
+            this.applyGravity();
           });
+          
+          return;
         }
       }
     }
   }
   
   /**
-   * スコア表示を更新
+   * 氷結ブロックを通常ブロックに変換
    */
-  private updateScoreDisplay(): void {
-    // ヘッダーテキストを更新
-    const headerText = this.children.getByName('headerText') as Phaser.GameObjects.Text;
-    if (headerText) {
-      headerText.setText(`Stage ${this.currentStage}  Score: ${this.score}`);
+  private convertIceToNormal(x: number, y: number): void {
+    if (!this.blocks[y][x] || this.blocks[y][x].type !== 'iceLv1') {
+      return;
     }
-  }
-  
-  /**
-   * 全消し演出を表示
-   */
-  private showAllClearedEffect(): void {
-    const { width, height } = this.cameras.main;
     
-    // 全消しテキスト
-    const allClearedText = this.add.text(width / 2, height / 2, '全消しボーナス！', {
-      fontSize: '32px',
-      color: '#FFFF00',
-      stroke: '#000000',
-      strokeThickness: 4
-    }).setOrigin(0.5).setAlpha(0);
+    // 氷結ブロックを通常ブロックに変換
+    this.blocks[y][x] = {
+      x,
+      y,
+      color: this.blocks[y][x].color,
+      type: 'normal',
+      sprite: this.blocks[y][x].sprite
+    };
     
-    // テキストアニメーション
-    this.tweens.add({
-      targets: allClearedText,
-      alpha: 1,
-      scale: 1.2,
-      duration: 500,
-      yoyo: true,
-      hold: 1000,
-      onComplete: () => {
-        allClearedText.destroy();
-      }
-    });
-  }
-  
-  /**
-   * 行き詰まり演出を表示
-   */
-  private showNoMovesEffect(): void {
-    const { width, height } = this.cameras.main;
-    
-    // 行き詰まりテキスト
-    const noMovesText = this.add.text(width / 2, height / 2, '消去可能なブロックがありません', {
-      fontSize: '20px',
-      color: '#FFFFFF',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setAlpha(0);
-    
-    // テキストアニメーション
-    this.tweens.add({
-      targets: noMovesText,
-      alpha: 1,
-      duration: 300,
-      hold: 2000,
-      onComplete: () => {
-        noMovesText.destroy();
-      }
-    });
-  }
-  
-  /**
-   * クリアボタンを表示
-   */
-  private showClearButton(): void {
-    const { width, height } = this.cameras.main;
-    
-    // リタイアボタンをクリアボタンに変更
-    const retireButton = this.children.getByName('retireButton') as Phaser.GameObjects.Rectangle;
-    const retireText = this.children.getByName('retireText') as Phaser.GameObjects.Text;
-    
-    if (retireButton && retireText) {
-      retireButton.setFillStyle(0x00AA00);
-      retireText.setText('クリア');
+    // スプライトを更新
+    if (this.blocks[y][x].sprite) {
+      const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+      const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
       
-      // クリックイベントを更新
-      retireButton.off('pointerdown');
-      retireButton.on('pointerdown', () => {
-        // ステージクリア処理
-        this.onStageClear();
+      // 古いスプライトを削除
+      this.blocks[y][x].sprite.destroy();
+      
+      // 新しいスプライトを作成
+      const color = this.blocks[y][x].color;
+      const blockSprite = this.add.sprite(blockX, blockY, '');
+      
+      // スプライトの代わりに円を描画
+      const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(color.replace('#', '0x')));
+      const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
+      rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
+      
+      blockSprite.setTexture(rt.texture);
+      blockSprite.setInteractive({ useHandCursor: true });
+      
+      this.blocks[y][x].sprite = blockSprite;
+      this.blockSprites[y][x] = blockSprite;
+      
+      // 氷が解けるエフェクト
+      this.add.particles(blockX, blockY, 'particle', {
+        speed: 100,
+        lifespan: 500,
+        scale: { start: 0.5, end: 0 },
+        quantity: 10,
+        tint: 0xFFFFFF
       });
     }
   }
   
   /**
-   * ステージクリア時の処理
+   * 氷結ブロックの状態を更新
    */
-  private onStageClear(): void {
-    // ゲーム状態を更新
-    this.gameStateManager.setScore(this.score);
-    this.gameStateManager.onStageClear();
-    this.gameStateManager.goToNextStage();
+  private updateIceBlocks(removedBlocks: Block[]): void {
+    // 消去されたブロックの隣接位置にある氷結ブロックを探す
+    const directions = [
+      { dx: 0, dy: -1 }, // 上
+      { dx: 1, dy: 0 },  // 右
+      { dx: 0, dy: 1 },  // 下
+      { dx: -1, dy: 0 }  // 左
+    ];
     
-    // TODO: リザルト画面に遷移
-    this.scene.start('MainScene');
-  }
-  
-  private addDebugLines(): void {
-    const { width, height } = this.cameras.main;
+    const updatedPositions = new Set<string>();
     
-    // タイトルエリア（ステージ情報とスコア）
-    const titleHeight = 90;
-    const titleCenterY = 45;
-    this.debugHelper.addAreaBorder(width / 2, titleCenterY, width, titleHeight, 0xFF0000, 'タイトルエリア');
-    
-    // メインコンテンツエリア（ゲーム盤面）
-    const boardWidth = GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE;
-    const boardHeight = GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE;
-    const boardCenterX = width / 2;
-    
-    // タイトルエリアの直下にメインコンテンツエリアを配置
-    const titleBottomY = titleCenterY + titleHeight / 2;
-    const adjustedBoardCenterY = titleBottomY + boardHeight / 2;
-    
-    this.debugHelper.addAreaBorder(
-      boardCenterX,
-      adjustedBoardCenterY,
-      boardWidth,
-      boardHeight,
-      0xFFFF00,
-      'メインコンテンツエリア'
-    );
-    
-    // 左側空白エリア
-    const sideSpaceWidth = (width - boardWidth) / 2;
-    if (sideSpaceWidth > 0) {
-      this.debugHelper.addAreaBorder(
-        sideSpaceWidth / 2,
-        adjustedBoardCenterY,
-        sideSpaceWidth,
-        boardHeight,
-        0x0000FF,
-        '左側空白エリア'
-      );
-    }
-    
-    // 右側空白エリア
-    if (sideSpaceWidth > 0) {
-      this.debugHelper.addAreaBorder(
-        width - sideSpaceWidth / 2,
-        adjustedBoardCenterY,
-        sideSpaceWidth,
-        boardHeight,
-        0x0000FF,
-        '右側空白エリア'
-      );
-    }
-    
-    // ボタン/アクションエリア（アイテムボタン）
-    const buttonHeight = 60;
-    const buttonCenterY = height - buttonHeight / 2;
-    this.debugHelper.addAreaBorder(width / 2, buttonCenterY, width, buttonHeight, 0xFF00FF, 'ボタン/アクションエリア');
-    
-    // メインコンテンツとボタンの間の空白
-    const boardBottomY = adjustedBoardCenterY + boardHeight / 2;
-    const buttonTopY = buttonCenterY - buttonHeight / 2;
-    const contentToButtonSpaceHeight = buttonTopY - boardBottomY;
-    
-    if (contentToButtonSpaceHeight > 0) {
-      this.debugHelper.addAreaBorder(
-        width / 2,
-        boardBottomY + contentToButtonSpaceHeight / 2,
-        width,
-        contentToButtonSpaceHeight,
-        0x0000FF,
-        'コンテンツ下空白エリア'
-      );
+    for (const block of removedBlocks) {
+      for (const dir of directions) {
+        const nx = block.x + dir.dx;
+        const ny = block.y + dir.dy;
+        
+        // 範囲外チェック
+        if (ny < 0 || ny >= this.blocks.length || nx < 0 || nx >= this.blocks[ny].length) {
+          continue;
+        }
+        
+        // 氷結ブロックかつ同じ色の場合
+        if (this.blocks[ny][nx] && 
+            this.blocks[ny][nx].type === 'iceLv1' && 
+            this.blocks[ny][nx].color === block.color) {
+          
+          // 同じ位置の氷結ブロックを重複して処理しないようにする
+          const posKey = `${nx},${ny}`;
+          if (!updatedPositions.has(posKey)) {
+            updatedPositions.add(posKey);
+            this.convertIceToNormal(nx, ny);
+          }
+        }
+      }
     }
   }
-}

@@ -47,6 +47,11 @@ export class BlockLogic {
         return;
       }
       
+      // 氷結ブロックはグループ形成に参加しない
+      if (blocks[y][x].type === 'iceLv1') {
+        return;
+      }
+      
       // 訪問済みにする
       visited[y][x] = true;
       
@@ -74,6 +79,16 @@ export class BlockLogic {
    * @returns 消去可能な場合はtrue
    */
   canRemoveBlocks(blocks: Block[][], x: number, y: number): boolean {
+    // ブロックが存在しない場合は消去不可
+    if (!blocks[y] || !blocks[y][x]) {
+      return false;
+    }
+    
+    // 氷結ブロックは直接消去できない
+    if (blocks[y][x].type === 'iceLv1') {
+      return false;
+    }
+    
     // 自分自身を含めて2つ以上のブロックが隣接している場合は消去可能
     // つまり、自分自身以外に1つ以上の隣接ブロックがある場合
     const connectedBlocks = this.findConnectedBlocks(blocks, x, y);
