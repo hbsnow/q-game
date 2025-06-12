@@ -249,6 +249,11 @@ export class GameScene extends Scene {
 
     // ブロック配列からスプライトを作成
     this.currentBlocks.forEach(block => {
+      // 妨害ブロックはスキップ（ObstacleBlockRendererが描画する）
+      if (this.obstacleBlockManager.isObstacleBlock(block.id)) {
+        return;
+      }
+      
       const x = startX + block.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
       const y = startY + block.y * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
       
