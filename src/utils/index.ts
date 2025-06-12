@@ -41,7 +41,13 @@ export function getConnectedBlocks(
 ): BlockGroup {
   const visited = new Set<string>();
   const group: Block[] = [];
+  const normalBlockCount: number[] = [0]; // 通常ブロックのカウント（参照渡しのため配列を使用）
   const queue: Block[] = [startBlock];
+  
+  // 開始ブロックが通常ブロックの場合はカウント
+  if (startBlock.type === 'normal') {
+    normalBlockCount[0]++;
+  }
   
   while (queue.length > 0) {
     const current = queue.shift()!;
@@ -49,9 +55,14 @@ export function getConnectedBlocks(
     if (visited.has(current.id)) continue;
     visited.add(current.id);
     
-    // 通常ブロックのみをグループに含める
-    if (current.type === 'normal') {
+    // グループに含めるブロックを追加
+    if (canParticipateInGroup(current)) {
       group.push(current);
+      
+      // 通常ブロックの場合はカウント
+      if (current.type === 'normal') {
+        normalBlockCount[0]++;
+      }
     }
     
     // 隣接する同色ブロックを探す
@@ -64,18 +75,20 @@ export function getConnectedBlocks(
           !visited.has(adjacentBlock.id) && 
           adjacentBlock.color === startBlock.color) {
         // 氷結ブロックは通過できるが、グループには含めない
-        if (adjacentBlock.type === 'normal' || 
-            canPassThrough(adjacentBlock) || 
-            canParticipateInGroup(adjacentBlock)) {
+        if (canParticipateInGroup(adjacentBlock) || canPassThrough(adjacentBlock)) {
           queue.push(adjacentBlock);
         }
       }
     }
   }
   
+  // 通常ブロックが2つ以上ある場合のみ有効なグループとする
+  // 氷結ブロックを通過する場合、通常ブロックが2つ以上必要
+  const validGroup = normalBlockCount[0] >= 2 ? group : [];
+  
   return {
-    blocks: group,
-    count: group.length,
+    blocks: validGroup,
+    count: validGroup.length,
     color: startBlock.color
   };
 }
@@ -159,6 +172,7 @@ export function hasRemovableBlocks(blocks: Block[]): boolean {
     if (block.type !== 'normal') continue;
     
     const group = getConnectedBlocks(block, blocks);
+    // 通常ブロックが2つ以上あるグループのみ消去可能
     if (group.count >= 2) {
       return true;
     }
