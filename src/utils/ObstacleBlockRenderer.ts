@@ -52,12 +52,9 @@ export class ObstacleBlockRenderer {
   private createIce1Texture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状 - 角丸の四角形
+    // 基本形状
     graphics.fillStyle(0xFFFFFF, 1);
-    
-    // 角丸の四角形を描画
-    const cornerRadius = 8; // 角の丸みの半径
-    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, 4);
     
     // 氷の結晶パターン
     graphics.lineStyle(2, 0x87CEFA, 0.8);
@@ -65,22 +62,22 @@ export class ObstacleBlockRenderer {
     // 横線
     for (let i = 1; i <= 2; i++) {
       const y = i * (this.blockSize / 3);
-      graphics.moveTo(cornerRadius, y);
-      graphics.lineTo(this.blockSize - cornerRadius, y);
+      graphics.moveTo(4, y);
+      graphics.lineTo(this.blockSize - 4, y);
     }
     
     // 縦線
     for (let i = 1; i <= 2; i++) {
       const x = i * (this.blockSize / 3);
-      graphics.moveTo(x, cornerRadius);
-      graphics.lineTo(x, this.blockSize - cornerRadius);
+      graphics.moveTo(x, 4);
+      graphics.lineTo(x, this.blockSize - 4);
     }
     
     graphics.strokePath();
     
-    // 輪郭 - 角丸の四角形
+    // 輪郭
     graphics.lineStyle(2, 0x000000, 1);
-    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, 4);
     
     // テクスチャとして保存
     graphics.generateTexture('ice1Texture', this.blockSize, this.blockSize);
@@ -93,12 +90,9 @@ export class ObstacleBlockRenderer {
   private createIce2Texture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状 - 角丸の四角形
+    // 基本形状
     graphics.fillStyle(0xFFFFFF, 1);
-    
-    // 角丸の四角形を描画
-    const cornerRadius = 8; // 角の丸みの半径
-    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, 4);
     
     // 氷の結晶パターン（より密集）
     graphics.lineStyle(3, 0x87CEFA, 0.9);
@@ -106,25 +100,25 @@ export class ObstacleBlockRenderer {
     // 横線
     for (let i = 1; i <= 3; i++) {
       const y = i * (this.blockSize / 4);
-      graphics.moveTo(cornerRadius, y);
-      graphics.lineTo(this.blockSize - cornerRadius, y);
+      graphics.moveTo(4, y);
+      graphics.lineTo(this.blockSize - 4, y);
     }
     
     // 縦線
     for (let i = 1; i <= 3; i++) {
       const x = i * (this.blockSize / 4);
-      graphics.moveTo(x, cornerRadius);
-      graphics.lineTo(x, this.blockSize - cornerRadius);
+      graphics.moveTo(x, 4);
+      graphics.lineTo(x, this.blockSize - 4);
     }
     
     graphics.strokePath();
     
-    // 二重の輪郭 - 角丸の四角形
+    // 二重の輪郭
     graphics.lineStyle(3, 0x000000, 1);
-    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, 4);
     
     graphics.lineStyle(1, 0x87CEFA, 1);
-    graphics.strokeRoundedRect(3, 3, this.blockSize - 6, this.blockSize - 6, cornerRadius - 2);
+    graphics.strokeRoundedRect(3, 3, this.blockSize - 6, this.blockSize - 6, 2);
     
     // テクスチャとして保存
     graphics.generateTexture('ice2Texture', this.blockSize, this.blockSize);
@@ -575,6 +569,9 @@ export class ObstacleBlockRenderer {
       
       container.add(text);
     }
+    
+    // スプライトをObstacleBlockManagerに登録
+    this.obstacleBlockManager.registerObstacleBlockSprite(block.id, container);
     
     return container;
   }

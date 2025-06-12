@@ -319,43 +319,63 @@ export class GameScene extends Scene {
     // スプライトの位置に基づいて実際のブロックデータを取得
     const actualBlock = this.currentBlocks.find(b => b.x === col && b.y === row);
     
-    if (!actualBlock || actualBlock.type !== 'normal') {
+    if (!actualBlock) {
       return;
     }
 
+    // 妨害ブロックの場合も適切なホバーエフェクトを表示
+    const isObstacleBlock = this.obstacleBlockManager.isObstacleBlock(actualBlock.id);
+    
     if (isHovering) {
-      // ホバー開始：連結グループをハイライト
-      const connectedGroup = getConnectedBlocks(actualBlock, this.currentBlocks);
-      
-      if (connectedGroup.count >= 2) {
-        // 消去可能なグループの場合、全体を拡大＋脈動エフェクト
-        connectedGroup.blocks.forEach(block => {
-          const blockSprite = this.blockSprites[block.y][block.x];
-          if (blockSprite) {
-            // 拡大
-            blockSprite.setScale(1.15);
-            // 脈動エフェクト
-            this.tweens.add({
-              targets: blockSprite,
-              scaleX: 1.2,
-              scaleY: 1.2,
-              duration: 600,
-              yoyo: true,
-              repeat: -1,
-              ease: 'Sine.easeInOut'
-            });
-          }
-        });
-      } else {
-        // 消去不可能な場合、点滅エフェクト
-        this.tweens.add({
-          targets: sprite,
-          alpha: 0.3,
-          duration: 400,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut'
-        });
+      if (actualBlock.type === 'normal') {
+        // 通常ブロックの場合：連結グループをハイライト
+        const connectedGroup = getConnectedBlocks(actualBlock, this.currentBlocks);
+        
+        if (connectedGroup.count >= 2) {
+          // 消去可能なグループの場合、全体を拡大＋脈動エフェクト
+          connectedGroup.blocks.forEach(block => {
+            const blockSprite = this.blockSprites[block.y][block.x];
+            if (blockSprite) {
+              // 拡大
+              blockSprite.setScale(1.15);
+              // 脈動エフェクト
+              this.tweens.add({
+                targets: blockSprite,
+                scaleX: 1.2,
+                scaleY: 1.2,
+                duration: 600,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+              });
+            }
+          });
+        } else {
+          // 消去不可能な場合、点滅エフェクト
+          this.tweens.add({
+            targets: sprite,
+            alpha: 0.3,
+            duration: 400,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+        }
+      } else if (isObstacleBlock) {
+        // 妨害ブロックの場合：ブロック自体をハイライト
+        const obstacleSprite = this.obstacleBlockManager.getObstacleBlockSprite(actualBlock.id);
+        if (obstacleSprite) {
+          // 妨害ブロックのホバーエフェクト
+          this.tweens.add({
+            targets: obstacleSprite,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            duration: 300,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+          });
+        }
       }
     } else {
       // ホバー終了：全てのハイライトを解除

@@ -262,3 +262,22 @@ export class ObstacleBlockManager {
     return obstacleBlock;
   }
 }
+  /**
+   * 妨害ブロックのスプライトを取得
+   * @param blockId ブロックID
+   * @returns スプライトコンテナ（存在しない場合はnull）
+   */
+  public getObstacleBlockSprite(blockId: string): Phaser.GameObjects.Container | null {
+    return this.obstacleBlockSprites.get(blockId) || null;
+  }
+  
+  /**
+   * 妨害ブロックのスプライトを登録
+   * @param blockId ブロックID
+   * @param sprite スプライトコンテナ
+   */
+  public registerObstacleBlockSprite(blockId: string, sprite: Phaser.GameObjects.Container): void {
+    this.obstacleBlockSprites.set(blockId, sprite);
+  }
+  // 妨害ブロックのスプライト管理
+  private obstacleBlockSprites: Map<string, Phaser.GameObjects.Container> = new Map();
