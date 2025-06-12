@@ -944,6 +944,11 @@ export class GameScene extends Scene {
     
     // 現在のブロックデータに基づいて再配置
     this.currentBlocks.forEach(block => {
+      // 妨害ブロックはスキップ（ObstacleBlockRendererが描画する）
+      if (this.obstacleBlockManager.isObstacleBlock(block.id)) {
+        return;
+      }
+      
       const sprite = spriteMap.get(block.id);
       if (sprite && !sprite.destroyed) {
         try {
@@ -964,6 +969,30 @@ export class GameScene extends Scene {
           this.blockContainer.add(sprite);
         } catch (error) {
           console.error(`Error updating sprite for block ${block.id}:`, error);
+        }
+      } else {
+        // スプライトが存在しない場合は新規作成（通常ブロックの場合のみ）
+        if (block.type === 'normal') {
+          try {
+            const newX = startX + block.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
+            const newY = startY + block.y * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
+            
+            const newSprite = this.add.sprite(newX, newY, this.getBlockTexture(block));
+            newSprite.setDisplaySize(this.BLOCK_SIZE - 2, this.BLOCK_SIZE - 2); // 少し隙間を作る
+            newSprite.setInteractive();
+            
+            // ブロックデータを保存
+            newSprite.setData('block', block);
+            newSprite.setData('row', block.y);
+            newSprite.setData('col', block.x);
+            
+            this.blockSprites[block.y][block.x] = newSprite;
+            this.blockContainer.add(newSprite);
+            
+            console.log(`Created new sprite for block ${block.id} at (${block.x}, ${block.y})`);
+          } catch (error) {
+            console.error(`Error creating new sprite for block ${block.id}:`, error);
+          }
         }
       }
     });
