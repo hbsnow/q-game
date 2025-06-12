@@ -86,16 +86,79 @@ export class MainScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
-    // ヘッダーエリア
-    this.debugHelper.addAreaBorder(width / 2, 30, width - 4, 60, 0xFF0000, 'ヘッダーエリア');
+    // タイトルエリア（ゴールド表示）
+    const titleHeight = 60;
+    const titleCenterY = 30;
+    this.debugHelper.addAreaBorder(width / 2, titleCenterY, width, titleHeight, 0xFF0000, 'タイトルエリア');
     
-    // ステージ情報エリア
-    this.debugHelper.addAreaBorder(width / 2, height / 4, width - 4, 80, 0x0000FF, 'ステージ情報エリア');
+    // コンテンツエリア（ステージ情報）
+    const contentHeight = 80;
+    const contentCenterY = height / 4;
+    this.debugHelper.addAreaBorder(width / 2, contentCenterY, width, contentHeight, 0x0000FF, 'コンテンツエリア');
     
-    // プレイボタンエリア
-    this.debugHelper.addAreaBorder(width / 2, height / 2, 200, 60, 0xFF00FF, 'プレイボタンエリア');
+    // 上部空白エリア
+    const titleBottomY = titleCenterY + titleHeight / 2;
+    const contentTopY = contentCenterY - contentHeight / 2;
+    const topSpaceHeight = contentTopY - titleBottomY;
     
-    // メニューボタンエリア
-    this.debugHelper.addAreaBorder(width / 2, height * 0.75, width - 4, 50, 0x00FFFF, 'メニューボタンエリア');
+    if (topSpaceHeight > 0) {
+      this.debugHelper.addAreaBorder(width / 2, titleBottomY + topSpaceHeight / 2, width, topSpaceHeight, 0x0000FF, '上部空白エリア');
+    }
+    // 中上部空白エリア
+    const contentBottomY = contentCenterY + contentHeight / 2;
+    const buttonHeight = 60;
+    const buttonCenterY = height / 2;
+    const buttonTopY = buttonCenterY - buttonHeight / 2;
+    const middleTopSpaceHeight = buttonTopY - contentBottomY;
+    
+    if (middleTopSpaceHeight > 0) {
+      this.debugHelper.addAreaBorder(width / 2, contentBottomY + middleTopSpaceHeight / 2, width, middleTopSpaceHeight, 0x0000FF, '中上部空白エリア');
+    }
+    
+    // ボタン/アクションエリア（プレイボタン）
+    this.debugHelper.addAreaBorder(width / 2, buttonCenterY, 200, buttonHeight, 0xFF00FF, 'ボタン/アクションエリア');
+    
+    // ボタン左右の空白エリア
+    if (width > 200) {
+      // 左側空白
+      this.debugHelper.addAreaBorder(
+        (width - 200) / 4,
+        buttonCenterY,
+        (width - 200) / 2,
+        buttonHeight,
+        0x0000FF,
+        'ボタン左側空白'
+      );
+      
+      // 右側空白
+      this.debugHelper.addAreaBorder(
+        width - (width - 200) / 4,
+        buttonCenterY,
+        (width - 200) / 2,
+        buttonHeight,
+        0x0000FF,
+        'ボタン右側空白'
+      );
+    }
+    
+    // 中下部空白エリア
+    const buttonBottomY = buttonCenterY + buttonHeight / 2;
+    const navHeight = 50;
+    const navCenterY = height * 0.75;
+    const navTopY = navCenterY - navHeight / 2;
+    const middleBottomSpaceHeight = navTopY - buttonBottomY;
+    if (middleBottomSpaceHeight > 0) {
+      this.debugHelper.addAreaBorder(width / 2, buttonBottomY + middleBottomSpaceHeight / 2, width, middleBottomSpaceHeight, 0x0000FF, '中下部空白エリア');
+    }
+    
+    // ナビゲーション/メニューエリア（アイテム・ガチャボタン）
+    this.debugHelper.addAreaBorder(width / 2, navCenterY, width, navHeight, 0x00FF00, 'ナビゲーション/メニューエリア');
+    
+    // 下部空白エリア
+    const navBottomY = navCenterY + navHeight / 2;
+    const bottomSpaceHeight = height - navBottomY;
+    if (bottomSpaceHeight > 0) {
+      this.debugHelper.addAreaBorder(width / 2, navBottomY + bottomSpaceHeight / 2, width, bottomSpaceHeight, 0x0000FF, '下部空白エリア');
+    }
   }
 }

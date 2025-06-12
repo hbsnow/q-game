@@ -29,7 +29,7 @@ export class DebugHelper {
     
     const text = this.scene.add.text(x - width / 2 + 5, y - height / 2 + 5, name, {
       fontSize: '10px',
-      color: `#${color.toString(16).padStart(6, '0')}`,
+      color: '#FFFFFF',
       backgroundColor: '#000000'
     });
     

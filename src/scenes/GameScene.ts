@@ -51,26 +51,36 @@ export class GameScene extends Phaser.Scene {
       strokeThickness: 2
     });
     
-    // ゲーム盤面の位置を計算
-    this.boardX = width / 2 - (GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE) / 2;
-    this.boardY = height / 2 - (GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE) / 2 + 30;
+    // ゲーム盤面の位置を計算 - デバッグラインに合わせて調整
+    const titleHeight = 90;
+    const titleCenterY = 45;
+    const titleBottomY = titleCenterY + titleHeight / 2;
+    const boardWidth = GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE;
+    const boardHeight = GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE;
     
-    // ゲーム盤面の背景
+    // タイトルエリアの直下にメインコンテンツエリアを配置
+    this.boardX = width / 2 - boardWidth / 2;
+    this.boardY = titleBottomY; // タイトルエリアの直下に配置
+    
+    // ゲーム盤面の背景 - デバッグラインに合わせて調整
+    const adjustedBoardCenterY = titleBottomY + boardHeight / 2;
     const boardBg = this.add.rectangle(
       width / 2,
-      this.boardY + (GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE) / 2,
+      adjustedBoardCenterY,
       GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE,
       GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE,
       0x000033,
       0.3
     );
     
-    // リタイアボタン
-    const retireButton = this.add.rectangle(width - 70, height - 30, 120, 40, 0xAA2222)
+    // リタイアボタン - デバッグラインに合わせて調整
+    const buttonHeight = 60;
+    const buttonCenterY = height - buttonHeight / 2;
+    const retireButton = this.add.rectangle(width - 70, buttonCenterY, 120, 40, 0xAA2222)
       .setInteractive({ useHandCursor: true })
       .setName('retireButton');
     
-    const retireText = this.add.text(width - 70, height - 30, 'リタイア', {
+    const retireText = this.add.text(width - 70, buttonCenterY, 'リタイア', {
       fontSize: '16px',
       color: '#FFFFFF'
     }).setOrigin(0.5).setName('retireText');
@@ -93,6 +103,13 @@ export class GameScene extends Phaser.Scene {
    * ブロックの初期配置を作成
    */
   private createInitialBlocks(): void {
+    const { width } = this.cameras.main;
+    
+    // タイトルエリアの計算 - createInitialBlocks内でも使用できるように
+    const titleHeight = 90;
+    const titleCenterY = 45;
+    const titleBottomY = titleCenterY + titleHeight / 2;
+    
     // 色の配列（ステージに応じて色数を変える）
     const colorKeys = Object.keys(GameConfig.BLOCK_COLORS);
     const colorCount = Math.min(3 + Math.floor(this.currentStage / 5), 6); // ステージが進むと色が増える
@@ -122,9 +139,9 @@ export class GameScene extends Phaser.Scene {
           type: 'normal'
         };
         
-        // ブロックのスプライトを作成
+        // ブロックのスプライトを作成 - デバッグラインに合わせて調整
         const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-        const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+        const blockY = titleBottomY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
         
         const blockSprite = this.add.sprite(blockX, blockY, '');
         
@@ -588,20 +605,73 @@ export class GameScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
-    // ヘッダーエリア
-    this.debugHelper.addAreaBorder(width / 2, 45, width - 4, 90, 0xFF0000, 'ヘッダーエリア');
+    // タイトルエリア（ステージ情報とスコア）
+    const titleHeight = 90;
+    const titleCenterY = 45;
+    this.debugHelper.addAreaBorder(width / 2, titleCenterY, width, titleHeight, 0xFF0000, 'タイトルエリア');
     
-    // ゲーム盤面エリア
+    // メインコンテンツエリア（ゲーム盤面）
+    const boardWidth = GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE;
+    const boardHeight = GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE;
+    const boardCenterX = width / 2;
+    
+    // タイトルエリアの直下にメインコンテンツエリアを配置
+    const titleBottomY = titleCenterY + titleHeight / 2;
+    const adjustedBoardCenterY = titleBottomY + boardHeight / 2;
+    
     this.debugHelper.addAreaBorder(
-      width / 2,
-      this.boardY + (GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE) / 2,
-      GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE,
-      GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE,
+      boardCenterX,
+      adjustedBoardCenterY,
+      boardWidth,
+      boardHeight,
       0xFFFF00,
-      'ゲーム盤面エリア'
+      'メインコンテンツエリア'
     );
     
-    // フッターエリア
-    this.debugHelper.addAreaBorder(width / 2, height - 30, width - 4, 60, 0x00FFFF, 'フッターエリア');
+    // 左側空白エリア
+    const sideSpaceWidth = (width - boardWidth) / 2;
+    if (sideSpaceWidth > 0) {
+      this.debugHelper.addAreaBorder(
+        sideSpaceWidth / 2,
+        adjustedBoardCenterY,
+        sideSpaceWidth,
+        boardHeight,
+        0x0000FF,
+        '左側空白エリア'
+      );
+    }
+    
+    // 右側空白エリア
+    if (sideSpaceWidth > 0) {
+      this.debugHelper.addAreaBorder(
+        width - sideSpaceWidth / 2,
+        adjustedBoardCenterY,
+        sideSpaceWidth,
+        boardHeight,
+        0x0000FF,
+        '右側空白エリア'
+      );
+    }
+    
+    // ボタン/アクションエリア（アイテムボタン）
+    const buttonHeight = 60;
+    const buttonCenterY = height - buttonHeight / 2;
+    this.debugHelper.addAreaBorder(width / 2, buttonCenterY, width, buttonHeight, 0xFF00FF, 'ボタン/アクションエリア');
+    
+    // メインコンテンツとボタンの間の空白
+    const boardBottomY = adjustedBoardCenterY + boardHeight / 2;
+    const buttonTopY = buttonCenterY - buttonHeight / 2;
+    const contentToButtonSpaceHeight = buttonTopY - boardBottomY;
+    
+    if (contentToButtonSpaceHeight > 0) {
+      this.debugHelper.addAreaBorder(
+        width / 2,
+        boardBottomY + contentToButtonSpaceHeight / 2,
+        width,
+        contentToButtonSpaceHeight,
+        0x0000FF,
+        'コンテンツ下空白エリア'
+      );
+    }
   }
 }

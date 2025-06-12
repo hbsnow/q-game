@@ -65,13 +65,65 @@ export class TitleScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
+    // 上部空白エリア
+    const topSpaceHeight = height / 4 - 100 / 2;
+    if (topSpaceHeight > 0) {
+      this.debugHelper.addAreaBorder(width / 2, topSpaceHeight / 2, width, topSpaceHeight, 0x0000FF, '上部空白エリア');
+    }
+    
     // タイトルエリア
-    this.debugHelper.addAreaBorder(width / 2, height / 4, width - 4, 100, 0xFF0000, 'タイトルエリア');
+    this.debugHelper.addAreaBorder(width / 2, height / 4, width, 100, 0xFF0000, 'タイトルエリア');
     
-    // ボタンエリア
-    this.debugHelper.addAreaBorder(width / 2, height / 2, 200, 60, 0xFF00FF, 'ボタンエリア');
+    // 中上部空白エリア
+    const middleTopSpaceHeight = height / 2 - height / 4 - 100 / 2 - 60 / 2;
+    if (middleTopSpaceHeight > 0) {
+      this.debugHelper.addAreaBorder(width / 2, height / 4 + 100 / 2 + middleTopSpaceHeight / 2, width, middleTopSpaceHeight, 0x0000FF, '中上部空白エリア');
+    }
     
-    // バージョンエリア
-    this.debugHelper.addAreaBorder(width / 2, height - 20, width - 4, 40, 0x00FFFF, 'バージョンエリア');
+    // ボタン/アクションエリア
+    this.debugHelper.addAreaBorder(width / 2, height / 2, 200, 60, 0xFF00FF, 'ボタン/アクションエリア');
+    
+    // ボタン左右の空白エリア
+    if (width > 200) {
+      // 左側空白
+      this.debugHelper.addAreaBorder(
+        (width - 200) / 4,
+        height / 2,
+        (width - 200) / 2,
+        60,
+        0x0000FF,
+        'ボタン左側空白'
+      );
+      
+      // 右側空白
+      this.debugHelper.addAreaBorder(
+        width - (width - 200) / 4,
+        height / 2,
+        (width - 200) / 2,
+        60,
+        0x0000FF,
+        'ボタン右側空白'
+      );
+    }
+    
+    // 中下部空白エリア
+    const footerHeight = 40;
+    const buttonBottomY = height / 2 + 60 / 2;
+    const footerTopY = height - footerHeight;
+    const middleBottomSpaceHeight = footerTopY - buttonBottomY;
+    
+    if (middleBottomSpaceHeight > 0) {
+      this.debugHelper.addAreaBorder(
+        width / 2, 
+        buttonBottomY + middleBottomSpaceHeight / 2, 
+        width, 
+        middleBottomSpaceHeight, 
+        0x0000FF, 
+        '中下部空白エリア'
+      );
+    }
+    
+    // フッターエリア
+    this.debugHelper.addAreaBorder(width / 2, height - 20, width, 40, 0x00FFFF, 'フッターエリア');
   }
 }
