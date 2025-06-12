@@ -41,13 +41,8 @@ export function getConnectedBlocks(
 ): BlockGroup {
   const visited = new Set<string>();
   const group: Block[] = [];
-  const normalBlockCount: number[] = [0]; // 通常ブロックのカウント（参照渡しのため配列を使用）
+  const connectedBlockCount: number[] = [0]; // 連結判定に含まれるブロックのカウント
   const queue: Block[] = [startBlock];
-  
-  // 開始ブロックが通常ブロックの場合はカウント
-  if (startBlock.type === 'normal') {
-    normalBlockCount[0]++;
-  }
   
   while (queue.length > 0) {
     const current = queue.shift()!;
@@ -58,11 +53,7 @@ export function getConnectedBlocks(
     // グループに含めるブロックを追加
     if (canParticipateInGroup(current)) {
       group.push(current);
-      
-      // 通常ブロックの場合はカウント
-      if (current.type === 'normal') {
-        normalBlockCount[0]++;
-      }
+      connectedBlockCount[0]++;
     }
     
     // 隣接する同色ブロックを探す
@@ -75,16 +66,22 @@ export function getConnectedBlocks(
           !visited.has(adjacentBlock.id) && 
           adjacentBlock.color === startBlock.color) {
         // 氷結ブロックは通過できるが、グループには含めない
-        if (canParticipateInGroup(adjacentBlock) || canPassThrough(adjacentBlock)) {
+        // 連結判定には含める
+        if (canParticipateInGroup(adjacentBlock)) {
           queue.push(adjacentBlock);
+          connectedBlockCount[0]++;
+        } else if (canPassThrough(adjacentBlock)) {
+          // 氷結ブロックは連結判定に含める
+          queue.push(adjacentBlock);
+          connectedBlockCount[0]++;
         }
       }
     }
   }
   
-  // 通常ブロックが2つ以上ある場合のみ有効なグループとする
-  // 氷結ブロックを通過する場合、通常ブロックが2つ以上必要
-  const validGroup = normalBlockCount[0] >= 2 ? group : [];
+  // 連結判定に含まれるブロックが2つ以上ある場合のみ有効なグループとする
+  // 氷結ブロックも連結判定に含める
+  const validGroup = connectedBlockCount[0] >= 2 ? group : [];
   
   return {
     blocks: validGroup,
