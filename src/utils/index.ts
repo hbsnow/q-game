@@ -62,9 +62,13 @@ export function getConnectedBlocks(
       
       if (adjacentBlock && 
           !visited.has(adjacentBlock.id) && 
-          adjacentBlock.color === startBlock.color &&
-          (adjacentBlock.type === 'normal' || canParticipateInGroup(adjacentBlock))) {
-        queue.push(adjacentBlock);
+          adjacentBlock.color === startBlock.color) {
+        // 氷結ブロックは通過できるが、グループには含めない
+        if (adjacentBlock.type === 'normal' || 
+            canPassThrough(adjacentBlock) || 
+            canParticipateInGroup(adjacentBlock)) {
+          queue.push(adjacentBlock);
+        }
       }
     }
   }
@@ -90,10 +94,25 @@ function canParticipateInGroup(block: Block): boolean {
     case 'ice2':
     case 'iceCounter':
     case 'iceCounterPlus':
-      return false; // 氷結ブロックは参加しない
+      return false; // 氷結ブロックは参加しない（ただし通過は可能）
     case 'rock':
     case 'steel':
       return false; // 岩・鋼鉄ブロックは参加しない
+    default:
+      return false;
+  }
+}
+
+/**
+ * ブロックを通過できるかチェック（グループには含めないが連結判定は通過）
+ */
+function canPassThrough(block: Block): boolean {
+  switch (block.type) {
+    case 'ice1':
+    case 'ice2':
+    case 'iceCounter':
+    case 'iceCounterPlus':
+      return true; // 氷結ブロックは通過可能
     default:
       return false;
   }
