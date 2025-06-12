@@ -771,7 +771,8 @@ export class GameScene extends Scene {
   }
 
   private async applyGravity(): Promise<void> {
-    // Phase 1のGravityProcessorを使用
+    // 妨害ブロックの重力処理を考慮したGravityProcessorの使用
+    // 注: 現在のGravityProcessorは妨害ブロックの種類に関わらず、鋼鉄ブロック以外は全て重力の影響を受ける
     const gravityResult = GravityProcessor.applyGravity(this.currentBlocks);
     
     if (gravityResult.movements.length === 0) {
@@ -786,6 +787,9 @@ export class GameScene extends Scene {
     
     // アニメーション完了後、スプライトとブロックデータを完全に再同期
     this.rebuildSpriteBlockMapping();
+    
+    // 妨害ブロックの描画を更新
+    this.obstacleBlockRenderer.updateObstacleBlocks(this.currentBlocks, this.blockContainer);
   }
 
   private async executeGravityAnimations(movements: any[]): Promise<void> {

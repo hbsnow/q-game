@@ -109,16 +109,21 @@ export class GravityProcessor {
     const movements: BlockMovement[] = [];
     const movedBlocks: Block[] = [];
     
-    // 固定ブロック（鋼鉄ブロック）の位置を記録
+    // 固定ブロック（重力の影響を受けないブロック）の位置を記録
     const fixedPositions = new Set<number>();
-    const steelBlocks = columnBlocks.filter(b => b.type === 'steel');
-    steelBlocks.forEach(block => {
+    const fixedBlocks = columnBlocks.filter(b => {
+      // ObstacleBlockManagerを使用せずに直接判定
+      // 鋼鉄ブロックのみ固定（他の妨害ブロックは全て落下する）
+      return b.type === 'steel';
+    });
+    
+    fixedBlocks.forEach(block => {
       fixedPositions.add(block.y);
     });
     
-    // 落下可能ブロックを取得（鋼鉄以外）、上から下の順でソート
+    // 落下可能ブロックを取得（固定ブロック以外）、上から下の順でソート
     const fallableBlocks = columnBlocks
-      .filter(b => b.type !== 'steel')
+      .filter(b => !fixedBlocks.some(fb => fb.id === b.id))
       .sort((a, b) => a.y - b.y); // 上から下の順
     
     // 下から順に配置していく
@@ -128,7 +133,7 @@ export class GravityProcessor {
     for (let i = fallableBlocks.length - 1; i >= 0; i--) {
       const block = fallableBlocks[i];
       
-      // 鋼鉄ブロックの位置をスキップ
+      // 固定ブロックの位置をスキップ
       while (fixedPositions.has(targetY) && targetY >= 0) {
         targetY--;
       }
@@ -153,8 +158,8 @@ export class GravityProcessor {
       }
     }
     
-    // 鋼鉄ブロックはそのまま追加
-    movedBlocks.push(...steelBlocks);
+    // 固定ブロックはそのまま追加
+    movedBlocks.push(...fixedBlocks);
     
     return {
       movedBlocks,
