@@ -1,49 +1,24 @@
-import { GameState, Item, EquipSlot } from '../types';
-import { ItemManager } from './ItemManager';
-import { StageManager } from './StageManager';
-import { ITEM_DATA } from '../data/ItemData';
-import { SCORE_CONFIG } from '../config/gameConfig';
+import { GameState } from '../types/GameState';
+import { GameConfig } from '../config/GameConfig';
 
 /**
- * ゲーム状態管理クラス
- * シングルトンパターンで実装
+ * ゲーム状態を管理するシングルトンクラス
  */
 export class GameStateManager {
   private static instance: GameStateManager;
   private gameState: GameState;
-  private itemManager: ItemManager;
-  private stageManager: StageManager;
-
+  
   private constructor() {
-    // ステージ管理システムを初期化
-    this.stageManager = StageManager.getInstance();
-    
-    // 初期ゲーム状態
+    // 初期状態
     this.gameState = {
       currentStage: 1,
       gold: 0,
       score: 0,
-      targetScore: this.stageManager.getTargetScore(1),
-      items: [],
-      equipSlots: [
-        { type: 'special', item: null, used: false },
-        { type: 'normal', item: null, used: false }
-      ],
-      isScoreBoosterActive: false,
-      usedItems: [], // 使用済みアイテムのID
-      equippedItems: {
-        special: null,
-        normal: null
-      }
+      targetScore: GameConfig.TARGET_SCORE,
+      usedItems: []
     };
-
-    // アイテム管理システムを初期化
-    this.itemManager = new ItemManager();
-    
-    // 開発用：モックアイテムを追加
-    this.initializeWithMockItems();
   }
-
+  
   /**
    * シングルトンインスタンスを取得
    */
@@ -53,37 +28,58 @@ export class GameStateManager {
     }
     return GameStateManager.instance;
   }
-
+  
   /**
-   * ゲーム状態を取得
+   * 現在のステージを取得
    */
-  public getGameState(): GameState {
-    // 最新のアイテム情報と装備状態を反映
-    this.gameState.items = this.itemManager.getAllItems();
-    this.gameState.equipSlots = this.itemManager.getEquipSlots();
-    
-    return this.gameState;
+  public getCurrentStage(): number {
+    return this.gameState.currentStage;
   }
-
+  
   /**
-   * アイテム管理システムを取得
+   * 現在のステージを設定
    */
-  public getItemManager(): ItemManager {
-    return this.itemManager;
+  public setCurrentStage(stage: number): void {
+    if (stage < 1) {
+      stage = 1;
+    } else if (stage > GameConfig.MAX_STAGE) {
+      stage = GameConfig.MAX_STAGE;
+    }
+    this.gameState.currentStage = stage;
   }
-
+  
   /**
-   * ステージ管理システムを取得
+   * 次のステージに進む
    */
-  public getStageManager(): StageManager {
-    return this.stageManager;
+  public goToNextStage(): void {
+    if (this.gameState.currentStage < GameConfig.MAX_STAGE) {
+      this.gameState.currentStage++;
+    }
   }
-
+  
   /**
-   * スコアを設定
+   * 所持ゴールドを取得
    */
-  public setScore(score: number): void {
-    this.gameState.score = score;
+  public getGold(): number {
+    return this.gameState.gold;
+  }
+  
+  /**
+   * ゴールドを追加
+   */
+  public addGold(amount: number): void {
+    this.gameState.gold += amount;
+  }
+  
+  /**
+   * ゴールドを消費
+   */
+  public useGold(amount: number): boolean {
+    if (this.gameState.gold >= amount) {
+      this.gameState.gold -= amount;
+      return true;
+    }
+    return false;
   }
   
   /**
@@ -94,6 +90,20 @@ export class GameStateManager {
   }
   
   /**
+   * スコアを設定
+   */
+  public setScore(score: number): void {
+    this.gameState.score = score;
+  }
+  
+  /**
+   * スコアを追加
+   */
+  public addScore(points: number): void {
+    this.gameState.score += points;
+  }
+  
+  /**
    * 目標スコアを取得
    */
   public getTargetScore(): number {
@@ -101,96 +111,14 @@ export class GameStateManager {
   }
   
   /**
-   * 目標スコアを達成しているかチェック
+   * 使用済みアイテムを追加
    */
-  public isTargetScoreAchieved(): boolean {
-    return this.gameState.score >= this.gameState.targetScore;
-  }
-
-  /**
-   * ステージをクリアした時の処理
-   */
-  public onStageClear(): void {
-    // ゴールドを獲得（スコアと同じ量）
-    this.gameState.gold += this.gameState.score;
-    
-    // アイテム使用状態をリセット
-    this.itemManager.onStageEnd();
-    
-    // スコアブースター状態をリセット
-    this.gameState.isScoreBoosterActive = false;
-    
-    // 使用済みアイテムリストをリセット
-    this.resetUsedItems();
-    
-    console.log(`Stage ${this.gameState.currentStage} cleared! Gold: ${this.gameState.gold}`);
-  }
-
-  /**
-   * 次のステージに進む
-   */
-  public goToNextStage(): void {
-    // 現在のステージをクリア
-    this.gameState.currentStage++;
-    
-    // 次のステージの目標スコアを設定
-    this.gameState.targetScore = this.stageManager.getTargetScore(this.gameState.currentStage);
-    
-    // スコアをリセット
-    this.gameState.score = 0;
-    
-    // 使用済みアイテムリストをリセット
-    this.resetUsedItems();
-    
-    console.log(`Advanced to stage ${this.gameState.currentStage}`);
+  public addUsedItem(itemId: string): void {
+    this.gameState.usedItems.push(itemId);
   }
   
   /**
-   * 現在のステージをリトライ
-   */
-  public retryCurrentStage(): void {
-    // スコアをリセット
-    this.gameState.score = 0;
-    
-    // 使用済みアイテムリストをリセット
-    this.resetUsedItems();
-    
-    console.log(`Retrying stage ${this.gameState.currentStage}`);
-  }
-  
-  /**
-   * 次のステージに進む（ResultScene用のエイリアス）
-   */
-  public nextStage(): void {
-    this.goToNextStage();
-  }
-  
-  /**
-   * ステージをリトライする（ResultScene用のエイリアス）
-   */
-  public retryStage(): void {
-    this.retryCurrentStage();
-  }
-
-  /**
-   * スコアブースターを有効化
-   */
-  public activateScoreBooster(): void {
-    this.gameState.isScoreBoosterActive = true;
-    console.log('Score booster activated!');
-  }
-
-  /**
-   * アイテムを使用済みとしてマーク
-   */
-  public markItemAsUsed(itemId: string): void {
-    if (!this.gameState.usedItems.includes(itemId)) {
-      this.gameState.usedItems.push(itemId);
-    }
-  }
-  
-  /**
-   * アイテムが使用済みかチェック
+   * アイテムが使用済みかどうか確認
    */
   public isItemUsed(itemId: string): boolean {
     return this.gameState.usedItems.includes(itemId);
@@ -202,158 +130,42 @@ export class GameStateManager {
   public resetUsedItems(): void {
     this.gameState.usedItems = [];
   }
-
-  /**
-   * 特殊枠にアイテムを装備
-   */
-  public equipSpecialItem(itemId: string): void {
-    if (this.gameState.equippedItems) {
-      this.gameState.equippedItems.special = itemId;
-    }
-  }
   
   /**
-   * 通常枠にアイテムを装備
+   * ステージクリア時の処理
    */
-  public equipNormalItem(itemId: string): void {
-    if (this.gameState.equippedItems) {
-      this.gameState.equippedItems.normal = itemId;
-    }
-  }
-  
-  /**
-   * 装備中のアイテムを取得
-   */
-  public getEquippedItems(): { special: string | null, normal: string | null } {
-    return this.gameState.equippedItems || { special: null, normal: null };
-  }
-  
-  /**
-   * アイテムが装備されているかチェック
-   */
-  public isItemEquipped(itemId: string): boolean {
-    if (!this.gameState.equippedItems) return false;
-    return this.gameState.equippedItems.special === itemId || 
-           this.gameState.equippedItems.normal === itemId;
-  }
-
-  /**
-   * 開発用：モックアイテムを追加
-   */
-  private initializeWithMockItems(): void {
-    // 開発用の初期アイテムを追加
-    const initialItems = [
-      { type: 'swap', count: 3 },
-      { type: 'changeOne', count: 2 },
-      { type: 'miniBomb', count: 8 },
-      { type: 'shuffle', count: 5 },
-      { type: 'bomb', count: 3 },
-      { type: 'scoreBooster', count: 1 },
-      { type: 'hammer', count: 1 }
-    ];
-    
-    // 各アイテムを追加
-    initialItems.forEach(item => {
-      this.itemManager.addItem(item.type, item.count);
-    });
-    
-    // 開発用：デフォルトで装備
-    this.itemManager.equipItem('bomb', 0);
-    this.itemManager.equipItem('swap', 1);
-    
-    console.log('Initialized with development items');
-  }
-
-  /**
-   * 最終ステージかどうかをチェック
-   */
-  public isFinalStage(): boolean {
-    return this.stageManager.isFinalStage(this.gameState.currentStage);
-  }
-
-  /**
-   * 妨害ブロック登場ステージかどうかをチェック
-   */
-  public isObstacleIntroductionStage(): boolean {
-    return this.stageManager.isObstacleIntroductionStage(this.gameState.currentStage);
-  }
-
-  /**
-   * ゲーム状態を初期化（リセット）
-   */
-  public resetGameState(): void {
-    // ステージを1に戻す
-    this.gameState.currentStage = 1;
-    
-    // 目標スコアを設定
-    this.gameState.targetScore = this.stageManager.getTargetScore(1);
-    
-    // スコアとゴールドをリセット
-    this.gameState.score = 0;
-    this.gameState.gold = 0;
-    
-    // アイテムをリセット
-    this.itemManager.resetItems();
+  public onStageClear(): void {
+    // スコアに応じたゴールドを獲得
+    this.addGold(this.gameState.score);
     
     // 使用済みアイテムリストをリセット
     this.resetUsedItems();
     
-    // スコアブースター状態をリセット
-    this.gameState.isScoreBoosterActive = false;
+    // スコアをリセット
+    this.setScore(0);
+  }
+  
+  /**
+   * ステージリトライ時の処理
+   */
+  public onStageRetry(): void {
+    // 使用済みアイテムリストをリセット
+    this.resetUsedItems();
     
-    // 開発用：モックアイテムを再追加
-    this.initializeWithMockItems();
-    
-    console.log('Game state has been reset to initial state');
+    // スコアをリセット
+    this.setScore(0);
   }
-
+  
   /**
-   * デバッグ用：ゲーム状態をコンソール出力
+   * ゲーム状態をリセット
    */
-  public debugLog(): void {
-    console.log('=== GameStateManager Debug Info ===');
-    console.log('Stage:', this.gameState.currentStage);
-    console.log('Score:', this.gameState.score);
-    console.log('Gold:', this.gameState.gold);
-    console.log('Items:', this.gameState.items);
-    console.log('Equip Slots:', this.gameState.equipSlots);
-    console.log('Score Booster Active:', this.gameState.isScoreBoosterActive);
-    console.log('Used Items:', this.gameState.usedItems);
-    console.log('==============================');
-    
-    // アイテム管理システムのデバッグ情報も出力
-    this.itemManager.debugLog();
-    
-    // ステージ管理システムのデバッグ情報も出力
-    this.stageManager.debugLog(this.gameState.currentStage);
-  }
-
-  /**
-   * デバッグ用：テストアイテムを追加
-   */
-  public debugAddTestItems(): void {
-    // すでにモックアイテムを追加済みなので何もしない
-    console.log('Debug items already added in constructor');
-  }
-
-  /**
-   * 現在のステージ番号を取得
-   */
-  public getCurrentStage(): number {
-    return this.gameState.currentStage;
-  }
-
-  /**
-   * 所持ゴールドを取得
-   */
-  public getGold(): number {
-    return this.gameState.gold;
-  }
-
-  /**
-   * テスト用：シングルトンインスタンスをリセット
-   */
-  public static resetInstance(): void {
-    GameStateManager.instance = undefined as unknown as GameStateManager;
+  public resetGameState(): void {
+    this.gameState = {
+      currentStage: 1,
+      gold: 0,
+      score: 0,
+      targetScore: GameConfig.TARGET_SCORE,
+      usedItems: []
+    };
   }
 }
