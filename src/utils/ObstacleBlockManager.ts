@@ -98,30 +98,53 @@ export class ObstacleBlockManager {
     const processedBlockIds = new Set<string>();
     removedBlocks.forEach(block => processedBlockIds.add(block.id));
     
+    // デバッグ情報
+    console.log(`🧊 updateObstacleBlocks: Processing ${removedBlocks.length} removed blocks`);
+    removedBlocks.forEach(block => {
+      console.log(`  - Removed block: id=${block.id}, type=${block.type}, color=${block.color}, pos=(${block.x},${block.y})`);
+    });
+    
     // 消去されたブロックの隣接位置にある妨害ブロックを処理
     for (const removedBlock of removedBlocks) {
       const adjacentPositions = this.getAdjacentPositions(removedBlock);
       
+      console.log(`🔍 Checking adjacent positions for block at (${removedBlock.x},${removedBlock.y}):`);
+      adjacentPositions.forEach(pos => {
+        console.log(`  - Adjacent position: (${pos.x},${pos.y})`);
+      });
+      
       for (const pos of adjacentPositions) {
         // 隣接位置のブロックを取得
         const blockIndex = updatedBlocks.findIndex(b => b.x === pos.x && b.y === pos.y);
-        if (blockIndex === -1) continue;
+        if (blockIndex === -1) {
+          console.log(`  - No block found at position (${pos.x},${pos.y})`);
+          continue;
+        }
         
         const blockAtPos = updatedBlocks[blockIndex];
+        console.log(`  - Found block at (${pos.x},${pos.y}): id=${blockAtPos.id}, type=${blockAtPos.type}, color=${blockAtPos.color}`);
         
         // 既に処理済みのブロックはスキップ
-        if (processedBlockIds.has(blockAtPos.id)) continue;
+        if (processedBlockIds.has(blockAtPos.id)) {
+          console.log(`  - Block ${blockAtPos.id} already processed, skipping`);
+          continue;
+        }
         processedBlockIds.add(blockAtPos.id);
         
         // 妨害ブロックの場合、状態を更新
         const obstacleBlock = this.obstacleBlocks.get(blockAtPos.id);
         if (obstacleBlock) {
+          console.log(`  - Processing obstacle block: id=${blockAtPos.id}, type=${obstacleBlock.getType()}, color=${obstacleBlock.getColor()}`);
+          
           // 隣接する消去ブロックを渡して状態更新
           const stateChanged = obstacleBlock.updateState([removedBlock]);
           
           if (stateChanged) {
+            console.log(`  - ✅ State changed for block ${blockAtPos.id}`);
+            
             // 状態が変化した場合、ブロック配列を更新
             const updatedBlock = obstacleBlock.getBlock();
+            console.log(`  - Updated block: id=${updatedBlock.id}, type=${updatedBlock.type}, color=${updatedBlock.color}`);
             
             // 更新されたブロックで配列を更新
             updatedBlocks[blockIndex] = updatedBlock;
@@ -131,7 +154,7 @@ export class ObstacleBlockManager {
             if (updatedBlock.type === 'normal') {
               // 通常ブロックになった場合は妨害ブロック管理から削除
               this.obstacleBlocks.delete(updatedBlock.id);
-              console.log(`Block ${updatedBlock.id} changed to normal type and removed from obstacle management`);
+              console.log(`  - 🔄 Block ${updatedBlock.id} changed to normal type and removed from obstacle management`);
               
               // 通常ブロックになったブロックを追跡
               newlyNormalBlocks.push(updatedBlock);
@@ -139,8 +162,10 @@ export class ObstacleBlockManager {
               // タイプが変わった場合は新しいObstacleBlockインスタンスを作成
               const newObstacleBlock = ObstacleBlockFactory.createFromBlock(updatedBlock);
               this.obstacleBlocks.set(updatedBlock.id, newObstacleBlock);
-              console.log(`Block ${updatedBlock.id} changed type from ${obstacleBlock.getType()} to ${updatedBlock.type}`);
+              console.log(`  - 🔄 Block ${updatedBlock.id} changed type from ${obstacleBlock.getType()} to ${updatedBlock.type}`);
             }
+          } else {
+            console.log(`  - ❌ No state change for block ${blockAtPos.id}`);
           }
         }
       }
@@ -148,12 +173,15 @@ export class ObstacleBlockManager {
     
     // 更新されたブロックのログ出力
     if (updatedBlockIds.size > 0) {
-      console.log(`Updated ${updatedBlockIds.size} obstacle blocks:`, Array.from(updatedBlockIds));
+      console.log(`📊 Updated ${updatedBlockIds.size} obstacle blocks:`, Array.from(updatedBlockIds));
     }
     
     // 通常ブロックに変わったブロックがある場合、連鎖的に解除処理を行う
     if (newlyNormalBlocks.length > 0) {
-      console.log(`Processing chain reaction for ${newlyNormalBlocks.length} newly normal blocks`);
+      console.log(`🔄 Processing chain reaction for ${newlyNormalBlocks.length} newly normal blocks`);
+      newlyNormalBlocks.forEach(block => {
+        console.log(`  - Newly normal block: id=${block.id}, color=${block.color}, pos=(${block.x},${block.y})`);
+      });
       
       // 再帰的に処理（通常ブロックに変わったブロックを消去されたブロックとして扱う）
       return this.updateObstacleBlocks(newlyNormalBlocks, updatedBlocks);
@@ -251,7 +279,9 @@ export class ObstacleBlockManager {
     const obstacleBlock = this.obstacleBlocks.get(blockId);
     if (obstacleBlock) {
       const renderInfo = obstacleBlock.getRenderInfo();
-      console.log(`ObstacleBlockManager.getObstacleBlockRenderInfo for ${blockId}:`, renderInfo);
+      console.log(`🎨 ObstacleBlockManager.getObstacleBlockRenderInfo for ${blockId}:`, renderInfo);
+      console.log(`  - Block type: ${obstacleBlock.getType()}, color: ${obstacleBlock.getColor()}`);
+      console.log(`  - Position: (${obstacleBlock.getX()},${obstacleBlock.getY()})`);
       return renderInfo;
     }
     return undefined;

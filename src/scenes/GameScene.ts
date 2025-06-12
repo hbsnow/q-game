@@ -926,6 +926,9 @@ export class GameScene extends Scene {
     });
   }
 
+  /**
+   * スプライト-ブロックのマッピングを再構築
+   */
   private rebuildSpriteBlockMapping() {
     console.log('🔄 Rebuilding sprite-block mapping...');
     
@@ -970,7 +973,7 @@ export class GameScene extends Scene {
       }
       
       const sprite = spriteMap.get(block.id);
-      if (sprite && !sprite.destroyed) {
+      if (sprite && !sprite.destroy) {
         try {
           // 正しい位置に配置
           this.blockSprites[block.y][block.x] = sprite;
@@ -997,6 +1000,7 @@ export class GameScene extends Scene {
             const newX = startX + block.x * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
             const newY = startY + block.y * this.BLOCK_SIZE + this.BLOCK_SIZE / 2;
             
+            console.log(`Creating new sprite for block ${block.id} at (${block.x}, ${block.y}), type: ${block.type}, color: ${block.color}`);
             const newSprite = this.add.sprite(newX, newY, this.getBlockTexture(block));
             newSprite.setDisplaySize(this.BLOCK_SIZE - 2, this.BLOCK_SIZE - 2); // 少し隙間を作る
             newSprite.setInteractive();
@@ -1008,8 +1012,6 @@ export class GameScene extends Scene {
             
             this.blockSprites[block.y][block.x] = newSprite;
             this.blockContainer.add(newSprite);
-            
-            console.log(`Created new sprite for block ${block.id} at (${block.x}, ${block.y})`);
           } catch (error) {
             console.error(`Error creating new sprite for block ${block.id}:`, error);
           }
@@ -1577,9 +1579,15 @@ export class GameScene extends Scene {
       }
     });
     
+    // Oキーで妨害ブロック状態デバッグ
+    this.input.keyboard?.on('keydown-O', () => {
+      this.debugObstacleBlockState();
+    });
+    
     console.log('🔧 [GAME SCENE] Debug shortcut setup:');
     console.log('  - Press "D" to toggle debug lines');
     console.log('  - Press "Shift+D" to log detailed debug info');
+    console.log('  - Press "O" to debug obstacle block state');
   }
 
   private toggleDebugLines() {
@@ -1973,3 +1981,171 @@ export class GameScene extends Scene {
     return this.applyGravity();
   }
 }
+  /**
+   * 妨害ブロックの状態をデバッグ出力
+   */
+  private debugObstacleBlockState(): void {
+    console.log('=== 妨害ブロック状態デバッグ ===');
+    console.log(`現在のブロック数: ${this.currentBlocks.length}`);
+    
+    // 妨害ブロックの数をカウント
+    const obstacleBlocks = this.currentBlocks.filter(block => block.type !== 'normal');
+    console.log(`妨害ブロック数: ${obstacleBlocks.length}`);
+    
+    // 妨害ブロックの種類ごとにカウント
+    const blockTypeCount = obstacleBlocks.reduce((acc, block) => {
+      acc[block.type] = (acc[block.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    console.log('妨害ブロックの種類別カウント:');
+    Object.entries(blockTypeCount).forEach(([type, count]) => {
+      console.log(`  - ${type}: ${count}個`);
+    });
+    
+    // 氷結ブロックの詳細情報
+    const iceBlocks = obstacleBlocks.filter(block => 
+      block.type === 'ice1' || 
+      block.type === 'ice2' || 
+      block.type === 'iceCounter' || 
+      block.type === 'iceCounterPlus'
+    );
+    
+    if (iceBlocks.length > 0) {
+      console.log('\n氷結ブロックの詳細:');
+      iceBlocks.forEach(block => {
+        console.log(`  - ID: ${block.id}`);
+        console.log(`    タイプ: ${block.type}`);
+        console.log(`    色: ${block.color}`);
+        console.log(`    位置: (${block.x}, ${block.y})`);
+        
+        // 隣接ブロック情報
+        const adjacentPositions = [
+          { x: block.x, y: block.y - 1 }, // 上
+          { x: block.x, y: block.y + 1 }, // 下
+          { x: block.x - 1, y: block.y }, // 左
+          { x: block.x + 1, y: block.y }, // 右
+        ];
+        
+        const adjacentBlocks = adjacentPositions.map(pos => {
+          return this.currentBlocks.find(b => b.x === pos.x && b.y === pos.y);
+        }).filter(Boolean) as Block[];
+        
+        // 同色の隣接ブロック
+        const sameColorAdjacent = adjacentBlocks.filter(adjBlock => adjBlock.color === block.color);
+        const normalSameColorAdjacent = sameColorAdjacent.filter(adjBlock => adjBlock.type === 'normal');
+        
+        console.log(`    同色の隣接ブロック: ${sameColorAdjacent.length}個`);
+        console.log(`    同色の通常ブロック隣接: ${normalSameColorAdjacent.length}個`);
+      });
+    }
+    
+    // 視覚的な盤面表示
+    this.printBoardState();
+    
+    console.log('=== デバッグ終了 ===');
+  }
+  
+  /**
+   * 盤面の状態をアスキーアートで表示
+   */
+  private printBoardState(): void {
+    const width = this.BOARD_WIDTH;
+    const height = this.BOARD_HEIGHT;
+    
+    console.log('\n盤面状態:');
+    
+    // 盤面の初期化
+    const board: string[][] = [];
+    for (let y = 0; y < height; y++) {
+      board[y] = [];
+      for (let x = 0; x < width; x++) {
+        board[y][x] = '  ';
+      }
+    }
+    
+    // ブロックの配置
+    this.currentBlocks.forEach(block => {
+      if (block.x >= 0 && block.x < width && block.y >= 0 && block.y < height) {
+        board[block.y][block.x] = this.getBlockSymbol(block);
+      }
+    });
+    
+    // 盤面の表示
+    console.log('  ' + Array.from({ length: width }, (_, i) => ` ${i} `).join(''));
+    console.log('  ' + '+--'.repeat(width) + '+');
+    
+    for (let y = 0; y < height; y++) {
+      let row = `${y.toString().padStart(2)} |`;
+      for (let x = 0; x < width; x++) {
+        row += `${board[y][x]}|`;
+      }
+      console.log(row);
+      console.log('  ' + '+--'.repeat(width) + '+');
+    }
+    
+    // 凡例
+    console.log('\n凡例:');
+    console.log('R  = 赤の通常ブロック');
+    console.log('B  = 青の通常ブロック');
+    console.log('G  = 緑の通常ブロック');
+    console.log('Y  = 黄の通常ブロック');
+    console.log('C  = 水色の通常ブロック');
+    console.log('W  = 白の通常ブロック');
+    console.log('IR = 赤の氷結ブロック');
+    console.log('I2R = 赤の氷結Lv2ブロック');
+    console.log('CR = 赤のカウンターブロック');
+    console.log('C+R = 赤のカウンター+ブロック');
+  }
+  
+  /**
+   * ブロックの種類と色に応じたシンボルを返す
+   */
+  private getBlockSymbol(block: Block): string {
+    const colorSymbol = this.getColorSymbol(block.color);
+    
+    switch (block.type) {
+      case 'normal':
+        return ` ${colorSymbol}`;
+      case 'ice1':
+        return `I${colorSymbol}`;
+      case 'ice2':
+        return `I2${colorSymbol.substring(0, 1)}`;
+      case 'counter':
+        return `C${colorSymbol}`;
+      case 'counterPlus':
+        return `C+${colorSymbol.substring(0, 1)}`;
+      case 'iceCounter':
+        return `IC${colorSymbol.substring(0, 1)}`;
+      case 'iceCounterPlus':
+        return `I+${colorSymbol.substring(0, 1)}`;
+      case 'rock':
+        return '##';
+      case 'steel':
+        return 'SS';
+      default:
+        return '??';
+    }
+  }
+  
+  /**
+   * 色に応じたシンボルを返す
+   */
+  private getColorSymbol(color: string): string {
+    switch (color) {
+      case 'coralRed':
+        return 'R';
+      case 'blue':
+        return 'B';
+      case 'seaGreen':
+        return 'G';
+      case 'sandGold':
+        return 'Y';
+      case 'lightBlue':
+        return 'C';
+      case 'pearlWhite':
+        return 'W';
+      default:
+        return '?';
+    }
+  }

@@ -155,6 +155,8 @@ export class IceBlock1 extends ObstacleBlock {
       // 氷結解除：通常ブロックに変化
       this.type = 'normal';
       console.log(`IceBlock1.updateState: Ice block ${this.id} changed to normal type`);
+      console.log(`  - Color: ${this.color}, Position: (${this.x},${this.y})`);
+      console.log(`  - Triggered by adjacent block of same color`);
       return true;
     }
     
@@ -216,10 +218,14 @@ export class IceBlock2 extends ObstacleBlock {
       if (this.iceLevel <= 0) {
         this.type = 'normal';
         console.log(`IceBlock2.updateState: Ice block ${this.id} changed to normal type`);
+        console.log(`  - Color: ${this.color}, Position: (${this.x},${this.y})`);
+        console.log(`  - Triggered by adjacent block of same color`);
       } else {
         // 氷結Lv1に変化
         this.type = 'ice1';
         console.log(`IceBlock2.updateState: Ice block ${this.id} changed to ice1 type, iceLevel=${this.iceLevel}`);
+        console.log(`  - Color: ${this.color}, Position: (${this.x},${this.y})`);
+        console.log(`  - Triggered by adjacent block of same color`);
       }
       
       return true;
@@ -455,6 +461,8 @@ export class IceCounterPlusBlock extends ObstacleBlock {
       // 氷結解除：カウンター+ブロックに変化
       this.type = 'counterPlus';
       console.log(`IceCounterPlusBlock.updateState: Ice counter+ block ${this.id} changed to counter+ type`);
+      console.log(`  - Color: ${this.color}, Position: (${this.x},${this.y})`);
+      console.log(`  - Triggered by adjacent block of same color`);
       return true;
     }
     
@@ -518,6 +526,8 @@ export class IceCounterBlock extends ObstacleBlock {
       // 氷結解除：カウンターブロックに変化
       this.type = 'counter';
       console.log(`IceCounterBlock.updateState: Ice counter block ${this.id} changed to counter type`);
+      console.log(`  - Color: ${this.color}, Position: (${this.x},${this.y})`);
+      console.log(`  - Triggered by adjacent block of same color`);
       return true;
     }
     
