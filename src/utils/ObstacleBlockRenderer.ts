@@ -450,7 +450,7 @@ export class ObstacleBlockRenderer {
     
     // ブロックタイプを表す文字を定義
     const typeChars: Record<string, string> = {
-      'normal': '□',
+      'normal': '_',
       'ice1': '❄',
       'ice2': '❅',
       'counter': 'cR',
