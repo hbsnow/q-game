@@ -52,9 +52,12 @@ export class ObstacleBlockRenderer {
   private createIce1Texture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状
+    // 基本形状 - 角丸の四角形
     graphics.fillStyle(0xFFFFFF, 1);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
+    
+    // 角丸の四角形を描画
+    const cornerRadius = 8; // 角の丸みの半径
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // 氷の結晶パターン
     graphics.lineStyle(2, 0x87CEFA, 0.8);
@@ -62,22 +65,22 @@ export class ObstacleBlockRenderer {
     // 横線
     for (let i = 1; i <= 2; i++) {
       const y = i * (this.blockSize / 3);
-      graphics.moveTo(0, y);
-      graphics.lineTo(this.blockSize, y);
+      graphics.moveTo(cornerRadius, y);
+      graphics.lineTo(this.blockSize - cornerRadius, y);
     }
     
     // 縦線
     for (let i = 1; i <= 2; i++) {
       const x = i * (this.blockSize / 3);
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, this.blockSize);
+      graphics.moveTo(x, cornerRadius);
+      graphics.lineTo(x, this.blockSize - cornerRadius);
     }
     
     graphics.strokePath();
     
-    // 輪郭
+    // 輪郭 - 角丸の四角形
     graphics.lineStyle(2, 0x000000, 1);
-    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // テクスチャとして保存
     graphics.generateTexture('ice1Texture', this.blockSize, this.blockSize);
@@ -90,9 +93,12 @@ export class ObstacleBlockRenderer {
   private createIce2Texture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状
+    // 基本形状 - 角丸の四角形
     graphics.fillStyle(0xFFFFFF, 1);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
+    
+    // 角丸の四角形を描画
+    const cornerRadius = 8; // 角の丸みの半径
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // 氷の結晶パターン（より密集）
     graphics.lineStyle(3, 0x87CEFA, 0.9);
@@ -100,25 +106,25 @@ export class ObstacleBlockRenderer {
     // 横線
     for (let i = 1; i <= 3; i++) {
       const y = i * (this.blockSize / 4);
-      graphics.moveTo(0, y);
-      graphics.lineTo(this.blockSize, y);
+      graphics.moveTo(cornerRadius, y);
+      graphics.lineTo(this.blockSize - cornerRadius, y);
     }
     
     // 縦線
     for (let i = 1; i <= 3; i++) {
       const x = i * (this.blockSize / 4);
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, this.blockSize);
+      graphics.moveTo(x, cornerRadius);
+      graphics.lineTo(x, this.blockSize - cornerRadius);
     }
     
     graphics.strokePath();
     
-    // 二重の輪郭
+    // 二重の輪郭 - 角丸の四角形
     graphics.lineStyle(3, 0x000000, 1);
-    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     graphics.lineStyle(1, 0x87CEFA, 1);
-    graphics.strokeRect(3, 3, this.blockSize - 6, this.blockSize - 6);
+    graphics.strokeRoundedRect(3, 3, this.blockSize - 6, this.blockSize - 6, cornerRadius - 2);
     
     // テクスチャとして保存
     graphics.generateTexture('ice2Texture', this.blockSize, this.blockSize);
@@ -131,18 +137,21 @@ export class ObstacleBlockRenderer {
   private createCounterTexture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状
+    // 基本形状 - 角丸の四角形
     graphics.fillStyle(0xFFFFFF, 1);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
+    
+    // 角丸の四角形を描画
+    const cornerRadius = 8; // 角の丸みの半径
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // カウンターの円形部分
     const circleRadius = this.blockSize * 0.35;
     graphics.lineStyle(3, 0x000000, 1);
     graphics.strokeCircle(this.blockSize / 2, this.blockSize / 2, circleRadius);
     
-    // 輪郭
+    // 輪郭 - 角丸の四角形
     graphics.lineStyle(2, 0x000000, 1);
-    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // テクスチャとして保存
     graphics.generateTexture('counterTexture', this.blockSize, this.blockSize);
@@ -155,9 +164,12 @@ export class ObstacleBlockRenderer {
   private createCounterPlusTexture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状
+    // 基本形状 - 角丸の四角形
     graphics.fillStyle(0xFFFFFF, 1);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
+    
+    // 角丸の四角形を描画
+    const cornerRadius = 8; // 角の丸みの半径
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // カウンターの円形部分
     const circleRadius = this.blockSize * 0.35;
@@ -184,9 +196,9 @@ export class ObstacleBlockRenderer {
       lineLength
     );
     
-    // 輪郭
+    // 輪郭 - 角丸の四角形
     graphics.lineStyle(2, 0x000000, 1);
-    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // テクスチャとして保存
     graphics.generateTexture('counterPlusTexture', this.blockSize, this.blockSize);
@@ -199,9 +211,12 @@ export class ObstacleBlockRenderer {
   private createRockTexture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状
+    // 基本形状 - 角丸の四角形
     graphics.fillStyle(0x808080, 1);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
+    
+    // 角丸の四角形を描画
+    const cornerRadius = 8; // 角の丸みの半径
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // 岩の質感（亀裂）
     graphics.lineStyle(2, 0x606060, 1);
@@ -225,17 +240,17 @@ export class ObstacleBlockRenderer {
     
     // 岩の凹凸表現
     for (let i = 0; i < 8; i++) {
-      const x = Math.random() * this.blockSize;
-      const y = Math.random() * this.blockSize;
+      const x = Math.random() * (this.blockSize - 2 * cornerRadius) + cornerRadius;
+      const y = Math.random() * (this.blockSize - 2 * cornerRadius) + cornerRadius;
       const radius = Math.random() * 3 + 2;
       
       graphics.fillStyle(0x606060, 0.8);
       graphics.fillCircle(x, y, radius);
     }
     
-    // 輪郭
+    // 輪郭 - 角丸の四角形
     graphics.lineStyle(3, 0x606060, 1);
-    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // テクスチャとして保存
     graphics.generateTexture('rockTexture', this.blockSize, this.blockSize);
@@ -248,9 +263,12 @@ export class ObstacleBlockRenderer {
   private createSteelTexture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状
+    // 基本形状 - 角丸の四角形
     graphics.fillStyle(0xC0C0C0, 1);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
+    
+    // 角丸の四角形を描画
+    const cornerRadius = 8; // 角の丸みの半径
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // 金属光沢
     graphics.fillStyle(0xFFFFFF, 0.5);
@@ -278,9 +296,9 @@ export class ObstacleBlockRenderer {
       graphics.fillCircle(pos.x - 1, pos.y - 1, rivetSize * 0.4);
     });
     
-    // 輪郭
+    // 輪郭 - 角丸の四角形
     graphics.lineStyle(3, 0x808080, 1);
-    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // テクスチャとして保存
     graphics.generateTexture('steelTexture', this.blockSize, this.blockSize);
@@ -293,9 +311,12 @@ export class ObstacleBlockRenderer {
   private createIceCounterTexture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状
+    // 基本形状 - 角丸の四角形
     graphics.fillStyle(0xFFFFFF, 1);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
+    
+    // 角丸の四角形を描画
+    const cornerRadius = 8; // 角の丸みの半径
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // 氷の結晶パターン
     graphics.lineStyle(2, 0x87CEFA, 0.8);
@@ -303,15 +324,15 @@ export class ObstacleBlockRenderer {
     // 横線
     for (let i = 1; i <= 2; i++) {
       const y = i * (this.blockSize / 3);
-      graphics.moveTo(0, y);
-      graphics.lineTo(this.blockSize, y);
+      graphics.moveTo(cornerRadius, y);
+      graphics.lineTo(this.blockSize - cornerRadius, y);
     }
     
     // 縦線
     for (let i = 1; i <= 2; i++) {
       const x = i * (this.blockSize / 3);
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, this.blockSize);
+      graphics.moveTo(x, cornerRadius);
+      graphics.lineTo(x, this.blockSize - cornerRadius);
     }
     
     graphics.strokePath();
@@ -321,9 +342,9 @@ export class ObstacleBlockRenderer {
     graphics.lineStyle(3, 0x000000, 1);
     graphics.strokeCircle(this.blockSize / 2, this.blockSize / 2, circleRadius);
     
-    // 輪郭
+    // 輪郭 - 角丸の四角形
     graphics.lineStyle(2, 0x000000, 1);
-    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // テクスチャとして保存
     graphics.generateTexture('iceCounterTexture', this.blockSize, this.blockSize);
@@ -336,9 +357,12 @@ export class ObstacleBlockRenderer {
   private createIceCounterPlusTexture(): void {
     const graphics = this.scene.make.graphics({ x: 0, y: 0, add: false });
     
-    // 基本形状
+    // 基本形状 - 角丸の四角形
     graphics.fillStyle(0xFFFFFF, 1);
-    graphics.fillRect(0, 0, this.blockSize, this.blockSize);
+    
+    // 角丸の四角形を描画
+    const cornerRadius = 8; // 角の丸みの半径
+    graphics.fillRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // 氷の結晶パターン
     graphics.lineStyle(2, 0x87CEFA, 0.8);
@@ -346,15 +370,15 @@ export class ObstacleBlockRenderer {
     // 横線
     for (let i = 1; i <= 2; i++) {
       const y = i * (this.blockSize / 3);
-      graphics.moveTo(0, y);
-      graphics.lineTo(this.blockSize, y);
+      graphics.moveTo(cornerRadius, y);
+      graphics.lineTo(this.blockSize - cornerRadius, y);
     }
     
     // 縦線
     for (let i = 1; i <= 2; i++) {
       const x = i * (this.blockSize / 3);
-      graphics.moveTo(x, 0);
-      graphics.lineTo(x, this.blockSize);
+      graphics.moveTo(x, cornerRadius);
+      graphics.lineTo(x, this.blockSize - cornerRadius);
     }
     
     graphics.strokePath();
@@ -384,9 +408,9 @@ export class ObstacleBlockRenderer {
       lineLength
     );
     
-    // 輪郭
+    // 輪郭 - 角丸の四角形
     graphics.lineStyle(2, 0x000000, 1);
-    graphics.strokeRect(0, 0, this.blockSize, this.blockSize);
+    graphics.strokeRoundedRect(0, 0, this.blockSize, this.blockSize, cornerRadius);
     
     // テクスチャとして保存
     graphics.generateTexture('iceCounterPlusTexture', this.blockSize, this.blockSize);
