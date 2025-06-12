@@ -11,6 +11,8 @@ import { ObstacleBlock, ObstacleBlockFactory } from './ObstacleBlock';
  */
 export class ObstacleBlockManager {
   private obstacleBlocks: Map<string, ObstacleBlock> = new Map();
+  // 妨害ブロックのスプライト管理
+  private obstacleBlockSprites: Map<string, Phaser.GameObjects.Container> = new Map();
   
   /**
    * コンストラクタ
@@ -85,8 +87,16 @@ export class ObstacleBlockManager {
    * @returns 更新されたブロック配列
    */
   public updateObstacleBlocks(removedBlocks: Block[], allBlocks: Block[]): Block[] {
+    // 入力の配列を変更しないよう、コピーを作成
     const updatedBlocks = [...allBlocks];
     const updatedBlockIds = new Set<string>();
+    
+    // 通常ブロックに変わった氷結ブロックを追跡するための配列
+    const newlyNormalBlocks: Block[] = [];
+    
+    // 無限ループ防止のために処理済みブロックを追跡
+    const processedBlockIds = new Set<string>();
+    removedBlocks.forEach(block => processedBlockIds.add(block.id));
     
     // 消去されたブロックの隣接位置にある妨害ブロックを処理
     for (const removedBlock of removedBlocks) {
@@ -98,6 +108,10 @@ export class ObstacleBlockManager {
         if (blockIndex === -1) continue;
         
         const blockAtPos = updatedBlocks[blockIndex];
+        
+        // 既に処理済みのブロックはスキップ
+        if (processedBlockIds.has(blockAtPos.id)) continue;
+        processedBlockIds.add(blockAtPos.id);
         
         // 妨害ブロックの場合、状態を更新
         const obstacleBlock = this.obstacleBlocks.get(blockAtPos.id);
@@ -117,16 +131,35 @@ export class ObstacleBlockManager {
             if (updatedBlock.type === 'normal') {
               // 通常ブロックになった場合は妨害ブロック管理から削除
               this.obstacleBlocks.delete(updatedBlock.id);
+              console.log(`Block ${updatedBlock.id} changed to normal type and removed from obstacle management`);
+              
+              // 通常ブロックになったブロックを追跡
+              newlyNormalBlocks.push(updatedBlock);
             } else if (updatedBlock.type !== obstacleBlock.getType()) {
               // タイプが変わった場合は新しいObstacleBlockインスタンスを作成
               const newObstacleBlock = ObstacleBlockFactory.createFromBlock(updatedBlock);
               this.obstacleBlocks.set(updatedBlock.id, newObstacleBlock);
+              console.log(`Block ${updatedBlock.id} changed type from ${obstacleBlock.getType()} to ${updatedBlock.type}`);
             }
           }
         }
       }
     }
     
+    // 更新されたブロックのログ出力
+    if (updatedBlockIds.size > 0) {
+      console.log(`Updated ${updatedBlockIds.size} obstacle blocks:`, Array.from(updatedBlockIds));
+    }
+    
+    // 通常ブロックに変わったブロックがある場合、連鎖的に解除処理を行う
+    if (newlyNormalBlocks.length > 0) {
+      console.log(`Processing chain reaction for ${newlyNormalBlocks.length} newly normal blocks`);
+      
+      // 再帰的に処理（通常ブロックに変わったブロックを消去されたブロックとして扱う）
+      return this.updateObstacleBlocks(newlyNormalBlocks, updatedBlocks);
+    }
+    
+    // 更新されたブロックを返す
     return updatedBlocks;
   }
   
@@ -261,7 +294,7 @@ export class ObstacleBlockManager {
     this.obstacleBlocks.set(obstacleBlock.getId(), obstacleBlock);
     return obstacleBlock;
   }
-}
+  
   /**
    * 妨害ブロックのスプライトを取得
    * @param blockId ブロックID
@@ -279,5 +312,4 @@ export class ObstacleBlockManager {
   public registerObstacleBlockSprite(blockId: string, sprite: Phaser.GameObjects.Container): void {
     this.obstacleBlockSprites.set(blockId, sprite);
   }
-  // 妨害ブロックのスプライト管理
-  private obstacleBlockSprites: Map<string, Phaser.GameObjects.Container> = new Map();
+}

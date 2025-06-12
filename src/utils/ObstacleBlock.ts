@@ -148,12 +148,13 @@ export class IceBlock1 extends ObstacleBlock {
   public updateState(adjacentBlocks: Block[]): boolean {
     // 隣接する同色ブロックが消去されたかチェック
     const sameColorAdjacent = adjacentBlocks.some(block => 
-      block.color === this.color
+      block.color === this.color && block.type === 'normal'
     );
     
     if (sameColorAdjacent) {
       // 氷結解除：通常ブロックに変化
       this.type = 'normal';
+      console.log(`IceBlock1.updateState: Ice block ${this.id} changed to normal type`);
       return true;
     }
     
@@ -204,7 +205,7 @@ export class IceBlock2 extends ObstacleBlock {
   public updateState(adjacentBlocks: Block[]): boolean {
     // 隣接する同色ブロックが消去されたかチェック
     const sameColorAdjacent = adjacentBlocks.some(block => 
-      block.color === this.color
+      block.color === this.color && block.type === 'normal'
     );
     
     if (sameColorAdjacent) {
@@ -214,9 +215,11 @@ export class IceBlock2 extends ObstacleBlock {
       // 氷結レベルが0になったら通常ブロックに変化
       if (this.iceLevel <= 0) {
         this.type = 'normal';
+        console.log(`IceBlock2.updateState: Ice block ${this.id} changed to normal type`);
       } else {
         // 氷結Lv1に変化
         this.type = 'ice1';
+        console.log(`IceBlock2.updateState: Ice block ${this.id} changed to ice1 type, iceLevel=${this.iceLevel}`);
       }
       
       return true;
@@ -445,12 +448,13 @@ export class IceCounterPlusBlock extends ObstacleBlock {
   public updateState(adjacentBlocks: Block[]): boolean {
     // 隣接する同色ブロックが消去されたかチェック
     const sameColorAdjacent = adjacentBlocks.some(block => 
-      block.color === this.color
+      block.color === this.color && block.type === 'normal'
     );
     
     if (sameColorAdjacent) {
       // 氷結解除：カウンター+ブロックに変化
       this.type = 'counterPlus';
+      console.log(`IceCounterPlusBlock.updateState: Ice counter+ block ${this.id} changed to counter+ type`);
       return true;
     }
     
@@ -507,12 +511,13 @@ export class IceCounterBlock extends ObstacleBlock {
   public updateState(adjacentBlocks: Block[]): boolean {
     // 隣接する同色ブロックが消去されたかチェック
     const sameColorAdjacent = adjacentBlocks.some(block => 
-      block.color === this.color
+      block.color === this.color && block.type === 'normal'
     );
     
     if (sameColorAdjacent) {
       // 氷結解除：カウンターブロックに変化
       this.type = 'counter';
+      console.log(`IceCounterBlock.updateState: Ice counter block ${this.id} changed to counter type`);
       return true;
     }
     
