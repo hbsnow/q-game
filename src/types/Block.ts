@@ -20,6 +20,23 @@ export interface NormalBlock extends Block {
  * 妨害ブロックの基本型
  */
 export interface ObstacleBlock extends Block {
+  updateState(adjacentBlocks: Block[]): UpdateResult;
+  isRemovable(): boolean;
+}
+
+/**
+ * 状態更新の結果
+ */
+export interface UpdateResult {
+  converted: boolean;
+  block?: Block;
+  stateChanged: boolean;
+}
+
+/**
+ * 妨害ブロックの基本型
+ */
+export interface ObstacleBlock extends Block {
   type: string; // 'iceLv1', 'iceLv2', 'counter', 'counterPlus', etc.
   updateState(adjacentBlocks: Block[]): UpdateResult;
   isRemovable(): boolean;

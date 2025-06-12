@@ -1,18 +1,14 @@
 import { Block } from '../types/Block';
-import { IceBlockLv1 } from '../types/IceBlock';
 
 /**
- * ブロックを生成するファクトリークラス
+ * ブロックファクトリークラス
+ * 様々な種類のブロックを生成する
  */
 export class BlockFactory {
   /**
-   * 通常ブロックを生成
-   * @param x X座標
-   * @param y Y座標
-   * @param color 色
-   * @returns 通常ブロック
+   * 通常ブロックを作成
    */
-  static createNormalBlock(x: number, y: number, color: string): Block {
+  createNormalBlock(x: number, y: number, color: string): Block {
     return {
       x,
       y,
@@ -22,13 +18,76 @@ export class BlockFactory {
   }
   
   /**
-   * 氷結ブロック Lv1 を生成
-   * @param x X座標
-   * @param y Y座標
-   * @param color 色
-   * @returns 氷結ブロック Lv1
+   * 氷結ブロック Lv1 を作成
    */
-  static createIceBlockLv1(x: number, y: number, color: string): IceBlockLv1 {
-    return new IceBlockLv1(x, y, color);
+  createIceBlockLv1(x: number, y: number, color: string): Block {
+    return {
+      x,
+      y,
+      color,
+      type: 'iceLv1'
+    };
+  }
+  
+  /**
+   * 氷結ブロック Lv2 を作成
+   */
+  createIceBlockLv2(x: number, y: number, color: string): Block {
+    return {
+      x,
+      y,
+      color,
+      type: 'iceLv2'
+    };
+  }
+  
+  /**
+   * カウンター+ブロックを作成
+   */
+  createCounterPlusBlock(x: number, y: number, color: string, count: number): Block {
+    return {
+      x,
+      y,
+      color,
+      type: 'counterPlus',
+      count
+    } as Block;
+  }
+  
+  /**
+   * カウンターブロックを作成
+   */
+  createCounterBlock(x: number, y: number, color: string, count: number): Block {
+    return {
+      x,
+      y,
+      color,
+      type: 'counter',
+      count
+    } as Block;
+  }
+  
+  /**
+   * 岩ブロックを作成
+   */
+  createRockBlock(x: number, y: number): Block {
+    return {
+      x,
+      y,
+      color: '#808080', // 灰色
+      type: 'rock'
+    };
+  }
+  
+  /**
+   * 鋼鉄ブロックを作成
+   */
+  createSteelBlock(x: number, y: number): Block {
+    return {
+      x,
+      y,
+      color: '#C0C0C0', // シルバー
+      type: 'steel'
+    };
   }
 }
