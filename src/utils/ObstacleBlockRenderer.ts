@@ -516,9 +516,13 @@ export class ObstacleBlockRenderer {
     
     console.log(`Creating obstacle block sprite: ${block.id}, type: ${block.type}, renderInfo:`, renderInfo);
     
-    // ブロックの座標
-    const x = block.x * this.blockSize + this.blockSize / 2;
-    const y = block.y * this.blockSize + this.blockSize / 2;
+    // ブロックの座標（GameSceneと同じ計算方法を使用）
+    const boardPixelWidth = 10 * this.blockSize; // BOARD_WIDTH * BLOCK_SIZE
+    const startX = (this.scene.scale.width - boardPixelWidth) / 2;
+    const startY = 75; // BOARD_OFFSET_Y
+    
+    const x = startX + block.x * this.blockSize + this.blockSize / 2;
+    const y = startY + block.y * this.blockSize + this.blockSize / 2;
     
     // コンテナを作成
     const container = this.scene.add.container(x, y);
