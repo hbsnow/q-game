@@ -6,6 +6,7 @@ import {
   shuffleArray,
   hasRemovableBlocks,
 } from "./index";
+import { ObstacleBlockManager } from "./ObstacleBlockManager";
 
 /**
  * ブロック生成クラス
@@ -14,12 +15,15 @@ export class BlockGenerator {
   /**
    * ステージ用のブロック配置を生成
    */
-  static generateStageBlocks(stageConfig: StageConfig): Block[] {
+  static generateStageBlocks(stageConfig: StageConfig, obstacleBlockManager?: ObstacleBlockManager): Block[] {
     const maxAttempts = 10;
     let attempts = 0;
 
+    // ObstacleBlockManagerがない場合は新しく作成
+    const manager = obstacleBlockManager || new ObstacleBlockManager();
+
     while (attempts < maxAttempts) {
-      const blocks = this.createInitialBlocks(stageConfig);
+      const blocks = this.createInitialBlocks(stageConfig, manager);
 
       // 消去可能性をチェック
       if (this.isValidLayout(blocks)) {
@@ -30,31 +34,56 @@ export class BlockGenerator {
     }
 
     // 最大試行回数に達した場合は強制的に有効な配置を作成
-    return this.createForcedValidLayout(stageConfig);
+    return this.createForcedValidLayout(stageConfig, manager);
   }
 
   /**
    * 初期ブロック配置を作成
+   * 重要: 妨害ブロックを先に配置し、残りの空きマスにのみ通常ブロックを配置する
    */
-  private static createInitialBlocks(stageConfig: StageConfig): Block[] {
+  private static createInitialBlocks(stageConfig: StageConfig, obstacleBlockManager: ObstacleBlockManager): Block[] {
     const blocks: Block[] = [];
     const { boardWidth, boardHeight } = GAME_CONFIG;
     const availableColors = GAME_CONFIG.colors.slice(0, stageConfig.colors);
 
     // 妨害ブロックを先に配置
-    const obstaclePositions = new Set<string>();
+    const occupiedPositions = new Set<string>();
+    
     for (const obstacle of stageConfig.obstacles) {
       for (const pos of obstacle.positions) {
-        obstaclePositions.add(`${pos.x},${pos.y}`);
-        blocks.push(this.createObstacleBlock(obstacle, pos.x, pos.y));
+        const posKey = `${pos.x},${pos.y}`;
+        
+        // 既に配置済みの位置はスキップ（重複配置防止）
+        if (occupiedPositions.has(posKey)) {
+          console.warn(`Duplicate obstacle position at (${pos.x}, ${pos.y}), skipping`);
+          continue;
+        }
+        
+        // 妨害ブロックを生成
+        const color = this.getObstacleColor(obstacle.type, availableColors);
+        const obstacleBlock = obstacleBlockManager.createObstacleBlock(
+          obstacle.type,
+          color,
+          pos.x,
+          pos.y,
+          {
+            counterValue: obstacle.counterValue
+          }
+        );
+        
+        // 生成された妨害ブロックをブロック配列に追加
+        blocks.push(obstacleBlock.getBlock());
+        occupiedPositions.add(posKey);
       }
     }
 
-    // 通常ブロックを配置
+    // 通常ブロックを配置（妨害ブロックがない位置のみ）
     for (let y = 0; y < boardHeight; y++) {
       for (let x = 0; x < boardWidth; x++) {
+        const posKey = `${x},${y}`;
+        
         // 妨害ブロックがある位置はスキップ
-        if (obstaclePositions.has(`${x},${y}`)) {
+        if (occupiedPositions.has(posKey)) {
           continue;
         }
 
@@ -69,6 +98,9 @@ export class BlockGenerator {
           x,
           y,
         });
+        
+        // 位置を記録
+        occupiedPositions.add(posKey);
       }
     }
 
@@ -76,49 +108,15 @@ export class BlockGenerator {
   }
 
   /**
-   * 妨害ブロックを作成
-   */
-  private static createObstacleBlock(obstacle: ObstacleConfig, x: number, y: number): Block {
-    // 基本的な妨害ブロック
-    const block: Block = {
-      id: generateId(),
-      type: obstacle.type,
-      color: this.getObstacleColor(obstacle.type),
-      x,
-      y,
-    };
-
-    // 妨害ブロック固有のパラメータを設定
-    switch (obstacle.type) {
-      case 'ice1':
-      case 'ice2':
-      case 'iceCounter':
-      case 'iceCounterPlus':
-        block.iceLevel = obstacle.iceLevel || 1;
-        break;
-      case 'counter':
-      case 'counterPlus':
-      case 'iceCounter':
-      case 'iceCounterPlus':
-        block.counterValue = obstacle.counterValue || 3;
-        block.isCounterPlus = obstacle.isCounterPlus || false;
-        break;
-    }
-
-    return block;
-  }
-
-  /**
    * 妨害ブロックの色を取得
    */
-  private static getObstacleColor(type: BlockType): BlockColor {
+  private static getObstacleColor(type: BlockType, availableColors: string[]): BlockColor {
     // 岩ブロックと鋼鉄ブロックは固定色
     if (type === 'rock' || type === 'steel') {
       return 'pearlWhite';
     }
 
-    // その他の妨害ブロックはランダムな色
-    const availableColors = GAME_CONFIG.colors.slice(0, 3); // 基本3色から選択
+    // その他の妨害ブロックはランダムな色（ステージで使用可能な色から選択）
     return randomChoice(availableColors) as BlockColor;
   }
 
@@ -133,8 +131,8 @@ export class BlockGenerator {
   /**
    * 強制的に有効な配置を作成
    */
-  private static createForcedValidLayout(stageConfig: StageConfig): Block[] {
-    const blocks = this.createInitialBlocks(stageConfig);
+  private static createForcedValidLayout(stageConfig: StageConfig, obstacleBlockManager: ObstacleBlockManager): Block[] {
+    const blocks = this.createInitialBlocks(stageConfig, obstacleBlockManager);
     
     // 消去可能なブロックがない場合は強制的に作成
     if (!this.isValidLayout(blocks)) {

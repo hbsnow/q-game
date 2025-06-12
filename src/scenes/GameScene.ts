@@ -226,8 +226,12 @@ export class GameScene extends Scene {
     const stageManager = this.gameStateManager.getStageManager();
     const stageConfig = stageManager.getStageConfig(this.gameState.currentStage);
 
-    // ブロック配置生成（静的メソッドを使用）
-    this.currentBlocks = BlockGenerator.generateStageBlocks(stageConfig);
+    // 妨害ブロック管理システムを初期化（先に初期化）
+    this.obstacleBlockManager = new ObstacleBlockManager();
+    this.obstacleBlockRenderer = new ObstacleBlockRenderer(this, this.obstacleBlockManager);
+
+    // ブロック配置生成（ObstacleBlockManagerを渡す）
+    this.currentBlocks = BlockGenerator.generateStageBlocks(stageConfig, this.obstacleBlockManager);
 
     // 盤面の中央配置計算
     const boardPixelWidth = this.BOARD_WIDTH * this.BLOCK_SIZE;
@@ -242,10 +246,6 @@ export class GameScene extends Scene {
 
     // ブロックコンテナを作成（全てのブロックスプライトの親）
     this.blockContainer = this.add.container(0, 0);
-    
-    // 妨害ブロック管理システムを初期化
-    this.obstacleBlockManager = new ObstacleBlockManager(this.currentBlocks);
-    this.obstacleBlockRenderer = new ObstacleBlockRenderer(this, this.obstacleBlockManager);
 
     // ブロック配列からスプライトを作成
     this.currentBlocks.forEach(block => {
