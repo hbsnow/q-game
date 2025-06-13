@@ -5,7 +5,7 @@ import { Block } from '../types/Block';
  */
 export class BlockLogic {
   /**
-   * 指定した座標のブロックと同じ色で隣接するブロックを全て見つける
+   * 隣接する同色ブロックを全て見つける
    * @param blocks ブロック配列
    * @param startX 開始X座標
    * @param startY 開始Y座標
@@ -47,11 +47,6 @@ export class BlockLogic {
         return;
       }
       
-      // 氷結ブロックはグループ形成に参加しない
-      if (blocks[y][x].type === 'iceLv1' || blocks[y][x].type === 'iceLv2') {
-        return;
-      }
-      
       // 訪問済みにする
       visited[y][x] = true;
       
@@ -69,6 +64,26 @@ export class BlockLogic {
     dfs(startX, startY);
     
     return connectedBlocks;
+  }
+  
+  /**
+   * 指定した座標のブロックが消去可能かどうかを判定
+   * @param blocks ブロック配列
+   * @param x X座標
+   * @param y Y座標
+   * @returns 消去可能な場合はtrue
+   */
+  canRemoveBlocks(blocks: Block[][], x: number, y: number): boolean {
+    // ブロックが存在しない場合は消去不可
+    if (!blocks[y] || !blocks[y][x]) {
+      return false;
+    }
+    
+    // 隣接する同色ブロックを検索
+    const connectedBlocks = this.findConnectedBlocks(blocks, x, y);
+    
+    // 2つ以上のブロックが隣接している場合は消去可能
+    return connectedBlocks.length >= 2;
   }
   
   /**
@@ -141,42 +156,6 @@ export class BlockLogic {
     dfs(startX, startY);
     
     return connectedIceBlocks;
-  }
-  
-  /**
-   * 指定した座標のブロックが消去可能かどうかを判定
-   * @param blocks ブロック配列
-   * @param x X座標
-   * @param y Y座標
-   * @returns 消去可能な場合はtrue
-   */
-  canRemoveBlocks(blocks: Block[][], x: number, y: number): boolean {
-    // ブロックが存在しない場合は消去不可
-    if (!blocks[y] || !blocks[y][x]) {
-      return false;
-    }
-    
-    // 氷結ブロックの場合は特別処理
-    if (blocks[y][x].type === 'iceLv1' || blocks[y][x].type === 'iceLv2') {
-      // 隣接する同色の氷結ブロックを検索
-      const connectedIceBlocks = this.findConnectedIceBlocks(blocks, x, y);
-      
-      // 2つ以上の氷結ブロックが隣接している場合は消去可能
-      if (connectedIceBlocks.length >= 2) {
-        return true;
-      }
-      
-      // 隣接する同色の通常ブロックを検索
-      const adjacentNormalBlocks = this.findAdjacentNormalBlocks(blocks, x, y);
-      
-      // 隣接する同色の通常ブロックがある場合も消去可能
-      return adjacentNormalBlocks.length > 0;
-    }
-    
-    // 通常ブロックの場合
-    // 自分自身を含めて2つ以上のブロックが隣接している場合は消去可能
-    const connectedBlocks = this.findConnectedBlocks(blocks, x, y);
-    return connectedBlocks.length >= 2; // 自分自身を含めて2つ以上
   }
   
   /**
@@ -278,6 +257,37 @@ export class BlockLogic {
     });
     
     return adjacentBlocks;
+  }
+  
+  /**
+   * 氷結ブロックを更新する
+   * @param blocks ブロック配列
+   * @param connectedBlocks 消去対象のブロック配列
+   * @returns 更新されたブロック配列
+   */
+  updateIceBlocks(blocks: Block[][], connectedBlocks: Block[]): Block[][] {
+    // ブロック配列のディープコピーを作成
+    const newBlocks: Block[][] = JSON.parse(JSON.stringify(blocks));
+    
+    // 氷結ブロックの場合、レベルを下げる
+    connectedBlocks.forEach(block => {
+      const currentBlock = newBlocks[block.y][block.x];
+      if (currentBlock?.type === 'iceLv2') {
+        // 氷結Lv2 → 氷結Lv1
+        newBlocks[block.y][block.x] = {
+          ...currentBlock,
+          type: 'iceLv1'
+        };
+      } else if (currentBlock?.type === 'iceLv1') {
+        // 氷結Lv1 → 通常ブロック
+        newBlocks[block.y][block.x] = {
+          ...currentBlock,
+          type: 'normal'
+        };
+      }
+    });
+    
+    return newBlocks;
   }
   
   /**
