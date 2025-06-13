@@ -48,7 +48,7 @@ export class BlockLogic {
       }
       
       // 氷結ブロックはグループ形成に参加しない
-      if (blocks[y][x].type === 'iceLv1') {
+      if (blocks[y][x].type === 'iceLv1' || blocks[y][x].type === 'iceLv2') {
         return;
       }
       
@@ -72,6 +72,78 @@ export class BlockLogic {
   }
   
   /**
+   * 指定した座標の氷結ブロックと同じ色で隣接する氷結ブロックを全て見つける
+   * @param blocks ブロック配列
+   * @param startX 開始X座標
+   * @param startY 開始Y座標
+   * @returns 隣接する同色の氷結ブロックの配列（開始ブロックを含む）
+   */
+  findConnectedIceBlocks(blocks: Block[][], startX: number, startY: number): Block[] {
+    // 開始ブロックがnullの場合は空配列を返す
+    if (!blocks[startY] || !blocks[startY][startX]) {
+      return [];
+    }
+    
+    // 開始ブロックが氷結ブロックでない場合は空配列を返す
+    const startBlock = blocks[startY][startX];
+    if (startBlock.type !== 'iceLv1' && startBlock.type !== 'iceLv2') {
+      return [];
+    }
+    
+    const targetColor = startBlock.color;
+    const visited: boolean[][] = [];
+    const connectedIceBlocks: Block[] = [];
+    
+    // 訪問済み配列の初期化
+    for (let y = 0; y < blocks.length; y++) {
+      visited[y] = [];
+      for (let x = 0; x < blocks[y].length; x++) {
+        visited[y][x] = false;
+      }
+    }
+    
+    // 深さ優先探索で隣接する氷結ブロックを見つける
+    const dfs = (x: number, y: number) => {
+      // 範囲外チェック
+      if (y < 0 || y >= blocks.length || x < 0 || x >= blocks[y].length) {
+        return;
+      }
+      
+      // 訪問済みまたはnullブロックチェック
+      if (visited[y][x] || !blocks[y][x]) {
+        return;
+      }
+      
+      // 色チェック
+      if (blocks[y][x].color !== targetColor) {
+        return;
+      }
+      
+      // 氷結ブロックのみを対象とする
+      if (blocks[y][x].type !== 'iceLv1' && blocks[y][x].type !== 'iceLv2') {
+        return;
+      }
+      
+      // 訪問済みにする
+      visited[y][x] = true;
+      
+      // 結果に追加
+      connectedIceBlocks.push(blocks[y][x]);
+      
+      // 隣接する4方向を探索（上下左右）
+      dfs(x, y - 1); // 上
+      dfs(x + 1, y); // 右
+      dfs(x, y + 1); // 下
+      dfs(x - 1, y); // 左
+    };
+    
+    // 探索開始
+    dfs(startX, startY);
+    
+    return connectedIceBlocks;
+  }
+  
+  /**
    * 指定した座標のブロックが消去可能かどうかを判定
    * @param blocks ブロック配列
    * @param x X座標
@@ -84,15 +156,128 @@ export class BlockLogic {
       return false;
     }
     
-    // 氷結ブロックは直接消去できない
-    if (blocks[y][x].type === 'iceLv1') {
-      return false;
+    // 氷結ブロックの場合は特別処理
+    if (blocks[y][x].type === 'iceLv1' || blocks[y][x].type === 'iceLv2') {
+      // 隣接する同色の氷結ブロックを検索
+      const connectedIceBlocks = this.findConnectedIceBlocks(blocks, x, y);
+      
+      // 2つ以上の氷結ブロックが隣接している場合は消去可能
+      if (connectedIceBlocks.length >= 2) {
+        return true;
+      }
+      
+      // 隣接する同色の通常ブロックを検索
+      const adjacentNormalBlocks = this.findAdjacentNormalBlocks(blocks, x, y);
+      
+      // 隣接する同色の通常ブロックがある場合も消去可能
+      return adjacentNormalBlocks.length > 0;
     }
     
+    // 通常ブロックの場合
     // 自分自身を含めて2つ以上のブロックが隣接している場合は消去可能
-    // つまり、自分自身以外に1つ以上の隣接ブロックがある場合
     const connectedBlocks = this.findConnectedBlocks(blocks, x, y);
     return connectedBlocks.length >= 2; // 自分自身を含めて2つ以上
+  }
+  
+  /**
+   * 指定した座標のブロックに隣接する同色の通常ブロックを検索
+   * @param blocks ブロック配列
+   * @param x X座標
+   * @param y Y座標
+   * @returns 隣接する同色の通常ブロックの配列
+   */
+  findAdjacentNormalBlocks(blocks: Block[][], x: number, y: number): Block[] {
+    // ブロックが存在しない場合は空配列を返す
+    if (!blocks[y] || !blocks[y][x]) {
+      return [];
+    }
+    
+    const targetBlock = blocks[y][x];
+    const targetColor = targetBlock.color;
+    const adjacentBlocks: Block[] = [];
+    const visited: boolean[][] = [];
+    
+    // 訪問済み配列の初期化
+    for (let y = 0; y < blocks.length; y++) {
+      visited[y] = [];
+      for (let x = 0; x < blocks[y].length; x++) {
+        visited[y][x] = false;
+      }
+    }
+    
+    // 隣接する4方向をチェック
+    const directions = [
+      { dx: 0, dy: -1 }, // 上
+      { dx: 1, dy: 0 },  // 右
+      { dx: 0, dy: 1 },  // 下
+      { dx: -1, dy: 0 }  // 左
+    ];
+    
+    // 最初の隣接ブロックを見つける
+    const startingPoints: {x: number, y: number}[] = [];
+    
+    directions.forEach(dir => {
+      const nx = x + dir.dx;
+      const ny = y + dir.dy;
+      
+      // 範囲外チェック
+      if (ny < 0 || ny >= blocks.length || nx < 0 || nx >= blocks[ny].length) {
+        return;
+      }
+      
+      // 通常ブロックかつ同じ色のブロックをチェック
+      const adjacentBlock = blocks[ny][nx];
+      if (adjacentBlock && 
+          adjacentBlock.type === 'normal' && 
+          adjacentBlock.color === targetColor) {
+        startingPoints.push({x: nx, y: ny});
+      }
+    });
+    
+    // 各開始点から深さ優先探索で連結した同色ブロックを見つける
+    startingPoints.forEach(point => {
+      if (!visited[point.y][point.x]) {
+        // 深さ優先探索で隣接ブロックを見つける
+        const dfs = (x: number, y: number) => {
+          // 範囲外チェック
+          if (y < 0 || y >= blocks.length || x < 0 || x >= blocks[y].length) {
+            return;
+          }
+          
+          // 訪問済みまたはnullブロックチェック
+          if (visited[y][x] || !blocks[y][x]) {
+            return;
+          }
+          
+          // 色チェック
+          if (blocks[y][x].color !== targetColor) {
+            return;
+          }
+          
+          // 通常ブロックのみを対象とする
+          if (blocks[y][x].type !== 'normal') {
+            return;
+          }
+          
+          // 訪問済みにする
+          visited[y][x] = true;
+          
+          // 結果に追加
+          adjacentBlocks.push(blocks[y][x]);
+          
+          // 隣接する4方向を探索（上下左右）
+          dfs(x, y - 1); // 上
+          dfs(x + 1, y); // 右
+          dfs(x, y + 1); // 下
+          dfs(x - 1, y); // 左
+        };
+        
+        // 探索開始
+        dfs(point.x, point.y);
+      }
+    });
+    
+    return adjacentBlocks;
   }
   
   /**
