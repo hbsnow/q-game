@@ -55,9 +55,7 @@ export class DebugHelper {
   toggleVisibility(): void {
     this.isVisible = !this.isVisible;
     this.debugElements.forEach(element => {
-      if (element) {
-        element.setVisible(this.isVisible);
-      }
+      element.setVisible(this.isVisible);
     });
     console.log(`Debug display: ${this.isVisible ? 'visible' : 'hidden'}`);
   }
@@ -100,7 +98,7 @@ export class DebugHelper {
       return;
     }
     
-    BlockAsciiRenderer.logBlocks(this.blocks, 'CURRENT BLOCK STATE', this.lastClickPosition || undefined);
+    BlockAsciiRenderer.logBlocks(this.blocks, 'CURRENT BLOCK STATE', this.lastClickPosition);
   }
   
   /**
@@ -110,6 +108,6 @@ export class DebugHelper {
    * @param label 出力時のラベル（オプション）
    */
   logBlocksComparison(beforeBlocks: Block[][], afterBlocks: Block[][], label?: string): void {
-    BlockAsciiRenderer.logBlocksComparison(beforeBlocks, afterBlocks, label, this.lastClickPosition || undefined);
+    BlockAsciiRenderer.logBlocksComparison(beforeBlocks, afterBlocks, label, this.lastClickPosition);
   }
 }

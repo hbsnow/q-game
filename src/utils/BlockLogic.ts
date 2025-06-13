@@ -11,13 +11,13 @@ export class BlockLogic {
    * @param startY 開始Y座標
    * @returns 隣接する同色ブロックの配列（開始ブロックを含む）
    */
-  findConnectedBlocks(blocks: (Block | null)[][], startX: number, startY: number): Block[] {
+  findConnectedBlocks(blocks: Block[][], startX: number, startY: number): Block[] {
     // 開始ブロックがnullの場合は空配列を返す
     if (!blocks[startY] || !blocks[startY][startX]) {
       return [];
     }
     
-    const startBlock = blocks[startY][startX]!; // null チェック後なので ! を使用
+    const startBlock = blocks[startY][startX];
     const targetColor = startBlock.color;
     const visited: boolean[][] = [];
     const connectedBlocks: Block[] = [];
@@ -43,8 +43,7 @@ export class BlockLogic {
       }
       
       // 色チェック
-      const block = blocks[y][x]!; // null チェック後なので ! を使用
-      if (block.color !== targetColor) {
+      if (blocks[y][x].color !== targetColor) {
         return;
       }
       
@@ -52,7 +51,7 @@ export class BlockLogic {
       visited[y][x] = true;
       
       // 結果に追加
-      connectedBlocks.push(block);
+      connectedBlocks.push(blocks[y][x]);
       
       // 隣接する4方向を探索（上下左右）
       dfs(x, y - 1); // 上
@@ -74,7 +73,7 @@ export class BlockLogic {
    * @param y Y座標
    * @returns 消去可能な場合はtrue
    */
-  canRemoveBlocks(blocks: (Block | null)[][], x: number, y: number): boolean {
+  canRemoveBlocks(blocks: Block[][], x: number, y: number): boolean {
     // ブロックが存在しない場合は消去不可
     if (!blocks[y] || !blocks[y][x]) {
       return false;
@@ -94,14 +93,14 @@ export class BlockLogic {
    * @param startY 開始Y座標
    * @returns 隣接する同色の氷結ブロックの配列（開始ブロックを含む）
    */
-  findConnectedIceBlocks(blocks: (Block | null)[][], startX: number, startY: number): Block[] {
+  findConnectedIceBlocks(blocks: Block[][], startX: number, startY: number): Block[] {
     // 開始ブロックがnullの場合は空配列を返す
     if (!blocks[startY] || !blocks[startY][startX]) {
       return [];
     }
     
     // 開始ブロックが氷結ブロックでない場合は空配列を返す
-    const startBlock = blocks[startY][startX]!; // null チェック後なので ! を使用
+    const startBlock = blocks[startY][startX];
     if (startBlock.type !== 'iceLv1' && startBlock.type !== 'iceLv2') {
       return [];
     }
@@ -130,15 +129,13 @@ export class BlockLogic {
         return;
       }
       
-      const block = blocks[y][x]!; // null チェック後なので ! を使用
-      
       // 色チェック
-      if (block.color !== targetColor) {
+      if (blocks[y][x].color !== targetColor) {
         return;
       }
       
       // 氷結ブロックのみを対象とする
-      if (block.type !== 'iceLv1' && block.type !== 'iceLv2') {
+      if (blocks[y][x].type !== 'iceLv1' && blocks[y][x].type !== 'iceLv2') {
         return;
       }
       
@@ -146,7 +143,7 @@ export class BlockLogic {
       visited[y][x] = true;
       
       // 結果に追加
-      connectedIceBlocks.push(block);
+      connectedIceBlocks.push(blocks[y][x]);
       
       // 隣接する4方向を探索（上下左右）
       dfs(x, y - 1); // 上
@@ -168,13 +165,13 @@ export class BlockLogic {
    * @param y Y座標
    * @returns 隣接する同色の通常ブロックの配列
    */
-  findAdjacentNormalBlocks(blocks: (Block | null)[][], x: number, y: number): Block[] {
+  findAdjacentNormalBlocks(blocks: Block[][], x: number, y: number): Block[] {
     // ブロックが存在しない場合は空配列を返す
     if (!blocks[y] || !blocks[y][x]) {
       return [];
     }
     
-    const targetBlock = blocks[y][x]!; // null チェック後なので ! を使用
+    const targetBlock = blocks[y][x];
     const targetColor = targetBlock.color;
     const adjacentBlocks: Block[] = [];
     const visited: boolean[][] = [];
@@ -231,15 +228,13 @@ export class BlockLogic {
             return;
           }
           
-          const block = blocks[y][x]!; // null チェック後なので ! を使用
-          
           // 色チェック
-          if (block.color !== targetColor) {
+          if (blocks[y][x].color !== targetColor) {
             return;
           }
           
           // 通常ブロックのみを対象とする
-          if (block.type !== 'normal') {
+          if (blocks[y][x].type !== 'normal') {
             return;
           }
           
@@ -247,7 +242,7 @@ export class BlockLogic {
           visited[y][x] = true;
           
           // 結果に追加
-          adjacentBlocks.push(block);
+          adjacentBlocks.push(blocks[y][x]);
           
           // 隣接する4方向を探索（上下左右）
           dfs(x, y - 1); // 上
@@ -270,9 +265,9 @@ export class BlockLogic {
    * @param connectedBlocks 消去対象のブロック配列
    * @returns 更新されたブロック配列
    */
-  updateIceBlocks(blocks: (Block | null)[][], connectedBlocks: Block[]): (Block | null)[][] {
+  updateIceBlocks(blocks: Block[][], connectedBlocks: Block[]): Block[][] {
     // ブロック配列のディープコピーを作成
-    const newBlocks: (Block | null)[][] = JSON.parse(JSON.stringify(blocks));
+    const newBlocks: Block[][] = JSON.parse(JSON.stringify(blocks));
     
     // 氷結ブロックの場合、レベルを下げる
     connectedBlocks.forEach(block => {
@@ -281,15 +276,13 @@ export class BlockLogic {
         // 氷結Lv2 → 氷結Lv1
         newBlocks[block.y][block.x] = {
           ...currentBlock,
-          type: 'iceLv1',
-          sprite: null // スプライト参照をクリア
+          type: 'iceLv1'
         };
       } else if (currentBlock?.type === 'iceLv1') {
         // 氷結Lv1 → 通常ブロック
         newBlocks[block.y][block.x] = {
           ...currentBlock,
-          type: 'normal',
-          sprite: null // スプライト参照をクリア
+          type: 'normal'
         };
       }
     });
@@ -311,7 +304,7 @@ export class BlockLogic {
    * @param blocks ブロック配列
    * @returns 消去可能なブロックがある場合はtrue
    */
-  hasRemovableBlocks(blocks: (Block | null)[][]): boolean {
+  hasRemovableBlocks(blocks: Block[][]): boolean {
     for (let y = 0; y < blocks.length; y++) {
       for (let x = 0; x < blocks[y].length; x++) {
         if (blocks[y][x] && this.canRemoveBlocks(blocks, x, y)) {
@@ -327,12 +320,12 @@ export class BlockLogic {
    * @param blocks ブロック配列
    * @returns 更新されたブロック配列
    */
-  applyGravity(blocks: (Block | null)[][]): (Block | null)[][] {
+  applyGravity(blocks: Block[][]): Block[][] {
     const width = blocks[0]?.length || 0;
     const height = blocks.length;
     
     // 新しい空のブロック配列を作成（全てnull）
-    const newBlocks: (Block | null)[][] = [];
+    const newBlocks: Block[][] = [];
     for (let y = 0; y < height; y++) {
       newBlocks[y] = [];
       for (let x = 0; x < width; x++) {
@@ -381,12 +374,12 @@ export class BlockLogic {
    * @param blocks ブロック配列
    * @returns 更新されたブロック配列
    */
-  slideColumnsLeft(blocks: (Block | null)[][]): (Block | null)[][] {
+  slideColumnsLeft(blocks: Block[][]): Block[][] {
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
     
     // 新しい空のブロック配列を作成（全てnull）
-    const newBlocks: (Block | null)[][] = [];
+    const newBlocks: Block[][] = [];
     for (let y = 0; y < height; y++) {
       newBlocks[y] = [];
       for (let x = 0; x < width; x++) {
@@ -438,7 +431,7 @@ export class BlockLogic {
    * @param blocks ブロック配列
    * @returns 全てのブロックが消去された場合はtrue
    */
-  isAllCleared(blocks: (Block | null)[][]): boolean {
+  isAllCleared(blocks: Block[][]): boolean {
     for (let y = 0; y < blocks.length; y++) {
       for (let x = 0; x < blocks[y].length; x++) {
         if (blocks[y][x] !== null) {
