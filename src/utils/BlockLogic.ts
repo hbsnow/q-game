@@ -267,27 +267,29 @@ export class BlockLogic {
    */
   updateIceBlocks(blocks: Block[][], connectedBlocks: Block[]): Block[][] {
     // ブロック配列のディープコピーを作成
-    const newBlocks: Block[][] = JSON.parse(JSON.stringify(blocks));
+    const newBlocks: (Block | null)[][] = JSON.parse(JSON.stringify(blocks));
     
     // 氷結ブロックの場合、レベルを下げる
     connectedBlocks.forEach(block => {
       const currentBlock = newBlocks[block.y][block.x];
-      if (currentBlock?.type === 'iceLv2') {
+      if (currentBlock && currentBlock.type === 'iceLv2') {
         // 氷結Lv2 → 氷結Lv1
         newBlocks[block.y][block.x] = {
           ...currentBlock,
-          type: 'iceLv1'
+          type: 'iceLv1',
+          sprite: null
         };
-      } else if (currentBlock?.type === 'iceLv1') {
+      } else if (currentBlock && currentBlock.type === 'iceLv1') {
         // 氷結Lv1 → 通常ブロック
         newBlocks[block.y][block.x] = {
           ...currentBlock,
-          type: 'normal'
+          type: 'normal',
+          sprite: null
         };
       }
     });
     
-    return newBlocks;
+    return newBlocks as Block[][];
   }
   
   /**
@@ -324,8 +326,8 @@ export class BlockLogic {
     const width = blocks[0]?.length || 0;
     const height = blocks.length;
     
-    // 新しい空のブロック配列を作成（全てnull）
-    const newBlocks: Block[][] = [];
+    // 新しい空のブロック配列を作成
+    const newBlocks: (Block | null)[][] = [];
     for (let y = 0; y < height; y++) {
       newBlocks[y] = [];
       for (let x = 0; x < width; x++) {
@@ -338,9 +340,9 @@ export class BlockLogic {
       // 列内のブロックを集める（nullでないものだけ）
       const columnBlocks: Block[] = [];
       for (let y = 0; y < height; y++) {
-        if (blocks[y][x] !== null) {
+        if (blocks[y][x] !== null && blocks[y][x] !== undefined) {
           // ディープコピーを作成し、スプライト参照を明示的にnullに設定
-          const blockCopy = {
+          const blockCopy: Block = {
             ...blocks[y][x]!,
             sprite: null // スプライト参照を明示的にnullに設定
           };
@@ -366,7 +368,7 @@ export class BlockLogic {
       }
     }
     
-    return newBlocks;
+    return newBlocks as Block[][];
   }
   
   /**
@@ -378,8 +380,8 @@ export class BlockLogic {
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
     
-    // 新しい空のブロック配列を作成（全てnull）
-    const newBlocks: Block[][] = [];
+    // 新しい空のブロック配列を作成
+    const newBlocks: (Block | null)[][] = [];
     for (let y = 0; y < height; y++) {
       newBlocks[y] = [];
       for (let x = 0; x < width; x++) {
@@ -406,7 +408,7 @@ export class BlockLogic {
     for (let newX = 0; newX < nonEmptyColumns.length; newX++) {
       const oldX = nonEmptyColumns[newX];
       for (let y = 0; y < height; y++) {
-        if (blocks[y][oldX] !== null) {
+        if (blocks[y][oldX] !== null && blocks[y][oldX] !== undefined) {
           // 元のブロックのスプライト参照をnullに設定（メモリリーク防止）
           if (blocks[y][oldX]?.sprite) {
             blocks[y][oldX]!.sprite = null;
@@ -423,7 +425,7 @@ export class BlockLogic {
       }
     }
     
-    return newBlocks;
+    return newBlocks as Block[][];
   }
   
   /**

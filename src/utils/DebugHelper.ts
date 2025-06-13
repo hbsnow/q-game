@@ -55,7 +55,9 @@ export class DebugHelper {
   toggleVisibility(): void {
     this.isVisible = !this.isVisible;
     this.debugElements.forEach(element => {
-      element.setVisible(this.isVisible);
+      if ('setVisible' in element) {
+        (element as any).setVisible(this.isVisible);
+      }
     });
     console.log(`Debug display: ${this.isVisible ? 'visible' : 'hidden'}`);
   }
@@ -81,12 +83,11 @@ export class DebugHelper {
   
   /**
    * 最後にクリックされた位置を設定
-   * @param x X座標
-   * @param y Y座標
+   * @param position クリック位置
    */
-  setLastClickPosition(x: number, y: number): void {
-    this.lastClickPosition = { x, y };
-    console.log(`Click position set: (${x}, ${y}) - ${String.fromCharCode(97 + x)}${y}`);
+  setLastClickPosition(position: {x: number, y: number}): void {
+    this.lastClickPosition = position;
+    console.log(`Click position set: (${position.x}, ${position.y}) - ${String.fromCharCode(97 + position.x)}${position.y}`);
   }
   
   /**

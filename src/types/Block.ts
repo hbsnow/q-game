@@ -6,7 +6,7 @@ export interface Block {
   y: number;
   color: string;
   type: string;
-  sprite?: Phaser.GameObjects.Sprite;
+  sprite?: Phaser.GameObjects.Sprite | null;
 }
 
 /**
@@ -14,23 +14,6 @@ export interface Block {
  */
 export interface NormalBlock extends Block {
   type: 'normal';
-}
-
-/**
- * 妨害ブロックの基本型
- */
-export interface ObstacleBlock extends Block {
-  updateState(adjacentBlocks: Block[]): UpdateResult;
-  isRemovable(): boolean;
-}
-
-/**
- * 状態更新の結果
- */
-export interface UpdateResult {
-  converted: boolean;
-  block?: Block;
-  stateChanged: boolean;
 }
 
 /**

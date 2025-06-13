@@ -15,7 +15,7 @@ const config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 0 },
+      gravity: { x: 0, y: 0 },
       debug: false
     }
   },
@@ -27,5 +27,6 @@ const config: Phaser.Types.Core.GameConfig = {
 
 // ゲームインスタンスの作成
 window.addEventListener('load', () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const game = new Phaser.Game(config);
 });

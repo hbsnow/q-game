@@ -206,7 +206,7 @@ export class GameScene extends Phaser.Scene {
           });
         }
         
-        blockSprite.setTexture(rt.texture);
+        blockSprite.setTexture(rt.texture as unknown as string);
         blockSprite.setInteractive({ useHandCursor: true });
         
         this.blockSprites[y][x] = blockSprite;
@@ -257,7 +257,7 @@ export class GameScene extends Phaser.Scene {
     this.isProcessing = true;
     
     // デバッグヘルパーにクリック位置を設定
-    this.debugHelper.setLastClickPosition(x, y);
+    this.debugHelper.setLastClickPosition({x, y});
     
     // BlockLogicのインスタンスを作成
     const blockLogic = new BlockLogic();
@@ -397,7 +397,7 @@ export class GameScene extends Phaser.Scene {
           rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
           
           // テクスチャを更新
-          sprite.setTexture(rt.texture);
+          sprite.setTexture(rt.texture as unknown as string);
           
           // 氷が薄くなるエフェクト
           this.tweens.add({
@@ -429,7 +429,7 @@ export class GameScene extends Phaser.Scene {
           rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
           
           // テクスチャを更新
-          sprite.setTexture(rt.texture);
+          sprite.setTexture(rt.texture as unknown as string);
           
           // 氷が溶けるエフェクト
           this.tweens.add({
@@ -539,7 +539,7 @@ export class GameScene extends Phaser.Scene {
           rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
           
           // テクスチャを更新
-          sprite.setTexture(rt.texture);
+          sprite.setTexture(rt.texture as unknown as string);
           
           // 氷が溶けるエフェクト
           this.tweens.add({
@@ -583,7 +583,7 @@ export class GameScene extends Phaser.Scene {
           rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
           
           // テクスチャを更新
-          sprite.setTexture(rt.texture);
+          sprite.setTexture(rt.texture as unknown as string);
           
           // 氷が薄くなるエフェクト
           this.tweens.add({
@@ -658,7 +658,7 @@ export class GameScene extends Phaser.Scene {
             rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
             
             // テクスチャを更新
-            sprite.setTexture(rt.texture);
+            sprite.setTexture(rt.texture as unknown as string);
             
             // 氷が溶けるエフェクト
             this.tweens.add({
@@ -703,7 +703,7 @@ export class GameScene extends Phaser.Scene {
             rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
             
             // テクスチャを更新
-            sprite.setTexture(rt.texture);
+            sprite.setTexture(rt.texture as unknown as string);
             
             // 氷が薄くなるエフェクト
             this.tweens.add({
@@ -726,16 +726,22 @@ export class GameScene extends Phaser.Scene {
   private removeBlocks(blocks: Block[]): void {
     blocks.forEach(block => {
       // ブロックの論理状態を更新
-      this.blocks[block.y][block.x] = null;
+      if (block && block.y >= 0 && block.y < this.blocks.length && 
+          block.x >= 0 && block.x < this.blocks[block.y].length) {
+        this.blocks[block.y][block.x] = null;
+      }
       
       // スプライトのアニメーション
-      if (block.sprite) {
+      if (block && block.sprite) {
         const sprite = block.sprite;
         // スプライト参照を先にnullに設定（メモリリーク防止）
         block.sprite = null;
         
         // スプライト配列からも参照を削除
-        this.blockSprites[block.y][block.x] = null;
+        if (block.y >= 0 && block.y < this.blockSprites.length && 
+            block.x >= 0 && block.x < this.blockSprites[block.y].length) {
+          this.blockSprites[block.y][block.x] = null;
+        }
         
         this.tweens.add({
           targets: sprite,
@@ -947,7 +953,7 @@ export class GameScene extends Phaser.Scene {
       });
     }
     
-    blockSprite.setTexture(rt.texture);
+    blockSprite.setTexture(rt.texture as unknown as string);
     blockSprite.setInteractive({ useHandCursor: true });
     
     this.blockSprites[y][x] = blockSprite;
@@ -1027,7 +1033,7 @@ export class GameScene extends Phaser.Scene {
             });
           }
           
-          blockSprite.setTexture(rt.texture);
+          blockSprite.setTexture(rt.texture as unknown as string);
           blockSprite.setInteractive({ useHandCursor: true });
           
           this.blockSprites[y][x] = blockSprite;
