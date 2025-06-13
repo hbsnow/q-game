@@ -726,7 +726,9 @@ export class GameScene extends Phaser.Scene {
   private removeBlocks(blocks: Block[]): void {
     blocks.forEach(block => {
       // ブロックの論理状態を更新
-      this.blocks[block.y][block.x] = null;
+      if (this.blocks[block.y] && this.blocks[block.y][block.x]) {
+        this.blocks[block.y][block.x] = null;
+      }
       
       // スプライトのアニメーション
       if (block.sprite) {
@@ -735,7 +737,9 @@ export class GameScene extends Phaser.Scene {
         block.sprite = null;
         
         // スプライト配列からも参照を削除
-        this.blockSprites[block.y][block.x] = null;
+        if (this.blockSprites[block.y] && this.blockSprites[block.y][block.x]) {
+          this.blockSprites[block.y][block.x] = null as unknown as Phaser.GameObjects.Sprite;
+        }
         
         this.tweens.add({
           targets: sprite,
@@ -947,13 +951,15 @@ export class GameScene extends Phaser.Scene {
       });
     }
     
-    blockSprite.setTexture(rt.texture);
+    blockSprite.setTexture(rt.texture.key);
     blockSprite.setInteractive({ useHandCursor: true });
     
     this.blockSprites[y][x] = blockSprite;
     
     // ブロックオブジェクトにスプライト参照を追加
-    this.blocks[y][x].sprite = blockSprite;
+    if (this.blocks[y][x]) {
+      this.blocks[y][x]!.sprite = blockSprite;
+    }
     
     // クリックイベント
     blockSprite.on('pointerdown', () => {
@@ -966,7 +972,7 @@ export class GameScene extends Phaser.Scene {
   }
   
   /**
-   * ブロックスプライトを更新する（全て再作成）
+   * ブロックの移動をアニメーションで表現する
    */
   private updateBlockSprites(): void {
     // 既存のスプライトを全て破棄
@@ -974,7 +980,7 @@ export class GameScene extends Phaser.Scene {
       for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
         if (this.blockSprites[y][x]) {
           this.blockSprites[y][x].destroy();
-          this.blockSprites[y][x] = null;
+          this.blockSprites[y][x] = null as unknown as Phaser.GameObjects.Sprite;
         }
       }
     }
@@ -1027,13 +1033,13 @@ export class GameScene extends Phaser.Scene {
             });
           }
           
-          blockSprite.setTexture(rt.texture);
+          blockSprite.setTexture(rt.texture.key);
           blockSprite.setInteractive({ useHandCursor: true });
           
           this.blockSprites[y][x] = blockSprite;
           
           // ブロックオブジェクトにスプライト参照を追加
-          this.blocks[y][x].sprite = blockSprite;
+          this.blocks[y][x]!.sprite = blockSprite;
           
           // クリックイベント
           blockSprite.on('pointerdown', () => {

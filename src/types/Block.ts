@@ -1,4 +1,9 @@
 /**
+ * ブロックの種類を表す型
+ */
+export type BlockType = 'normal' | 'iceLv1' | 'iceLv2' | 'counterPlus' | 'counterMinus' | 'rock' | 'steel';
+
+/**
  * ブロックの基本インターフェース
  */
 export interface Block {
@@ -6,7 +11,7 @@ export interface Block {
   y: number;
   color: string;
   type: string;
-  sprite?: Phaser.GameObjects.Sprite;
+  sprite?: Phaser.GameObjects.Sprite | null;
 }
 
 /**
@@ -20,24 +25,6 @@ export interface NormalBlock extends Block {
  * 妨害ブロックの基本型
  */
 export interface ObstacleBlock extends Block {
-  updateState(adjacentBlocks: Block[]): UpdateResult;
-  isRemovable(): boolean;
-}
-
-/**
- * 状態更新の結果
- */
-export interface UpdateResult {
-  converted: boolean;
-  block?: Block;
-  stateChanged: boolean;
-}
-
-/**
- * 妨害ブロックの基本型
- */
-export interface ObstacleBlock extends Block {
-  type: string; // 'iceLv1', 'iceLv2', 'counter', 'counterPlus', etc.
   updateState(adjacentBlocks: Block[]): UpdateResult;
   isRemovable(): boolean;
 }
