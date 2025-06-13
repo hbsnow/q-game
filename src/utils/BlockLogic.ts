@@ -1,4 +1,4 @@
-import { Block } from '../types/Block';
+import { Block, BlockType } from '../types/Block';
 
 /**
  * ブロックの論理処理を担当するクラス
@@ -87,6 +87,32 @@ export class BlockLogic {
   }
   
   /**
+   * カウンターブロックの条件を満たしているかチェック
+   * @param blocks ブロック配列
+   * @param counterBlock カウンターブロック
+   * @returns 条件を満たしている場合はtrue
+   */
+  checkCounterCondition(blocks: Block[][], counterBlock: Block): boolean {
+    // カウンターブロックでない場合は常にtrue
+    if (counterBlock.type !== BlockType.COUNTER_PLUS && counterBlock.type !== BlockType.COUNTER_MINUS) {
+      return true;
+    }
+    
+    // 隣接する同色ブロックを検索
+    const connectedBlocks = this.findConnectedBlocks(blocks, counterBlock.x, counterBlock.y);
+    
+    if (counterBlock.type === BlockType.COUNTER_PLUS) {
+      // カウンター+ブロック: グループサイズがカウンター値以上である必要がある
+      return connectedBlocks.length >= (counterBlock.counterValue || 0);
+    } else if (counterBlock.type === BlockType.COUNTER_MINUS) {
+      // カウンター-ブロック: グループサイズがカウンター値以下である必要がある
+      return connectedBlocks.length <= (counterBlock.counterValue || 0);
+    }
+    
+    return false;
+  }
+  
+  /**
    * 指定した座標の氷結ブロックと同じ色で隣接する氷結ブロックを全て見つける
    * @param blocks ブロック配列
    * @param startX 開始X座標
@@ -101,7 +127,7 @@ export class BlockLogic {
     
     // 開始ブロックが氷結ブロックでない場合は空配列を返す
     const startBlock = blocks[startY][startX];
-    if (startBlock.type !== 'iceLv1' && startBlock.type !== 'iceLv2') {
+    if (startBlock.type !== BlockType.ICE_LV1 && startBlock.type !== BlockType.ICE_LV2) {
       return [];
     }
     
@@ -135,7 +161,7 @@ export class BlockLogic {
       }
       
       // 氷結ブロックのみを対象とする
-      if (blocks[y][x].type !== 'iceLv1' && blocks[y][x].type !== 'iceLv2') {
+      if (blocks[y][x].type !== BlockType.ICE_LV1 && blocks[y][x].type !== BlockType.ICE_LV2) {
         return;
       }
       
@@ -207,7 +233,7 @@ export class BlockLogic {
       // 通常ブロックかつ同じ色のブロックをチェック
       const adjacentBlock = blocks[ny][nx];
       if (adjacentBlock && 
-          adjacentBlock.type === 'normal' && 
+          adjacentBlock.type === BlockType.NORMAL && 
           adjacentBlock.color === targetColor) {
         startingPoints.push({x: nx, y: ny});
       }
@@ -234,7 +260,7 @@ export class BlockLogic {
           }
           
           // 通常ブロックのみを対象とする
-          if (blocks[y][x].type !== 'normal') {
+          if (blocks[y][x].type !== BlockType.NORMAL) {
             return;
           }
           
@@ -272,18 +298,18 @@ export class BlockLogic {
     // 氷結ブロックの場合、レベルを下げる
     connectedBlocks.forEach(block => {
       const currentBlock = newBlocks[block.y][block.x];
-      if (currentBlock && currentBlock.type === 'iceLv2') {
+      if (currentBlock && currentBlock.type === BlockType.ICE_LV2) {
         // 氷結Lv2 → 氷結Lv1
         newBlocks[block.y][block.x] = {
           ...currentBlock,
-          type: 'iceLv1',
+          type: BlockType.ICE_LV1,
           sprite: null
         };
-      } else if (currentBlock && currentBlock.type === 'iceLv1') {
+      } else if (currentBlock && currentBlock.type === BlockType.ICE_LV1) {
         // 氷結Lv1 → 通常ブロック
         newBlocks[block.y][block.x] = {
           ...currentBlock,
-          type: 'normal',
+          type: BlockType.NORMAL,
           sprite: null
         };
       }

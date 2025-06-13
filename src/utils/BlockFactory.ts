@@ -1,4 +1,4 @@
-import { Block } from '../types/Block';
+import { Block, BlockType } from '../types/Block';
 
 /**
  * ブロックファクトリークラス
@@ -13,7 +13,7 @@ export class BlockFactory {
       x,
       y,
       color,
-      type: 'normal'
+      type: BlockType.NORMAL
     };
   }
   
@@ -25,7 +25,7 @@ export class BlockFactory {
       x,
       y,
       color,
-      type: 'iceLv1'
+      type: BlockType.ICE_LV1
     };
   }
   
@@ -37,34 +37,42 @@ export class BlockFactory {
       x,
       y,
       color,
-      type: 'iceLv2'
+      type: BlockType.ICE_LV2
     };
   }
   
   /**
    * カウンター+ブロックを作成
+   * @param x X座標
+   * @param y Y座標
+   * @param color 色
+   * @param counterValue カウンター値（指定数以上の同色ブロックグループで消去可能）
    */
-  createCounterPlusBlock(x: number, y: number, color: string, count: number): Block {
+  createCounterPlusBlock(x: number, y: number, color: string, counterValue: number): Block {
     return {
       x,
       y,
       color,
-      type: 'counterPlus',
-      count
-    } as Block;
+      type: BlockType.COUNTER_PLUS,
+      counterValue
+    };
   }
   
   /**
-   * カウンターブロックを作成
+   * カウンター-ブロックを作成
+   * @param x X座標
+   * @param y Y座標
+   * @param color 色
+   * @param counterValue カウンター値（指定数以下の同色ブロックグループで消去可能）
    */
-  createCounterBlock(x: number, y: number, color: string, count: number): Block {
+  createCounterMinusBlock(x: number, y: number, color: string, counterValue: number): Block {
     return {
       x,
       y,
       color,
-      type: 'counter',
-      count
-    } as Block;
+      type: BlockType.COUNTER_MINUS,
+      counterValue
+    };
   }
   
   /**
@@ -75,7 +83,7 @@ export class BlockFactory {
       x,
       y,
       color: '#808080', // 灰色
-      type: 'rock'
+      type: BlockType.ROCK
     };
   }
   
@@ -87,7 +95,7 @@ export class BlockFactory {
       x,
       y,
       color: '#C0C0C0', // シルバー
-      type: 'steel'
+      type: BlockType.STEEL
     };
   }
 }

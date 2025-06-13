@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
-import { Block } from '../types/Block';
+import { Block, BlockType } from '../types/Block';
 import { BlockLogic } from '../utils/BlockLogic';
 import { GameStateManager } from '../utils/GameStateManager';
 import { BlockFactory } from '../utils/BlockFactory';
@@ -21,10 +21,12 @@ export class GameScene extends Phaser.Scene {
   private boardY: number = 0;
   private isProcessing: boolean = false;
   private gameStateManager: GameStateManager;
+  private blockLogic: BlockLogic;
 
   constructor() {
     super({ key: 'GameScene' });
     this.gameStateManager = GameStateManager.getInstance();
+    this.blockLogic = new BlockLogic();
   }
 
   init(data: any): void {
@@ -53,7 +55,7 @@ export class GameScene extends Phaser.Scene {
       strokeThickness: 2
     });
     
-    // ゲーム盤面の位置を計算 - デバッグラインに合わせて調整
+    // ゲーム盤面の位置を計算
     const titleHeight = 90;
     const titleCenterY = 45;
     const titleBottomY = titleCenterY + titleHeight / 2;
@@ -64,7 +66,7 @@ export class GameScene extends Phaser.Scene {
     this.boardX = width / 2 - boardWidth / 2;
     this.boardY = titleBottomY; // タイトルエリアの直下に配置
     
-    // ゲーム盤面の背景 - デバッグラインに合わせて調整
+    // ゲーム盤面の背景
     const adjustedBoardCenterY = titleBottomY + boardHeight / 2;
     const boardBg = this.add.rectangle(
       width / 2,
@@ -75,7 +77,7 @@ export class GameScene extends Phaser.Scene {
       0.3
     );
     
-    // リタイアボタン - デバッグラインに合わせて調整
+    // リタイアボタン
     const buttonHeight = 60;
     const buttonCenterY = height - buttonHeight / 2;
     const retireButton = this.add.rectangle(width - 70, buttonCenterY, 120, 40, 0xAA2222)
@@ -113,18 +115,6 @@ export class GameScene extends Phaser.Scene {
    * ブロックの初期配置を作成
    */
   private createInitialBlocks(): void {
-    const { width } = this.cameras.main;
-    
-    // タイトルエリアの計算 - createInitialBlocks内でも使用できるように
-    const titleHeight = 90;
-    const titleCenterY = 45;
-    const titleBottomY = titleCenterY + titleHeight / 2;
-    
-    // 色の配列（ステージに応じて色数を変える）
-    const colorKeys = Object.keys(GameConfig.BLOCK_COLORS);
-    const colorCount = Math.min(3 + Math.floor(this.currentStage / 5), 6); // ステージが進むと色が増える
-    const availableColors = colorKeys.slice(0, colorCount);
-    
     // ブロック配列の初期化
     this.blocks = Array(GameConfig.BOARD_HEIGHT).fill(0).map(() => 
       Array(GameConfig.BOARD_WIDTH).fill(null)
@@ -133,6 +123,11 @@ export class GameScene extends Phaser.Scene {
     this.blockSprites = Array(GameConfig.BOARD_HEIGHT).fill(0).map(() => 
       Array(GameConfig.BOARD_WIDTH).fill(null)
     );
+    
+    // 色の配列（ステージに応じて色数を変える）
+    const colorKeys = Object.keys(GameConfig.BLOCK_COLORS);
+    const colorCount = Math.min(3 + Math.floor(this.currentStage / 5), 6); // ステージが進むと色が増える
+    const availableColors = colorKeys.slice(0, colorCount);
     
     // ブロックファクトリーの作成
     const blockFactory = new BlockFactory();
@@ -144,17 +139,25 @@ export class GameScene extends Phaser.Scene {
         const colorKey = availableColors[Math.floor(Math.random() * availableColors.length)];
         const color = GameConfig.BLOCK_COLORS[colorKey as keyof typeof GameConfig.BLOCK_COLORS];
         
-        // テスト用に氷結ブロックを配置（特定の位置に配置）
-        let block: Block;
-        
         // テスト用に妨害ブロックを配置（ランダムに配置）
+        let block: Block;
         const rand = Math.random();
-        if (rand < 0.07) {
-          // 約7%の確率で氷結Lv1
+        if (rand < 0.05) {
+          // 約5%の確率で氷結Lv1
           block = blockFactory.createIceBlockLv1(x, y, color);
-        } else if (rand < 0.12) {
-          // 約5%の確率で氷結Lv2
+        } else if (rand < 0.08) {
+          // 約3%の確率で氷結Lv2
           block = blockFactory.createIceBlockLv2(x, y, color);
+        } else if (rand < 0.12) {
+          // 約4%の確率でカウンター+ブロック
+          // カウンター値は3〜7の間でランダム
+          const counterValue = Math.floor(Math.random() * 5) + 3;
+          block = blockFactory.createCounterPlusBlock(x, y, color, counterValue);
+        } else if (rand < 0.15) {
+          // 約3%の確率でカウンター-ブロック
+          // カウンター値は3〜7の間でランダム
+          const counterValue = Math.floor(Math.random() * 5) + 3;
+          block = blockFactory.createCounterMinusBlock(x, y, color, counterValue);
         } else {
           // 残りは通常ブロック
           block = blockFactory.createNormalBlock(x, y, color);
@@ -162,75 +165,19 @@ export class GameScene extends Phaser.Scene {
         
         this.blocks[y][x] = block;
         
-        // ブロックのスプライトを作成 - デバッグラインに合わせて調整
-        const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-        const blockY = titleBottomY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-        
-        const blockSprite = this.add.sprite(blockX, blockY, '');
-        
-        // スプライトの代わりに円を描画（ブロックタイプに応じて見た目を変える）
-        const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(color.replace('#', '0x')));
-        const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-        rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-        
-        // 妨害ブロックの場合は特殊なエフェクトを追加
-        if (block.type === 'iceLv1') {
-          // 氷結Lv1のエフェクト（薄い半透明の白い円）
-          const iceEffect = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2, 0xFFFFFF, 0.5);
-          rt.draw(iceEffect, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // 氷の結晶マーク
-          const crystalSize = GameConfig.BLOCK_SIZE / 4;
-          const crystal = this.add.star(0, 0, 6, crystalSize, crystalSize / 2, 0xADD8E6);
-          rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-        } else if (block.type === 'iceLv2') {
-          // 氷結Lv2のエフェクト（濃い半透明の白い円）
-          const iceEffect = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2, 0xFFFFFF, 0.7);
-          rt.draw(iceEffect, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // 氷の結晶マーク（大きめ）
-          const crystalSize = GameConfig.BLOCK_SIZE / 3;
-          const crystal = this.add.star(0, 0, 6, crystalSize, crystalSize / 2, 0x87CEFA);
-          rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // 雪の結晶マーク（小さめ、複数）
-          const smallCrystalSize = GameConfig.BLOCK_SIZE / 6;
-          const positions = [
-            { x: -GameConfig.BLOCK_SIZE / 4, y: -GameConfig.BLOCK_SIZE / 4 },
-            { x: GameConfig.BLOCK_SIZE / 4, y: GameConfig.BLOCK_SIZE / 4 }
-          ];
-          
-          positions.forEach(pos => {
-            const smallCrystal = this.add.star(0, 0, 6, smallCrystalSize, smallCrystalSize / 2, 0xFFFFFF);
-            rt.draw(smallCrystal, GameConfig.BLOCK_SIZE / 2 + pos.x, GameConfig.BLOCK_SIZE / 2 + pos.y);
-          });
-        }
-        
-        blockSprite.setTexture(rt.texture as unknown as string);
-        blockSprite.setInteractive({ useHandCursor: true });
-        
-        this.blockSprites[y][x] = blockSprite;
-        
-        // ブロックオブジェクトにスプライト参照を追加
-        this.blocks[y][x].sprite = blockSprite;
-        
-        // クリックイベント
-        blockSprite.on('pointerdown', () => {
-          if (!this.isProcessing) {
-            this.onBlockClick(x, y);
-          }
-        });
+        // ブロックのスプライトを作成
+        this.createBlockSprite(x, y, block);
       }
     }
     
     // 消去可能なブロックがない場合は再生成
-    const blockLogic = new BlockLogic();
-    if (!blockLogic.hasRemovableBlocks(this.blocks)) {
+    if (!this.blockLogic.hasRemovableBlocks(this.blocks)) {
       // スプライトを破棄
       for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
         for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
           if (this.blockSprites[y][x]) {
             this.blockSprites[y][x].destroy();
+            this.blockSprites[y][x] = null;
           }
         }
       }
@@ -241,16 +188,85 @@ export class GameScene extends Phaser.Scene {
   }
   
   /**
+   * 指定位置にブロックスプライトを作成
+   */
+  private createBlockSprite(x: number, y: number, block: Block): Phaser.GameObjects.Sprite {
+    const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+    const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+    
+    // 単純な円形のスプライトを作成
+    const blockSprite = this.add.circle(
+      blockX, 
+      blockY, 
+      GameConfig.BLOCK_SIZE / 2 - 2, 
+      parseInt(block.color.replace('#', '0x'))
+    );
+    
+    // 妨害ブロックの場合は特殊な見た目にする
+    if (block.type === BlockType.ICE_LV1) {
+      // 氷結Lv1は輪郭を付ける
+      blockSprite.setStrokeStyle(2, 0xADD8E6);
+    } else if (block.type === BlockType.ICE_LV2) {
+      // 氷結Lv2は太い輪郭を付ける
+      blockSprite.setStrokeStyle(4, 0x87CEFA);
+    } else if (block.type === BlockType.COUNTER_PLUS || block.type === BlockType.COUNTER_MINUS) {
+      // カウンターブロックは輪郭と数字を表示
+      const borderColor = block.type === BlockType.COUNTER_PLUS ? 0xFFD700 : 0xFF4500; // 金色または赤橙色
+      blockSprite.setStrokeStyle(3, borderColor);
+      
+      // カウンター値のテキスト表示
+      const prefix = block.type === BlockType.COUNTER_PLUS ? '+' : '-';
+      const counterText = this.add.text(
+        blockX, 
+        blockY, 
+        `${prefix}${block.counterValue}`, 
+        { 
+          fontSize: '16px', 
+          color: '#FFFFFF',
+          stroke: '#000000',
+          strokeThickness: 2
+        }
+      ).setOrigin(0.5);
+      
+      // テキストをスプライトに関連付ける（後で一緒に削除するため）
+      blockSprite.setData('counterText', counterText);
+    }
+    
+    // スプライトを対話可能に設定
+    blockSprite.setInteractive({ useHandCursor: true });
+    
+    // スプライト配列に保存（型変換が必要）
+    this.blockSprites[y][x] = blockSprite as unknown as Phaser.GameObjects.Sprite;
+    
+    // ブロックオブジェクトにスプライト参照を追加
+    this.blocks[y][x].sprite = blockSprite as unknown as Phaser.GameObjects.Sprite;
+    
+    // クリックイベント
+    blockSprite.on('pointerdown', () => {
+      if (!this.isProcessing) {
+        this.onBlockClick(x, y);
+      }
+    });
+    
+    return blockSprite as unknown as Phaser.GameObjects.Sprite;
+  }
+  
+  /**
    * ブロッククリック時の処理
    */
   private onBlockClick(x: number, y: number): void {
     if (this.isProcessing) return;
     
-    // クリックされたブロックが氷結ブロックかチェック
+    // クリックされたブロックが氷結ブロックまたはカウンターブロックかチェック
     const clickedBlock = this.blocks[y][x];
-    if (clickedBlock && (clickedBlock.type === 'iceLv1' || clickedBlock.type === 'iceLv2')) {
-      // 氷結ブロックは直接クリックできない
-      console.log('氷結ブロックは直接クリックできません');
+    if (!clickedBlock) return;
+    
+    if (clickedBlock.type === BlockType.ICE_LV1 || 
+        clickedBlock.type === BlockType.ICE_LV2 || 
+        clickedBlock.type === BlockType.COUNTER_PLUS || 
+        clickedBlock.type === BlockType.COUNTER_MINUS) {
+      // 妨害ブロックは直接クリックできない
+      console.log('妨害ブロックは直接クリックできません');
       return;
     }
     
@@ -259,20 +275,31 @@ export class GameScene extends Phaser.Scene {
     // デバッグヘルパーにクリック位置を設定
     this.debugHelper.setLastClickPosition({x, y});
     
-    // BlockLogicのインスタンスを作成
-    const blockLogic = new BlockLogic();
-    
     // デバッグ用：クリック前の状態を記録
     const beforeBlocks = JSON.parse(JSON.stringify(this.blocks));
     
     // 通常ブロックの処理
     // 隣接する同色ブロックを検索
-    const connectedBlocks = blockLogic.findConnectedBlocks(this.blocks, x, y);
+    const connectedBlocks = this.blockLogic.findConnectedBlocks(this.blocks, x, y);
     
     // 2つ以上のブロックが隣接している場合のみ消去（自分自身を含めて2つ以上）
     if (connectedBlocks.length >= 2) {
-      // スコア計算
-      const score = blockLogic.calculateScore(connectedBlocks.length);
+      // 条件を満たさないカウンターブロックを特定
+      const nonRemovableCounterBlocks = connectedBlocks.filter(block => {
+        if (block.type === BlockType.COUNTER_PLUS || block.type === BlockType.COUNTER_MINUS) {
+          return !this.blockLogic.checkCounterCondition(this.blocks, block);
+        }
+        return false;
+      });
+      
+      // 条件を満たさないカウンターブロックを点滅させる
+      if (nonRemovableCounterBlocks.length > 0) {
+        this.showCounterConditionNotMetEffect(nonRemovableCounterBlocks);
+      }
+      
+      // スコア計算（消去可能なブロックの数で計算）
+      const removableCount = connectedBlocks.length - nonRemovableCounterBlocks.length;
+      const score = this.blockLogic.calculateScore(removableCount);
       this.score += score;
       
       // スコア表示を更新
@@ -282,18 +309,25 @@ export class GameScene extends Phaser.Scene {
       const beforeIceUpdate = JSON.parse(JSON.stringify(this.blocks));
       
       // 氷結ブロックの状態更新（レベルダウン）
-      this.blocks = blockLogic.updateIceBlocks(this.blocks, connectedBlocks);
+      this.blocks = this.blockLogic.updateIceBlocks(this.blocks, connectedBlocks);
       
       // デバッグ用：氷結ブロック更新後の状態を記録
       BlockAsciiRenderer.logBlocksComparison(beforeIceUpdate, this.blocks, `氷結ブロック更新 (${String.fromCharCode(97 + x)}${y})`, {x, y});
       
-      // 通常ブロックのみを消去（氷結ブロックは消去しない）
-      const normalBlocks = [];
+      // 消去対象のブロックを特定
+      const blocksToRemove = [];
       for (const block of connectedBlocks) {
-        // 元々通常ブロックだったもののみを消去対象とする
+        // 条件を満たさないカウンターブロックは消去しない
+        if (nonRemovableCounterBlocks.includes(block)) {
+          continue;
+        }
+        
+        // 元々通常ブロックだったもの、または条件を満たすカウンターブロックを消去対象とする
         // 氷結ブロックから変化した通常ブロックは消去しない
-        if (beforeIceUpdate[block.y][block.x].type === 'normal') {
-          normalBlocks.push(block);
+        if (beforeIceUpdate[block.y][block.x].type === BlockType.NORMAL ||
+            beforeIceUpdate[block.y][block.x].type === BlockType.COUNTER_PLUS ||
+            beforeIceUpdate[block.y][block.x].type === BlockType.COUNTER_MINUS) {
+          blocksToRemove.push(block);
         }
       }
       
@@ -301,11 +335,11 @@ export class GameScene extends Phaser.Scene {
       const beforeRemove = JSON.parse(JSON.stringify(this.blocks));
       
       // ブロックを消去
-      this.removeBlocks(normalBlocks);
+      this.removeBlocks(blocksToRemove);
       
       // デバッグ用：通常ブロック消去後の状態を記録
       this.time.delayedCall(100, () => {
-        BlockAsciiRenderer.logBlocksComparison(beforeRemove, this.blocks, `通常ブロック消去 (${String.fromCharCode(97 + x)}${y})`, {x, y});
+        BlockAsciiRenderer.logBlocksComparison(beforeRemove, this.blocks, `ブロック消去 (${String.fromCharCode(97 + x)}${y})`, {x, y});
       });
       
       // 少し待ってから重力を適用（アニメーション完了を待つ）
@@ -323,7 +357,7 @@ export class GameScene extends Phaser.Scene {
         BlockAsciiRenderer.logBlocksComparison(beforeBlocks, this.blocks, `全体処理 (${String.fromCharCode(97 + x)}${y})`, {x, y});
         
         // 全消し判定
-        if (blockLogic.isAllCleared(this.blocks)) {
+        if (this.blockLogic.isAllCleared(this.blocks)) {
           // 全消しボーナス
           this.score = Math.floor(this.score * 1.5);
           this.updateScoreDisplay();
@@ -333,7 +367,7 @@ export class GameScene extends Phaser.Scene {
         }
         
         // 行き詰まり判定
-        if (!blockLogic.hasRemovableBlocks(this.blocks)) {
+        if (!this.blockLogic.hasRemovableBlocks(this.blocks)) {
           // 行き詰まり演出
           this.showNoMovesEffect();
         }
@@ -352,372 +386,22 @@ export class GameScene extends Phaser.Scene {
   }
   
   /**
-   * 氷結ブロックを処理する
+   * カウンターブロックの条件を満たしていない場合の演出
+   * @param counterBlocks 条件を満たさないカウンターブロック
    */
-  private processIceBlocks(iceBlocks: Block[]): void {
-    // BlockLogicのインスタンスを作成
-    const blockLogic = new BlockLogic();
-    
-    // スコア計算（氷結ブロックの数に基づく）
-    const score = blockLogic.calculateScore(iceBlocks.length);
-    this.score += score;
-    
-    // スコア表示を更新
-    this.updateScoreDisplay();
-    
-    // 各氷結ブロックを処理（レベルダウンする）
-    iceBlocks.forEach(iceBlock => {
-      if (iceBlock.type === 'iceLv2') {
-        // 氷結Lv2 → 氷結Lv1
-        this.blocks[iceBlock.y][iceBlock.x] = {
-          x: iceBlock.x,
-          y: iceBlock.y,
-          color: iceBlock.color,
-          type: 'iceLv1',
-          sprite: iceBlock.sprite
-        };
-        
-        // 視覚効果（氷が薄くなるエフェクト）
-        if (iceBlock.sprite) {
-          // 現在のスプライトを保存
-          const sprite = iceBlock.sprite;
-          
-          // 新しいテクスチャを作成（氷Lv1）
-          const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(iceBlock.color.replace('#', '0x')));
-          const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-          rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // 氷のエフェクト（半透明の白い円）
-          const iceEffect = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2, 0xFFFFFF, 0.5);
-          rt.draw(iceEffect, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // 氷の結晶マーク
-          const crystalSize = GameConfig.BLOCK_SIZE / 4;
-          const crystal = this.add.star(0, 0, 6, crystalSize, crystalSize / 2, 0xADD8E6);
-          rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // テクスチャを更新
-          sprite.setTexture(rt.texture as unknown as string);
-          
-          // 氷が薄くなるエフェクト
-          this.tweens.add({
-            targets: sprite,
-            scale: { from: 0.9, to: 1 },
-            alpha: { from: 0.8, to: 1 },
-            duration: 200,
-            ease: 'Cubic.easeOut'
-          });
-        }
-      } else if (iceBlock.type === 'iceLv1') {
-        // 氷結Lv1 → 通常ブロック
-        this.blocks[iceBlock.y][iceBlock.x] = {
-          x: iceBlock.x,
-          y: iceBlock.y,
-          color: iceBlock.color,
-          type: 'normal',
-          sprite: iceBlock.sprite
-        };
-        
-        // 視覚効果（氷が溶けるエフェクト）
-        if (iceBlock.sprite) {
-          // 現在のスプライトを保存
-          const sprite = iceBlock.sprite;
-          
-          // 新しいテクスチャを作成（氷なし）
-          const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(iceBlock.color.replace('#', '0x')));
-          const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-          rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // テクスチャを更新
-          sprite.setTexture(rt.texture as unknown as string);
-          
-          // 氷が溶けるエフェクト
-          this.tweens.add({
-            targets: sprite,
-            scale: { from: 0.9, to: 1 },
-            alpha: { from: 0.8, to: 1 },
-            duration: 200,
-            ease: 'Cubic.easeOut'
-          });
-        }
+  private showCounterConditionNotMetEffect(counterBlocks: Block[]): void {
+    // 各カウンターブロックを点滅させる
+    counterBlocks.forEach(block => {
+      if (block.sprite) {
+        this.tweens.add({
+          targets: block.sprite,
+          alpha: 0.3,
+          yoyo: true,
+          repeat: 2,
+          duration: 150
+        });
       }
     });
-    
-    // 少し待ってから重力を適用（アニメーション完了を待つ）
-    this.time.delayedCall(300, () => {
-      // 重力を適用（ブロックを落下させる）
-      this.applyGravity();
-      
-      // 全消し判定
-      if (blockLogic.isAllCleared(this.blocks)) {
-        // 全消しボーナス
-        this.score = Math.floor(this.score * 1.5);
-        this.updateScoreDisplay();
-        
-        // 全消し演出
-        this.showAllClearedEffect();
-      }
-      
-      // 行き詰まり判定
-      if (!blockLogic.hasRemovableBlocks(this.blocks)) {
-        // 行き詰まり演出
-        this.showNoMovesEffect();
-      }
-      
-      // 目標スコア達成判定
-      if (this.score >= this.targetScore) {
-        // クリアボタンを表示
-        this.showClearButton();
-      }
-      
-      this.isProcessing = false;
-    });
-  }
-  
-  /**
-   * 氷結ブロックの状態を更新する
-   * 通常ブロック消去時に隣接する同色の氷結ブロックを解除する
-   */
-  private updateIceBlocks(removedBlocks: Block[]): void {
-    // 消去されたブロックに隣接する氷結ブロックを探す
-    const adjacentIceBlocks: Block[] = [];
-    
-    // 消去されたブロックごとに処理
-    removedBlocks.forEach(block => {
-      const { x, y, color } = block;
-      
-      // 隣接する4方向をチェック
-      const directions = [
-        { dx: 0, dy: -1 }, // 上
-        { dx: 1, dy: 0 },  // 右
-        { dx: 0, dy: 1 },  // 下
-        { dx: -1, dy: 0 }  // 左
-      ];
-      
-      directions.forEach(dir => {
-        const nx = x + dir.dx;
-        const ny = y + dir.dy;
-        
-        // 範囲外チェック
-        if (ny < 0 || ny >= this.blocks.length || nx < 0 || nx >= this.blocks[ny].length) {
-          return;
-        }
-        
-        // 氷結ブロックかつ同じ色のブロックをチェック
-        const adjacentBlock = this.blocks[ny][nx];
-        if (adjacentBlock && 
-            (adjacentBlock.type === 'iceLv1' || adjacentBlock.type === 'iceLv2') && 
-            adjacentBlock.color === color) {
-          // 重複を避けるため、まだリストにないブロックのみ追加
-          if (!adjacentIceBlocks.some(b => b.x === nx && b.y === ny)) {
-            adjacentIceBlocks.push(adjacentBlock);
-          }
-        }
-      });
-    });
-    
-    // 氷結ブロックの状態を更新
-    adjacentIceBlocks.forEach(iceBlock => {
-      if (iceBlock.type === 'iceLv1') {
-        // 氷結Lv1は解除されて通常ブロックになる
-        this.blocks[iceBlock.y][iceBlock.x] = {
-          x: iceBlock.x,
-          y: iceBlock.y,
-          color: iceBlock.color,
-          type: 'normal',
-          sprite: iceBlock.sprite
-        };
-        
-        // 視覚効果（氷が溶けるエフェクト）
-        if (iceBlock.sprite) {
-          // 現在のスプライトを保存
-          const sprite = iceBlock.sprite;
-          
-          // 新しいテクスチャを作成（氷なし）
-          const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(iceBlock.color.replace('#', '0x')));
-          const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-          rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // テクスチャを更新
-          sprite.setTexture(rt.texture as unknown as string);
-          
-          // 氷が溶けるエフェクト
-          this.tweens.add({
-            targets: sprite,
-            scale: { from: 0.9, to: 1 },
-            alpha: { from: 0.8, to: 1 },
-            duration: 200,
-            ease: 'Cubic.easeOut'
-          });
-        }
-        
-        // 解除されたブロックの周囲に同色の氷結ブロックがあるか確認し、連鎖的に解除
-        this.checkAdjacentIceBlocks(iceBlock.x, iceBlock.y, iceBlock.color);
-      } else if (iceBlock.type === 'iceLv2') {
-        // 氷結Lv2は氷結Lv1になる
-        this.blocks[iceBlock.y][iceBlock.x] = {
-          x: iceBlock.x,
-          y: iceBlock.y,
-          color: iceBlock.color,
-          type: 'iceLv1',
-          sprite: iceBlock.sprite
-        };
-        
-        // 視覚効果（氷が薄くなるエフェクト）
-        if (iceBlock.sprite) {
-          // 現在のスプライトを保存
-          const sprite = iceBlock.sprite;
-          
-          // 新しいテクスチャを作成（氷Lv1）
-          const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(iceBlock.color.replace('#', '0x')));
-          const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-          rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // 氷のエフェクト（半透明の白い円）
-          const iceEffect = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2, 0xFFFFFF, 0.5);
-          rt.draw(iceEffect, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // 氷の結晶マーク
-          const crystalSize = GameConfig.BLOCK_SIZE / 4;
-          const crystal = this.add.star(0, 0, 6, crystalSize, crystalSize / 2, 0xADD8E6);
-          rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // テクスチャを更新
-          sprite.setTexture(rt.texture as unknown as string);
-          
-          // 氷が薄くなるエフェクト
-          this.tweens.add({
-            targets: sprite,
-            scale: { from: 0.9, to: 1 },
-            alpha: { from: 0.8, to: 1 },
-            duration: 200,
-            ease: 'Cubic.easeOut'
-          });
-        }
-      }
-    });
-  }
-  
-  /**
-   * 指定位置の周囲に同色の氷結ブロックがあるか確認し、連鎖的に解除する
-   * @param x X座標
-   * @param y Y座標
-   * @param color ブロックの色
-   */
-  private checkAdjacentIceBlocks(x: number, y: number, color: string): void {
-    // 隣接する4方向をチェック
-    const directions = [
-      { dx: 0, dy: -1 }, // 上
-      { dx: 1, dy: 0 },  // 右
-      { dx: 0, dy: 1 },  // 下
-      { dx: -1, dy: 0 }  // 左
-    ];
-    
-    const adjacentIceBlocks: Block[] = [];
-    
-    directions.forEach(dir => {
-      const nx = x + dir.dx;
-      const ny = y + dir.dy;
-      
-      // 範囲外チェック
-      if (ny < 0 || ny >= this.blocks.length || nx < 0 || nx >= this.blocks[ny].length) {
-        return;
-      }
-      
-      // 氷結ブロックかつ同じ色のブロックをチェック
-      const adjacentBlock = this.blocks[ny][nx];
-      if (adjacentBlock && 
-          (adjacentBlock.type === 'iceLv1' || adjacentBlock.type === 'iceLv2') && 
-          adjacentBlock.color === color) {
-        adjacentIceBlocks.push(adjacentBlock);
-      }
-    });
-    
-    // 見つかった氷結ブロックを処理
-    if (adjacentIceBlocks.length > 0) {
-      // 氷結ブロックの状態を更新（連鎖的に）
-      adjacentIceBlocks.forEach(iceBlock => {
-        if (iceBlock.type === 'iceLv1') {
-          // 氷結Lv1は解除されて通常ブロックになる
-          this.blocks[iceBlock.y][iceBlock.x] = {
-            x: iceBlock.x,
-            y: iceBlock.y,
-            color: iceBlock.color,
-            type: 'normal',
-            sprite: iceBlock.sprite
-          };
-          
-          // 視覚効果（氷が溶けるエフェクト）
-          if (iceBlock.sprite) {
-            // 現在のスプライトを保存
-            const sprite = iceBlock.sprite;
-            
-            // 新しいテクスチャを作成（氷なし）
-            const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(iceBlock.color.replace('#', '0x')));
-            const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-            rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-            
-            // テクスチャを更新
-            sprite.setTexture(rt.texture as unknown as string);
-            
-            // 氷が溶けるエフェクト
-            this.tweens.add({
-              targets: sprite,
-              scale: { from: 0.9, to: 1 },
-              alpha: { from: 0.8, to: 1 },
-              duration: 200,
-              ease: 'Cubic.easeOut',
-              delay: 100 // 連鎖解除は少し遅延させる
-            });
-          }
-          
-          // さらに連鎖的に解除
-          this.checkAdjacentIceBlocks(iceBlock.x, iceBlock.y, iceBlock.color);
-        } else if (iceBlock.type === 'iceLv2') {
-          // 氷結Lv2は氷結Lv1になる
-          this.blocks[iceBlock.y][iceBlock.x] = {
-            x: iceBlock.x,
-            y: iceBlock.y,
-            color: iceBlock.color,
-            type: 'iceLv1',
-            sprite: iceBlock.sprite
-          };
-          
-          // 視覚効果（氷が薄くなるエフェクト）
-          if (iceBlock.sprite) {
-            // 現在のスプライトを保存
-            const sprite = iceBlock.sprite;
-            
-            // 新しいテクスチャを作成（氷Lv1）
-            const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(iceBlock.color.replace('#', '0x')));
-            const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-            rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-            
-            // 氷のエフェクト（半透明の白い円）
-            const iceEffect = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2, 0xFFFFFF, 0.5);
-            rt.draw(iceEffect, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-            
-            // 氷の結晶マーク
-            const crystalSize = GameConfig.BLOCK_SIZE / 4;
-            const crystal = this.add.star(0, 0, 6, crystalSize, crystalSize / 2, 0xADD8E6);
-            rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-            
-            // テクスチャを更新
-            sprite.setTexture(rt.texture as unknown as string);
-            
-            // 氷が薄くなるエフェクト
-            this.tweens.add({
-              targets: sprite,
-              scale: { from: 0.9, to: 1 },
-              alpha: { from: 0.8, to: 1 },
-              duration: 200,
-              ease: 'Cubic.easeOut',
-              delay: 100 // 連鎖解除は少し遅延させる
-            });
-          }
-        }
-      });
-    }
   }
   
   /**
@@ -743,6 +427,12 @@ export class GameScene extends Phaser.Scene {
           this.blockSprites[block.y][block.x] = null;
         }
         
+        // カウンターテキストがある場合は削除
+        const counterText = sprite.getData('counterText') as Phaser.GameObjects.Text;
+        if (counterText) {
+          counterText.destroy();
+        }
+        
         this.tweens.add({
           targets: sprite,
           alpha: 0,
@@ -761,13 +451,11 @@ export class GameScene extends Phaser.Scene {
    * 重力を適用し、ブロックを落下させる
    */
   private applyGravity(): void {
-    const blockLogic = new BlockLogic();
-    
     // 論理状態の更新（重力適用）
-    let updatedBlocks = blockLogic.applyGravity(this.blocks);
+    let updatedBlocks = this.blockLogic.applyGravity(this.blocks);
     
     // 空の列を左にスライド
-    updatedBlocks = blockLogic.slideColumnsLeft(updatedBlocks);
+    updatedBlocks = this.blockLogic.slideColumnsLeft(updatedBlocks);
     
     this.blocks = updatedBlocks;
     
@@ -779,199 +467,6 @@ export class GameScene extends Phaser.Scene {
   }
   
   /**
-   * ブロックの移動をアニメーションで表現する
-   */
-  private animateBlockMovements(oldPositions: {[key: string]: {x: number, y: number}}): void {
-    // 移動が必要なブロックを特定し、アニメーションを適用
-    let animationsRunning = 0;
-    
-    // 各列ごとに処理（下から上に）
-    for (let x = 0; x < this.blocks[0].length; x++) {
-      // 各列の落下アニメーションを順番に処理
-      this.animateColumnMovements(x, oldPositions, () => {
-        animationsRunning--;
-        if (animationsRunning === 0) {
-          // 全ての列のアニメーションが完了したら処理を続行
-          this.isProcessing = false;
-        }
-      });
-      animationsRunning++;
-    }
-    
-    // アニメーションがない場合は即座に処理完了
-    if (animationsRunning === 0) {
-      this.isProcessing = false;
-    }
-  }
-  
-  /**
-   * 特定の列のブロック移動をアニメーションで表現する
-   */
-  private animateColumnMovements(column: number, oldPositions: {[key: string]: {x: number, y: number}}, onComplete: () => void): void {
-    const columnBlocks: {block: Block, oldY: number, newY: number}[] = [];
-    
-    // 列内の移動が必要なブロックを特定
-    for (let y = 0; y < this.blocks.length; y++) {
-      const block = this.blocks[y][column];
-      if (block) {
-        const oldPos = oldPositions[`${block.x},${block.y}`];
-        if (oldPos && (oldPos.y !== block.y || oldPos.x !== block.x)) {
-          columnBlocks.push({
-            block,
-            oldY: oldPos.y,
-            newY: y
-          });
-        } else {
-          // 移動していないブロック
-          const blockX = this.boardX + column * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-          const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-          
-          // 既存のスプライトがあれば再利用
-          if (oldPos && this.blockSprites[oldPos.y][oldPos.x]) {
-            const sprite = this.blockSprites[oldPos.y][oldPos.x];
-            this.blockSprites[y][column] = sprite;
-            this.blockSprites[oldPos.y][oldPos.x] = null;
-            
-            // ブロックオブジェクトにスプライト参照を設定
-            this.blocks[y][column].sprite = sprite;
-          } else {
-            // 新しいスプライトを作成（通常は発生しないはず）
-            this.createBlockSprite(column, y, block);
-          }
-        }
-      }
-    }
-    
-    // 移動が必要なブロックがない場合は即座に完了
-    if (columnBlocks.length === 0) {
-      onComplete();
-      return;
-    }
-    
-    // 移動が必要なブロックを下から順にアニメーション
-    let blocksAnimated = 0;
-    
-    // 下から順にアニメーション（配列を逆順にソート）
-    columnBlocks.sort((a, b) => b.newY - a.newY);
-    
-    // 各ブロックを順番にアニメーション
-    columnBlocks.forEach((item, index) => {
-      const { block, oldY, newY } = item;
-      const oldX = oldPositions[`${block.x},${block.y}`].x;
-      
-      // 元の位置のスプライトを取得
-      const sprite = this.blockSprites[oldY][oldX];
-      
-      if (sprite) {
-        // 新しい位置を計算
-        const newPosX = this.boardX + column * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-        const newPosY = this.boardY + newY * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-        
-        // 移動距離に応じてアニメーション時間を調整
-        const distance = Math.abs(newY - oldY);
-        const duration = Math.min(100 + distance * 50, 500); // 距離に応じて時間を増やすが上限あり
-        
-        // 落下アニメーション（バウンドなし、または小さいバウンド）
-        this.tweens.add({
-          targets: sprite,
-          x: newPosX,
-          y: newPosY,
-          duration: duration,
-          // 最後のブロックのみ小さなバウンド、それ以外はバウンドなし
-          ease: index === 0 && distance > 2 ? 'Bounce.easeOut' : 'Cubic.easeIn',
-          delay: index * 30, // 下のブロックから順に少しずつ遅延をつける
-          onComplete: () => {
-            // スプライトを新しい位置に設定
-            this.blockSprites[newY][column] = sprite;
-            this.blockSprites[oldY][oldX] = null;
-            
-            // ブロックオブジェクトにスプライト参照を設定
-            this.blocks[newY][column].sprite = sprite;
-            
-            blocksAnimated++;
-            if (blocksAnimated === columnBlocks.length) {
-              // この列の全てのブロックのアニメーションが完了
-              onComplete();
-            }
-          }
-        });
-      } else {
-        // スプライトがない場合は新しく作成
-        this.createBlockSprite(column, newY, block);
-        blocksAnimated++;
-        if (blocksAnimated === columnBlocks.length) {
-          onComplete();
-        }
-      }
-    });
-  }
-  
-  /**
-   * 指定位置にブロックスプライトを作成
-   */
-  private createBlockSprite(x: number, y: number, block: Block): Phaser.GameObjects.Sprite {
-    const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-    const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-    
-    const blockSprite = this.add.sprite(blockX, blockY, '');
-    
-    // スプライトの代わりに円を描画
-    const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(block.color.replace('#', '0x')));
-    const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-    rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-    
-    // 妨害ブロックの場合は特殊なエフェクトを追加
-    if (block.type === 'iceLv1') {
-      // 氷結Lv1のエフェクト（薄い半透明の白い円）
-      const iceEffect = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2, 0xFFFFFF, 0.5);
-      rt.draw(iceEffect, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-      
-      // 氷の結晶マーク
-      const crystalSize = GameConfig.BLOCK_SIZE / 4;
-      const crystal = this.add.star(0, 0, 6, crystalSize, crystalSize / 2, 0xADD8E6);
-      rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-    } else if (block.type === 'iceLv2') {
-      // 氷結Lv2のエフェクト（濃い半透明の白い円）
-      const iceEffect = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2, 0xFFFFFF, 0.7);
-      rt.draw(iceEffect, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-      
-      // 氷の結晶マーク（大きめ）
-      const crystalSize = GameConfig.BLOCK_SIZE / 3;
-      const crystal = this.add.star(0, 0, 6, crystalSize, crystalSize / 2, 0x87CEFA);
-      rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-      
-      // 雪の結晶マーク（小さめ、複数）
-      const smallCrystalSize = GameConfig.BLOCK_SIZE / 6;
-      const positions = [
-        { x: -GameConfig.BLOCK_SIZE / 4, y: -GameConfig.BLOCK_SIZE / 4 },
-        { x: GameConfig.BLOCK_SIZE / 4, y: GameConfig.BLOCK_SIZE / 4 }
-      ];
-      
-      positions.forEach(pos => {
-        const smallCrystal = this.add.star(0, 0, 6, smallCrystalSize, smallCrystalSize / 2, 0xFFFFFF);
-        rt.draw(smallCrystal, GameConfig.BLOCK_SIZE / 2 + pos.x, GameConfig.BLOCK_SIZE / 2 + pos.y);
-      });
-    }
-    
-    blockSprite.setTexture(rt.texture as unknown as string);
-    blockSprite.setInteractive({ useHandCursor: true });
-    
-    this.blockSprites[y][x] = blockSprite;
-    
-    // ブロックオブジェクトにスプライト参照を追加
-    this.blocks[y][x].sprite = blockSprite;
-    
-    // クリックイベント
-    blockSprite.on('pointerdown', () => {
-      if (!this.isProcessing) {
-        this.onBlockClick(x, y);
-      }
-    });
-    
-    return blockSprite;
-  }
-  
-  /**
    * ブロックスプライトを更新する（全て再作成）
    */
   private updateBlockSprites(): void {
@@ -979,6 +474,12 @@ export class GameScene extends Phaser.Scene {
     for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
       for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
         if (this.blockSprites[y][x]) {
+          // カウンターテキストがある場合は削除
+          const counterText = this.blockSprites[y][x].getData('counterText') as Phaser.GameObjects.Text;
+          if (counterText) {
+            counterText.destroy();
+          }
+          
           this.blockSprites[y][x].destroy();
           this.blockSprites[y][x] = null;
         }
@@ -990,63 +491,7 @@ export class GameScene extends Phaser.Scene {
       for (let x = 0; x < this.blocks[y].length; x++) {
         const block = this.blocks[y][x];
         if (block) {
-          const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-          const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
-          
-          const blockSprite = this.add.sprite(blockX, blockY, '');
-          
-          // スプライトの代わりに円を描画
-          const circle = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2 - 2, parseInt(block.color.replace('#', '0x')));
-          const rt = this.add.renderTexture(0, 0, GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
-          rt.draw(circle, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          
-          // 妨害ブロックの場合は特殊なエフェクトを追加
-          if (block.type === 'iceLv1') {
-            // 氷結Lv1のエフェクト（薄い半透明の白い円）
-            const iceEffect = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2, 0xFFFFFF, 0.5);
-            rt.draw(iceEffect, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-            
-            // 氷の結晶マーク
-            const crystalSize = GameConfig.BLOCK_SIZE / 4;
-            const crystal = this.add.star(0, 0, 6, crystalSize, crystalSize / 2, 0xADD8E6);
-            rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-          } else if (block.type === 'iceLv2') {
-            // 氷結Lv2のエフェクト（濃い半透明の白い円）
-            const iceEffect = this.add.circle(0, 0, GameConfig.BLOCK_SIZE / 2, 0xFFFFFF, 0.7);
-            rt.draw(iceEffect, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-            
-            // 氷の結晶マーク（大きめ）
-            const crystalSize = GameConfig.BLOCK_SIZE / 3;
-            const crystal = this.add.star(0, 0, 6, crystalSize, crystalSize / 2, 0x87CEFA);
-            rt.draw(crystal, GameConfig.BLOCK_SIZE / 2, GameConfig.BLOCK_SIZE / 2);
-            
-            // 雪の結晶マーク（小さめ、複数）
-            const smallCrystalSize = GameConfig.BLOCK_SIZE / 6;
-            const positions = [
-              { x: -GameConfig.BLOCK_SIZE / 4, y: -GameConfig.BLOCK_SIZE / 4 },
-              { x: GameConfig.BLOCK_SIZE / 4, y: GameConfig.BLOCK_SIZE / 4 }
-            ];
-            
-            positions.forEach(pos => {
-              const smallCrystal = this.add.star(0, 0, 6, smallCrystalSize, smallCrystalSize / 2, 0xFFFFFF);
-              rt.draw(smallCrystal, GameConfig.BLOCK_SIZE / 2 + pos.x, GameConfig.BLOCK_SIZE / 2 + pos.y);
-            });
-          }
-          
-          blockSprite.setTexture(rt.texture as unknown as string);
-          blockSprite.setInteractive({ useHandCursor: true });
-          
-          this.blockSprites[y][x] = blockSprite;
-          
-          // ブロックオブジェクトにスプライト参照を追加
-          this.blocks[y][x].sprite = blockSprite;
-          
-          // クリックイベント
-          blockSprite.on('pointerdown', () => {
-            if (!this.isProcessing) {
-              this.onBlockClick(x, y);
-            }
-          });
+          this.createBlockSprite(x, y, block);
         }
       }
     }
