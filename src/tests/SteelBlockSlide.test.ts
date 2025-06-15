@@ -16,9 +16,9 @@ describe('Steel blocks horizontal slide behavior', () => {
     const result = blockLogic.applyHorizontalSlide(blocks);
     
     // 鋼鉄ブロックは元の位置に留まるべき
-    expect(result[1][1]?.type).toBe(BlockType.STEEL);
-    expect(result[1][1]?.x).toBe(1);
-    expect(result[1][1]?.y).toBe(1);
+    expect(result[1][0]?.type).toBe(BlockType.STEEL);
+    expect(result[1][0]?.x).toBe(0);
+    expect(result[1][0]?.y).toBe(1);
   });
   
   it('Columns with steel blocks should be considered non-empty', () => {
@@ -33,12 +33,13 @@ describe('Steel blocks horizontal slide behavior', () => {
     // c列が空なので、d列のブロックがc列に移動するはず
     const result = blockLogic.applyHorizontalSlide(blocks);
     
-    // 鋼鉄ブロックは元の位置に留まるべき
-    expect(result[0][1]?.type).toBe(BlockType.STEEL);
+    // 鋼鉄ブロックは左に移動するべき
+    expect(result[0][0]?.type).toBe(BlockType.STEEL);
     
     // d列のブロックはc列に移動するべき
-    expect(result[0][2]?.type).toBe(BlockType.NORMAL);
-    expect(result[0][2]?.color).toBe('red');
+    expect(result[0][1]?.type).toBe(BlockType.NORMAL);
+    expect(result[0][1]?.color).toBe('red');
+    expect(result[0][2]).toBeNull();
     expect(result[0][3]).toBeNull();
   });
   
@@ -55,16 +56,16 @@ describe('Steel blocks horizontal slide behavior', () => {
     const result = blockLogic.applyHorizontalSlide(blocks);
     
     // a列のブロックはb列に移動するべき
-    expect(result[0][1]?.type).toBe(BlockType.NORMAL);
-    expect(result[0][1]?.color).toBe('red');
-    expect(result[0][0]).toBeNull();
+    expect(result[0][0]?.type).toBe(BlockType.NORMAL);
+    expect(result[0][0]?.color).toBe('red');
     
-    // 鋼鉄ブロックは元の位置に留まるべき
-    expect(result[0][2]?.type).toBe(BlockType.STEEL);
+    // 鋼鉄ブロックは左に移動するべき
+    expect(result[0][1]?.type).toBe(BlockType.STEEL);
     
-    // d列のブロックは移動しないべき（c列に鋼鉄ブロックがあるため）
-    expect(result[0][3]?.type).toBe(BlockType.NORMAL);
-    expect(result[0][3]?.color).toBe('green');
+    // d列のブロックは移動するべき
+    expect(result[0][2]?.type).toBe(BlockType.NORMAL);
+    expect(result[0][2]?.color).toBe('green');
+    expect(result[0][3]).toBeNull();
   });
   
   it('Steel blocks should slide with their column when all columns to the left are empty', () => {

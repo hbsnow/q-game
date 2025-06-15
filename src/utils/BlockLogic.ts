@@ -497,12 +497,34 @@ export class BlockLogic {
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
     
-    // 各列が空かどうかチェック
+    // 元のブロック配列のコピーを作成（参照を切るため）
+    const workingBlocks: (Block | null)[][] = [];
+    for (let y = 0; y < height; y++) {
+      workingBlocks[y] = [];
+      for (let x = 0; x < width; x++) {
+        if (blocks[y][x]) {
+          // ディープコピーを作成し、スプライト参照を明示的にnullに設定
+          workingBlocks[y][x] = {
+            ...blocks[y][x]!,
+            sprite: null
+          };
+          
+          // 元のブロックのスプライト参照もnullに設定（メモリリーク防止）
+          if (blocks[y][x]?.sprite) {
+            blocks[y][x]!.sprite = null;
+          }
+        } else {
+          workingBlocks[y][x] = null;
+        }
+      }
+    }
+    
+    // 各列が空かどうかチェック（鋼鉄ブロックがある列は空とみなさない）
     const isEmpty: boolean[] = [];
     for (let x = 0; x < width; x++) {
       isEmpty[x] = true;
       for (let y = 0; y < height; y++) {
-        if (blocks[y][x] !== null) {
+        if (workingBlocks[y][x] !== null) {
           isEmpty[x] = false;
           break;
         }
@@ -511,9 +533,7 @@ export class BlockLogic {
     
     // 空の列がない場合は変更なし
     if (!isEmpty.some(empty => empty)) {
-      return blocks.map(row => row.map(block => 
-        block ? { ...block, sprite: null } : null
-      ));
+      return workingBlocks;
     }
     
     // 新しい空のブロック配列を作成
@@ -535,9 +555,9 @@ export class BlockLogic {
       
       // 列全体を移動
       for (let y = 0; y < height; y++) {
-        if (blocks[y][x]) {
+        if (workingBlocks[y][x]) {
           newBlocks[y][targetX] = {
-            ...blocks[y][x]!,
+            ...workingBlocks[y][x]!,
             x: targetX,
             sprite: null
           };
