@@ -519,14 +519,21 @@ export class BlockLogic {
       }
     }
     
-    // 各列が空かどうかチェック
+    // 各列が空かどうかチェック（鋼鉄ブロックがある列は空とみなさない）
     const isEmpty: boolean[] = [];
+    const hasSteelBlock: boolean[] = [];
+    
     for (let x = 0; x < width; x++) {
       isEmpty[x] = true;
+      hasSteelBlock[x] = false;
+      
       for (let y = 0; y < height; y++) {
         if (workingBlocks[y][x] !== null) {
           isEmpty[x] = false;
-          break;
+          
+          if (workingBlocks[y][x]?.type === BlockType.STEEL) {
+            hasSteelBlock[x] = true;
+          }
         }
       }
     }
@@ -545,25 +552,61 @@ export class BlockLogic {
       }
     }
     
-    // 左詰めで配置
+    // 鋼鉄ブロックを先に配置（固定位置）
+    for (let x = 0; x < width; x++) {
+      if (hasSteelBlock[x]) {
+        // 鋼鉄ブロックがある列は全体をコピー
+        for (let y = 0; y < height; y++) {
+          if (workingBlocks[y][x]) {
+            newBlocks[y][x] = {
+              ...workingBlocks[y][x]!,
+              sprite: null
+            };
+            // 処理済みのブロックをnullに設定
+            workingBlocks[y][x] = null;
+          }
+        }
+      }
+    }
+    
+    // 残りの列を左詰めで配置
     let targetX = 0;
     for (let x = 0; x < width; x++) {
-      // 空の列はスキップ
-      if (isEmpty[x]) {
+      // 鋼鉄ブロックがある列または空の列はスキップ
+      if (hasSteelBlock[x] || isEmpty[x]) {
         continue;
       }
       
-      // 列全体を移動
-      for (let y = 0; y < height; y++) {
-        if (workingBlocks[y][x]) {
-          newBlocks[y][targetX] = {
-            ...workingBlocks[y][x]!,
-            x: targetX,
-            sprite: null
-          };
+      // 次の空いている位置を探す
+      while (targetX < width) {
+        // 既に配置済みの列または鋼鉄ブロックがある列はスキップ
+        let isOccupied = false;
+        for (let y = 0; y < height; y++) {
+          if (newBlocks[y][targetX] !== null) {
+            isOccupied = true;
+            break;
+          }
         }
+        
+        if (!isOccupied && !hasSteelBlock[targetX]) {
+          break;
+        }
+        targetX++;
       }
-      targetX++;
+      
+      // 列全体を移動
+      if (targetX < width) {
+        for (let y = 0; y < height; y++) {
+          if (workingBlocks[y][x]) {
+            newBlocks[y][targetX] = {
+              ...workingBlocks[y][x]!,
+              x: targetX,
+              sprite: null
+            };
+          }
+        }
+        targetX++;
+      }
     }
     
     return newBlocks as Block[][];
