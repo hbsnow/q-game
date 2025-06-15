@@ -57,7 +57,6 @@ describe('Steel blocks gravity behavior', () => {
     expect(result[0][1]?.color).toBe('red');
     
     // 鋼鉄ブロックの横のブロックは落下するべき
-    // 正しい位置は[3][2]ではなく[3][2]
     expect(result[3][2]?.type).toBe(BlockType.NORMAL);
     expect(result[3][2]?.color).toBe('green');
   });
@@ -103,7 +102,6 @@ describe('Steel blocks gravity behavior', () => {
     expect(result[1][2]?.y).toBe(1);
     
     // 通常ブロックは落下するべき
-    // 正しい位置は[0][1]ではなく[0][1]（そのまま）
     expect(result[3][1]?.type).toBe(BlockType.NORMAL);
   });
 });

@@ -15,7 +15,7 @@ describe('Steel blocks horizontal slide behavior', () => {
     
     const result = blockLogic.applyHorizontalSlide(blocks);
     
-    // 鋼鉄ブロックは元の位置に留まるべき
+    // 鋼鉄ブロックは左に移動するべき
     expect(result[1][0]?.type).toBe(BlockType.STEEL);
     expect(result[1][0]?.x).toBe(0);
     expect(result[1][0]?.y).toBe(1);

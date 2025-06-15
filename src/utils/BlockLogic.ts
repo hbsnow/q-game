@@ -519,7 +519,7 @@ export class BlockLogic {
       }
     }
     
-    // 各列が空かどうかチェック（鋼鉄ブロックがある列は空とみなさない）
+    // 各列が空かどうかチェック
     const isEmpty: boolean[] = [];
     for (let x = 0; x < width; x++) {
       isEmpty[x] = true;
