@@ -385,22 +385,27 @@ export class GameScene extends Phaser.Scene {
         
         // 現在の状態で氷結ブロックかどうかをチェック
         const currentBlock = this.blocks[block.y][block.x];
-        if (currentBlock && (
-            currentBlock.type === BlockType.ICE_LV1 ||
-            currentBlock.type === BlockType.ICE_LV2 ||
-            currentBlock.type === BlockType.ICE_COUNTER_PLUS ||
-            currentBlock.type === BlockType.ICE_COUNTER_MINUS
-        )) {
-          // 氷結ブロックは消去しない（レベルダウンのみ）
+        if (!currentBlock) continue;
+        
+        // 氷結ブロックは消去しない（レベルダウンのみ）
+        if (currentBlock.type === BlockType.ICE_LV1 ||
+            currentBlock.type === BlockType.ICE_LV2) {
           continue;
         }
         
-        // 元々通常ブロックだったもの、または条件を満たすカウンターブロックを消去対象とする
-        if (beforeIceUpdate[block.y][block.x].type === BlockType.NORMAL ||
-            beforeIceUpdate[block.y][block.x].type === BlockType.COUNTER_PLUS ||
-            beforeIceUpdate[block.y][block.x].type === BlockType.COUNTER_MINUS ||
-            beforeIceUpdate[block.y][block.x].type === BlockType.ICE_COUNTER_PLUS ||
-            beforeIceUpdate[block.y][block.x].type === BlockType.ICE_COUNTER_MINUS) {
+        // カウンターブロックも消去しない（条件を満たす場合のみ消去）
+        if (currentBlock.type === BlockType.COUNTER_PLUS ||
+            currentBlock.type === BlockType.COUNTER_MINUS ||
+            currentBlock.type === BlockType.ICE_COUNTER_PLUS ||
+            currentBlock.type === BlockType.ICE_COUNTER_MINUS) {
+          // カウンターブロックの条件をチェック
+          if (!this.blockLogic.checkCounterCondition(this.blocks, currentBlock)) {
+            continue;
+          }
+        }
+        
+        // 元々通常ブロックだったものを消去対象とする
+        if (beforeIceUpdate[block.y][block.x].type === BlockType.NORMAL) {
           blocksToRemove.push(block);
         }
       }
