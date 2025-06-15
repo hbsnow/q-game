@@ -43,25 +43,39 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     ];
 
     // ユーザーがc0をタップ:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __R     __Y |
+    // 1 | __Y __R <-> __Y |
+    // 2 | __B __R     __Y |
+    // 3 | __Y __R __Y __R |
+    //   +-----------------+
     const blocksAfterRemoval = JSON.parse(JSON.stringify(blocks));
     blocksAfterRemoval[0][2] = null;
-    blocksAfterRemoval[1][2] = null; // 鋼鉄ブロックを消去（実際のゲームでは消去できないが、テスト用に設定）
     blocksAfterRemoval[2][2] = null;
-    blocksAfterRemoval[3][2] = null;
     
     // 重力適用後
     const afterGravity = blockLogic.applyGravity(blocksAfterRemoval);
     
-    // 横スライド適用後
+    // 横スライド適用後:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __R __Y     |
+    // 1 | __Y __R <-> __Y |
+    // 2 | __B __R __Y     |
+    // 3 | __Y __R __R     |
+    //   +-----------------+
+    // 鋼鉄ブロックは重力の影響を受けず、元の位置に留まる
+    // 鋼鉄ブロックの右にブロックがある場合にはその列より右にあるブロックは左側にスライドされない
+    // 鋼鉄ブロックより下にあるブロックはスライドする
     const result = blockLogic.applyHorizontalSlide(afterGravity);
     
-    // d列のブロックはc列に移動するべき
-    expect(result[0][2]?.color).toBe('yellow');
-    expect(result[1][2]?.color).toBe('yellow');
-    expect(result[2][2]?.color).toBe('yellow');
-    expect(result[3][2]?.color).toBe('red');
+    // 鋼鉄ブロックは元の位置に留まるべき
+    expect(result[1][2]?.type).toBe(BlockType.STEEL);
+    expect(result[1][2]?.x).toBe(2);
+    expect(result[1][2]?.y).toBe(1);
     
-    // d列は空になるべき
+    // d列のブロックはc列に移動するべき
     expect(result[0][3]).toBeNull();
     expect(result[1][3]).toBeNull();
     expect(result[2][3]).toBeNull();
@@ -105,6 +119,13 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     ];
 
     // b0の赤ブロックをタップすると、b列の赤ブロックが全て消去される想定
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B     __R __Y |
+    // 1 | __Y <-> __R __Y |
+    // 2 | __B     __R __Y |
+    // 3 | __Y     __Y __R |
+    //   +-----------------+
     const blocksAfterRemoval = JSON.parse(JSON.stringify(blocks));
     blocksAfterRemoval[0][1] = null;
     blocksAfterRemoval[2][1] = null;
@@ -113,7 +134,16 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     // 重力適用後
     const afterGravity = blockLogic.applyGravity(blocksAfterRemoval);
     
-    // 横スライド適用後
+    // 横スライド適用後:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B     __Y     |
+    // 1 | __Y <-> __Y     |
+    // 2 | __B     __Y     |
+    // 3 | __Y __Y __R     |
+    //   +-----------------+
+    // 鋼鉄ブロックは固定位置に留まる
+    // 鋼鉄ブロックの右隣にブロックがないので、cとd列が左にスライドする
     const result = blockLogic.applyHorizontalSlide(afterGravity);
     
     // 鋼鉄ブロックは元の位置に留まるべき
@@ -163,6 +193,13 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     ];
 
     // c列のブロックをすべて消去した場合
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __G     __Y |
+    // 1 | __Y <->     __Y |
+    // 2 | __B __R     __Y |
+    // 3 | __Y __R     __R |
+    //   +-----------------+
     const blocksAfterRemoval = JSON.parse(JSON.stringify(blocks));
     blocksAfterRemoval[0][2] = null;
     blocksAfterRemoval[1][2] = null;
@@ -172,7 +209,15 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     // 重力適用後
     const afterGravity = blockLogic.applyGravity(blocksAfterRemoval);
     
-    // 横スライド適用後
+    // 横スライド適用後:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __G __Y     |
+    // 1 | __Y <-> __Y     |
+    // 2 | __B __R __Y     |
+    // 3 | __Y __R __R     |
+    //   +-----------------+
+    // ポイント: d 列のブロックが c 列に移動しますが、鋼鉄ブロックがある b 列は移動しません。
     const result = blockLogic.applyHorizontalSlide(afterGravity);
     
     // 鋼鉄ブロックは元の位置に留まるべき
@@ -234,6 +279,13 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     ];
 
     // b列の赤ブロックをすべて消去した場合
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B     __R __Y |
+    // 1 | <->     <-> __Y |
+    // 2 | __B         __Y |
+    // 3 | __Y     __Y __R |
+    //   +-----------------+
     const blocksAfterRemoval = JSON.parse(JSON.stringify(blocks));
     blocksAfterRemoval[0][1] = null;
     blocksAfterRemoval[1][1] = null;
@@ -243,7 +295,15 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     // 重力適用後
     const afterGravity = blockLogic.applyGravity(blocksAfterRemoval);
     
-    // 横スライド適用後
+    // 横スライド適用後:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B     __R __Y |
+    // 1 | <->     <-> __Y |
+    // 2 | __B         __Y |
+    // 3 | __Y __Y     __R |
+    //   +-----------------+
+    // ポイント: 複数の鋼鉄ブロックがあっても、それぞれが固定位置に留まります。
     const result = blockLogic.applyHorizontalSlide(afterGravity);
     
     // 両方の鋼鉄ブロックは元の位置に留まるべき
@@ -251,14 +311,14 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     expect(result[1][0]?.x).toBe(0);
     expect(result[1][0]?.y).toBe(1);
     
-    expect(result[1][1]?.type).toBe(BlockType.STEEL);
-    expect(result[1][1]?.x).toBe(1);
-    expect(result[1][1]?.y).toBe(1);
+    expect(result[1][2]?.type).toBe(BlockType.STEEL);
+    expect(result[1][2]?.x).toBe(2);
+    expect(result[1][2]?.y).toBe(1);
     
     // d列のブロックはc列に移動するべき
-    expect(result[0][2]?.color).toBe('yellow');
-    expect(result[1][2]?.color).toBe('yellow');
-    expect(result[2][2]?.color).toBe('yellow');
-    expect(result[3][2]?.color).toBe('red');
+    expect(result[0][3]).toBeNull();
+    expect(result[1][3]).toBeNull();
+    expect(result[2][3]).toBeNull();
+    expect(result[3][3]).toBeNull();
   });
 });

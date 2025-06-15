@@ -73,29 +73,29 @@ describe('Steel block behavior according to specifications', () => {
     // 初期状態:
     //      a   b   c   d
     //   +-----------------+
-    // 0 | __B __R __R __Y |
-    // 1 | __Y <-> __R __Y |
-    // 2 | __B __R __R __Y |
+    // 0 | __B __G __B __Y |
+    // 1 | __Y <-> __B __Y |
+    // 2 | __B __R __B __Y |
     // 3 | __Y __R __Y __R |
     //   +-----------------+
     // b1に鋼鉄ブロック<->がある
     const blocks: (Block | null)[][] = [
       [
         { x: 0, y: 0, color: 'blue', type: BlockType.NORMAL, sprite: null },
-        { x: 1, y: 0, color: 'red', type: BlockType.NORMAL, sprite: null },
-        { x: 2, y: 0, color: 'red', type: BlockType.NORMAL, sprite: null },
+        { x: 1, y: 0, color: 'green', type: BlockType.NORMAL, sprite: null },
+        { x: 2, y: 0, color: 'blue', type: BlockType.NORMAL, sprite: null },
         { x: 3, y: 0, color: 'yellow', type: BlockType.NORMAL, sprite: null }
       ],
       [
         { x: 0, y: 1, color: 'yellow', type: BlockType.NORMAL, sprite: null },
         { x: 1, y: 1, color: 'blue', type: BlockType.STEEL, sprite: null },
-        { x: 2, y: 1, color: 'red', type: BlockType.NORMAL, sprite: null },
+        { x: 2, y: 1, color: 'blue', type: BlockType.NORMAL, sprite: null },
         { x: 3, y: 1, color: 'yellow', type: BlockType.NORMAL, sprite: null }
       ],
       [
         { x: 0, y: 2, color: 'blue', type: BlockType.NORMAL, sprite: null },
         { x: 1, y: 2, color: 'red', type: BlockType.NORMAL, sprite: null },
-        { x: 2, y: 2, color: 'red', type: BlockType.NORMAL, sprite: null },
+        { x: 2, y: 2, color: 'blue', type: BlockType.NORMAL, sprite: null },
         { x: 3, y: 2, color: 'yellow', type: BlockType.NORMAL, sprite: null }
       ],
       [
@@ -107,11 +107,27 @@ describe('Steel block behavior according to specifications', () => {
     ];
 
     // b2とb3の赤ブロックを消去した場合
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __G __B __Y |
+    // 1 | __Y <-> __B __Y |
+    // 2 | __B     __B __Y |
+    // 3 | __Y     __Y __R |
+    //   +-----------------+
     const blocksAfterRemoval = JSON.parse(JSON.stringify(blocks));
     blocksAfterRemoval[2][1] = null;
     blocksAfterRemoval[3][1] = null;
     
     const result = blockLogic.applyGravity(blocksAfterRemoval);
+    
+    // 重力適用後:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __G __B __Y |
+    // 1 | __Y <-> __B __Y |
+    // 2 | __B     __B __Y |
+    // 3 | __Y     __Y __R |
+    //   +-----------------+
     
     // 鋼鉄ブロックは元の位置に留まるべき
     expect(result[1][1]?.type).toBe(BlockType.STEEL);
@@ -120,7 +136,7 @@ describe('Steel block behavior according to specifications', () => {
     
     // 鋼鉄ブロックの上のブロックも元の位置に留まるべき
     expect(result[0][1]?.type).toBe(BlockType.NORMAL);
-    expect(result[0][1]?.color).toBe('red');
+    expect(result[0][1]?.color).toBe('green');
     
     // 消去されたブロックの位置は空のままであるべき
     expect(result[2][1]).toBeNull();
@@ -164,6 +180,13 @@ describe('Steel block behavior according to specifications', () => {
     ];
 
     // ユーザーがc0の赤ブロックをタップすると、c0、c1、c2、b2、b3の赤ブロックが消去される
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __G     __Y |
+    // 1 | __Y <->     __Y |
+    // 2 | __B         __Y |
+    // 3 | __Y     __Y __R |
+    //   +-----------------+
     const blocksAfterRemoval = JSON.parse(JSON.stringify(blocks));
     blocksAfterRemoval[0][2] = null;
     blocksAfterRemoval[1][2] = null;
@@ -172,6 +195,15 @@ describe('Steel block behavior according to specifications', () => {
     blocksAfterRemoval[3][1] = null;
     
     const result = blockLogic.applyGravity(blocksAfterRemoval);
+    
+    // 重力適用後:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __G __Y     |
+    // 1 | __Y <-> __Y     |
+    // 2 | __B     __Y     |
+    // 3 | __Y __Y __R     |
+    //   +-----------------+
     
     // 鋼鉄ブロックは元の位置に留まるべき
     expect(result[1][1]?.type).toBe(BlockType.STEEL);
@@ -227,6 +259,13 @@ describe('Steel block behavior according to specifications', () => {
     ];
 
     // b列の赤ブロックをすべて消去した場合
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B     __R __Y |
+    // 1 | <->     <-> __Y |
+    // 2 | __B         __Y |
+    // 3 | __Y     __Y __R |
+    //   +-----------------+
     const blocksAfterRemoval = JSON.parse(JSON.stringify(blocks));
     blocksAfterRemoval[0][1] = null;
     blocksAfterRemoval[1][1] = null;
@@ -234,6 +273,15 @@ describe('Steel block behavior according to specifications', () => {
     blocksAfterRemoval[3][1] = null;
     
     const result = blockLogic.applyGravity(blocksAfterRemoval);
+    
+    // 重力適用後:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B     __R __Y |
+    // 1 | <->     <-> __Y |
+    // 2 | __B         __Y |
+    // 3 | __Y __Y     __R |
+    //   +-----------------+
     
     // 両方の鋼鉄ブロックは元の位置に留まるべき
     expect(result[1][0]?.type).toBe(BlockType.STEEL);
@@ -288,6 +336,16 @@ describe('Steel block behavior according to specifications', () => {
     ];
     
     const result = blockLogic.applyGravity(blocks);
+    
+    // 重力適用後:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B         __Y |
+    // 1 | __Y __G     __Y |
+    // 2 | __B <-> __R __Y |
+    // 3 | __Y __B __Y __R |
+    //   +-----------------+
+    // 鋼鉄はいかなる場合でも上に乗っているブロックを貫通させることはない
     
     // 鋼鉄ブロックは元の位置に留まるべき
     expect(result[2][1]?.type).toBe(BlockType.STEEL);
