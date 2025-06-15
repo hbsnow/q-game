@@ -99,7 +99,7 @@ export class DebugHelper {
       return;
     }
     
-    BlockAsciiRenderer.logBlocks(this.blocks, 'CURRENT BLOCK STATE', this.lastClickPosition);
+    BlockAsciiRenderer.logBlocks(this.blocks, 'CURRENT BLOCK STATE');
   }
   
   /**

@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest';
 import { BlockLogic } from '../utils/BlockLogic';
 import { Block, BlockType } from '../types/Block';
 

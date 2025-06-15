@@ -695,7 +695,7 @@ export class GameScene extends Phaser.Scene {
     let updatedBlocks = this.blockLogic.applyGravity(this.blocks);
     
     // 空の列を左にスライド
-    updatedBlocks = this.blockLogic.slideColumnsLeft(updatedBlocks);
+    updatedBlocks = this.blockLogic.applyHorizontalSlide(updatedBlocks);
     
     this.blocks = updatedBlocks;
     
