@@ -322,17 +322,17 @@ export class BlockLogic {
           sprite: null
         };
       } else if (currentBlock && currentBlock.type === BlockType.ICE_COUNTER_PLUS) {
-        // 氷結カウンター+ → カウンター+
+        // 氷結カウンター+ → 通常ブロック
         newBlocks[block.y][block.x] = {
           ...currentBlock,
-          type: BlockType.COUNTER_PLUS,
+          type: BlockType.NORMAL,
           sprite: null
         };
       } else if (currentBlock && currentBlock.type === BlockType.ICE_COUNTER_MINUS) {
-        // 氷結カウンター- → カウンター-
+        // 氷結カウンター- → 通常ブロック
         newBlocks[block.y][block.x] = {
           ...currentBlock,
-          type: BlockType.COUNTER_MINUS,
+          type: BlockType.NORMAL,
           sprite: null
         };
       }

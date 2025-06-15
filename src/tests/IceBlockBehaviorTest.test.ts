@@ -61,7 +61,7 @@ describe('氷結ブロックの挙動テスト', () => {
   });
 
   // 氷結カウンター+ブロックのテスト
-  it('氷結カウンター+ブロックは隣接ブロック消去時に通常カウンター+ブロックに変化する', () => {
+  it('氷結カウンター+ブロックは隣接ブロック消去時に通常ブロックに変化する', () => {
     const blocks = createTestBlocks();
     
     // 赤色のブロックを配置
@@ -75,14 +75,13 @@ describe('氷結ブロックの挙動テスト', () => {
     // 氷結ブロックを更新
     const updatedBlocks = blockLogic.updateIceBlocks(blocks, connectedBlocks);
     
-    // 氷結カウンター+ブロックが通常カウンター+ブロックに変化していることを確認
-    expect(updatedBlocks[2][2].type).toBe(BlockType.COUNTER_PLUS);
+    // 氷結カウンター+ブロックが通常ブロックに変化していることを確認
+    expect(updatedBlocks[2][2].type).toBe(BlockType.NORMAL);
     expect(updatedBlocks[2][2].color).toBe(RED);
-    expect(updatedBlocks[2][2].counterValue).toBe(3);
   });
 
   // 氷結カウンター-ブロックのテスト
-  it('氷結カウンター-ブロックは隣接ブロック消去時に通常カウンター-ブロックに変化する', () => {
+  it('氷結カウンター-ブロックは隣接ブロック消去時に通常ブロックに変化する', () => {
     const blocks = createTestBlocks();
     
     // 赤色のブロックを配置
@@ -96,10 +95,9 @@ describe('氷結ブロックの挙動テスト', () => {
     // 氷結ブロックを更新
     const updatedBlocks = blockLogic.updateIceBlocks(blocks, connectedBlocks);
     
-    // 氷結カウンター-ブロックが通常カウンター-ブロックに変化していることを確認
-    expect(updatedBlocks[2][2].type).toBe(BlockType.COUNTER_MINUS);
+    // 氷結カウンター-ブロックが通常ブロックに変化していることを確認
+    expect(updatedBlocks[2][2].type).toBe(BlockType.NORMAL);
     expect(updatedBlocks[2][2].color).toBe(RED);
-    expect(updatedBlocks[2][2].counterValue).toBe(3);
   });
 
   // 異なる色の氷結ブロックのテスト

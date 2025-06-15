@@ -182,8 +182,8 @@ describe('ブロック消去ロジックのテスト', () => {
     // 氷結ブロックを更新
     const updatedBlocks = blockLogic.updateIceBlocks(blocks, connectedBlocks);
     
-    // 氷結カウンターブロックが通常カウンターブロックに変化していることを確認
-    expect(updatedBlocks[2][2].type).toBe(BlockType.COUNTER_PLUS);
+    // 氷結カウンターブロックが通常ブロックに変化していることを確認
+    expect(updatedBlocks[2][2].type).toBe(BlockType.NORMAL);
     
     // 消去対象のブロックを特定（実際のゲームシーンのロジックを模倣）
     const beforeIceUpdate = JSON.parse(JSON.stringify(blocks));
