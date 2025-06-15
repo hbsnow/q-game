@@ -496,6 +496,12 @@ export class GameScene extends Phaser.Scene {
           counterText.destroy();
         }
         
+        // 星グラフィックスがある場合は削除
+        const starGraphics = sprite.getData('starGraphics') as Phaser.GameObjects.Graphics;
+        if (starGraphics) {
+          starGraphics.destroy();
+        }
+        
         this.tweens.add({
           targets: sprite,
           alpha: 0,
@@ -541,6 +547,12 @@ export class GameScene extends Phaser.Scene {
           const counterText = this.blockSprites[y][x].getData('counterText') as Phaser.GameObjects.Text;
           if (counterText) {
             counterText.destroy();
+          }
+          
+          // 星グラフィックスがある場合は削除
+          const starGraphics = this.blockSprites[y][x].getData('starGraphics') as Phaser.GameObjects.Graphics;
+          if (starGraphics) {
+            starGraphics.destroy();
           }
           
           this.blockSprites[y][x].destroy();
