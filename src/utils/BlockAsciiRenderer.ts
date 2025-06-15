@@ -1,148 +1,183 @@
 import { Block, BlockType } from '../types/Block';
 
 /**
- * ブロックのアスキーアート表示を行うユーティリティクラス
+ * ブロックの状態をアスキーアートで表示するユーティリティクラス
  */
 export class BlockAsciiRenderer {
   /**
    * ブロック配列をアスキーアートとしてコンソールに出力
    * @param blocks ブロック配列
-   * @param title タイトル（省略可）
+   * @param title タイトル（オプション）
    */
   static logBlocks(blocks: (Block | null)[][], title?: string): void {
     if (title) {
       console.log(`=== ${title} ===`);
     }
     
-    // 列ヘッダーを出力
+    // 列のラベル（a, b, c, ...）
     let header = '     ';
-    for (let x = 0; x < blocks[0]?.length || 0; x++) {
-      const colName = String.fromCharCode(97 + x); // a, b, c, ...
-      header += colName + '   ';
+    for (let x = 0; x < blocks[0].length; x++) {
+      header += String.fromCharCode(97 + x) + '   ';
     }
     console.log(header);
     
     // 上部の枠線
-    let topBorder = '  +';
-    for (let x = 0; x < blocks[0]?.length || 0; x++) {
-      topBorder += '---';
+    let topBorder = '  +-';
+    for (let x = 0; x < blocks[0].length; x++) {
+      topBorder += '----';
     }
     topBorder += '-+';
     console.log(topBorder);
     
-    // 各行を出力
+    // 各行のブロック
     for (let y = 0; y < blocks.length; y++) {
-      let line = y + ' |';
+      let row = y.toString().padStart(1) + ' |';
+      
       for (let x = 0; x < blocks[y].length; x++) {
         const block = blocks[y][x];
-        if (block === null) {
-          line += '   ';
-        } else {
-          line += ' ' + this.getBlockSymbol(block) + ' ';
-        }
+        row += ' ' + this.blockToAscii(block) + ' ';
       }
-      line += ' |';
-      console.log(line);
+      
+      row += '|';
+      console.log(row);
     }
     
     // 下部の枠線
-    let bottomBorder = '  +';
-    for (let x = 0; x < blocks[0]?.length || 0; x++) {
-      bottomBorder += '---';
+    let bottomBorder = '  +-';
+    for (let x = 0; x < blocks[0].length; x++) {
+      bottomBorder += '----';
     }
     bottomBorder += '-+';
     console.log(bottomBorder);
   }
   
   /**
-   * ブロック配列の比較をアスキーアートとしてコンソールに出力
-   * @param beforeBlocks 変更前のブロック配列
-   * @param afterBlocks 変更後のブロック配列
-   * @param title タイトル（省略可）
-   * @param clickPosition クリック位置（省略可）
-   */
-  static logBlocksComparison(
-    beforeBlocks: (Block | null)[][],
-    afterBlocks: (Block | null)[][],
-    title?: string,
-    clickPosition?: { x: number, y: number }
-  ): void {
-    console.log(title ? `=== ${title} ===` : '=== BLOCKS COMPARISON ===');
-    
-    console.log('BEFORE:');
-    this.logBlocks(beforeBlocks);
-    
-    console.log('AFTER:');
-    this.logBlocks(afterBlocks);
-    
-    console.log('========================');
-  }
-  
-  /**
-   * ブロックを表すシンボルを取得
+   * ブロックをアスキー文字に変換
    * @param block ブロック
-   * @returns シンボル文字列
+   * @returns アスキー表現
    */
-  private static getBlockSymbol(block: Block): string {
-    // 色のシンボル
-    const colorSymbol = this.getColorSymbol(block.color);
+  static blockToAscii(block: Block | null): string {
+    if (!block) {
+      return '   ';
+    }
     
-    // ブロックタイプに応じたプレフィックス
-    let prefix = '';
+    // 色の頭文字を取得
+    let colorChar = '';
+    switch (block.color) {
+      case '#1E5799': colorChar = 'B'; break; // 深い青
+      case '#7DB9E8': colorChar = 'L'; break; // 水色
+      case '#2E8B57': colorChar = 'G'; break; // 海緑
+      case '#FF6347': colorChar = 'R'; break; // 珊瑚赤
+      case '#F4D03F': colorChar = 'Y'; break; // 砂金色
+      case '#F5F5F5': colorChar = 'W'; break; // 真珠白
+      case '#808080': colorChar = 'K'; break; // 岩ブロック（灰色）
+      case '#C0C0C0': colorChar = 'S'; break; // 鋼鉄ブロック（シルバー）
+      default: colorChar = '?'; break;
+    }
+    
+    // ブロックタイプに応じた表現
     switch (block.type) {
       case BlockType.NORMAL:
-        prefix = '__';
-        break;
+        return `__${colorChar}`;
       case BlockType.ICE_LV1:
-        prefix = '_*';
-        break;
+        return `_*${colorChar}`;
       case BlockType.ICE_LV2:
-        prefix = '**';
-        break;
+        return `**${colorChar}`;
       case BlockType.COUNTER_PLUS:
-        prefix = '_+';
-        break;
+        return `_+${colorChar}`;
       case BlockType.COUNTER_MINUS:
-        prefix = '_-';
-        break;
+        return `_-${colorChar}`;
       case BlockType.ICE_COUNTER_PLUS:
-        prefix = '*+';
-        break;
+        return `*+${colorChar}`;
       case BlockType.ICE_COUNTER_MINUS:
-        prefix = '*-';
-        break;
+        return `*-${colorChar}`;
       case BlockType.ROCK:
-        return '<_>';
+        return `<_>`;
       case BlockType.STEEL:
-        return '<->';
+        return `<->`; // 鋼鉄ブロック
       default:
-        prefix = '??';
+        return `??${colorChar}`;
     }
-    
-    return prefix + colorSymbol;
   }
   
   /**
-   * 色を表すシンボルを取得
-   * @param color 色（HEX形式）
-   * @returns 色のシンボル
+   * 2つのブロック配列を比較して変更点をハイライト表示
+   * @param before 変更前のブロック配列
+   * @param after 変更後のブロック配列
+   * @param title タイトル（オプション）
+   * @param highlight ハイライトする座標（オプション）
    */
-  private static getColorSymbol(color: string): string {
-    switch (color.toUpperCase()) {
-      case '#1E5799': // 深い青
-        return 'B';
-      case '#7DB9E8': // 水色
-        return 'L';
-      case '#2E8B57': // 海緑
-        return 'G';
-      case '#FF6347': // 珊瑚赤
-        return 'R';
-      case '#F4D03F': // 砂金色
-        return 'Y';
-      case '#F5F5F5': // 真珠白
-        return 'W';
-      default:
-        return '?';
+  static logBlocksComparison(
+    before: (Block | null)[][], 
+    after: (Block | null)[][], 
+    title?: string,
+    highlight?: {x: number, y: number}
+  ): void {
+    if (title) {
+      console.log(`=== ${title} ===`);
     }
+    
+    // 列のラベル（a, b, c, ...）
+    let header = '     ';
+    for (let x = 0; x < Math.max(before[0]?.length || 0, after[0]?.length || 0); x++) {
+      header += String.fromCharCode(97 + x) + '   ';
+    }
+    console.log(header);
+    
+    // 上部の枠線
+    let topBorder = '  +-';
+    for (let x = 0; x < Math.max(before[0]?.length || 0, after[0]?.length || 0); x++) {
+      topBorder += '----';
+    }
+    topBorder += '-+';
+    console.log(topBorder);
+    
+    // 各行のブロック
+    const maxHeight = Math.max(before.length, after.length);
+    for (let y = 0; y < maxHeight; y++) {
+      let beforeRow = y.toString().padStart(1) + ' |';
+      let afterRow = y.toString().padStart(1) + ' |';
+      let diffRow = '  |';
+      
+      const maxWidth = Math.max(before[0]?.length || 0, after[0]?.length || 0);
+      for (let x = 0; x < maxWidth; x++) {
+        const beforeBlock = before[y]?.[x] || null;
+        const afterBlock = after[y]?.[x] || null;
+        
+        const beforeAscii = this.blockToAscii(beforeBlock);
+        const afterAscii = this.blockToAscii(afterBlock);
+        
+        // ハイライト表示
+        const isHighlighted = highlight && highlight.x === x && highlight.y === y;
+        const highlightPrefix = isHighlighted ? '*' : ' ';
+        
+        beforeRow += highlightPrefix + beforeAscii + ' ';
+        afterRow += highlightPrefix + afterAscii + ' ';
+        
+        // 差分表示
+        if (beforeAscii !== afterAscii) {
+          diffRow += ' ^^^ ';
+        } else {
+          diffRow += '     ';
+        }
+      }
+      
+      beforeRow += '|';
+      afterRow += '|';
+      diffRow += '|';
+      
+      console.log('Before: ' + beforeRow);
+      console.log('After : ' + afterRow);
+      console.log('Diff  : ' + diffRow);
+      console.log('');
+    }
+    
+    // 下部の枠線
+    let bottomBorder = '  +-';
+    for (let x = 0; x < Math.max(before[0]?.length || 0, after[0]?.length || 0); x++) {
+      bottomBorder += '----';
+    }
+    bottomBorder += '-+';
+    console.log(bottomBorder);
   }
 }

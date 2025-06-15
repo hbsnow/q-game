@@ -174,9 +174,34 @@ export class GameScene extends Phaser.Scene {
     // ブロックファクトリーの作成
     const blockFactory = new BlockFactory();
     
+    // 鋼鉄ブロックを特定の位置に配置（ステージ1から出現）
+    // 鋼鉄ブロックのパターンを定義（例：L字型）
+    const steelBlockPositions = [
+      { x: 3, y: 8 },
+      { x: 3, y: 9 },
+      { x: 3, y: 10 },
+      { x: 4, y: 10 },
+      { x: 5, y: 10 }
+    ];
+    
+    // 鋼鉄ブロックを配置
+    steelBlockPositions.forEach(pos => {
+      if (pos.y < GameConfig.BOARD_HEIGHT && pos.x < GameConfig.BOARD_WIDTH) {
+        const steelBlock = blockFactory.createSteelBlock(pos.x, pos.y);
+        this.blocks[pos.y][pos.x] = steelBlock;
+      }
+    });
+    
     // ブロックの生成
     for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
       for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
+        // 既に鋼鉄ブロックが配置されている場合はスキップ
+        if (this.blocks[y][x] && this.blocks[y][x]?.type === BlockType.STEEL) {
+          // スプライトのみ作成
+          this.createBlockSprite(x, y, this.blocks[y][x]!);
+          continue;
+        }
+        
         // ランダムな色を選択
         const colorKey = availableColors[Math.floor(Math.random() * availableColors.length)];
         const color = GameConfig.BLOCK_COLORS[colorKey as keyof typeof GameConfig.BLOCK_COLORS];
@@ -334,6 +359,73 @@ export class GameScene extends Phaser.Scene {
       });
       
       return rockSprite as unknown as Phaser.GameObjects.Sprite;
+    } else if (block.type === BlockType.STEEL) {
+      // 鋼鉄ブロックは特別な見た目にする
+      blockSprite.destroy(); // 円形スプライトを破棄
+      
+      // 鋼鉄ブロック用のグラフィックスを作成
+      const steelGraphics = this.add.graphics();
+      
+      // 鋼鉄ブロックの背景
+      steelGraphics.fillStyle(0xC0C0C0, 1); // シルバー
+      steelGraphics.fillRect(
+        blockX - GameConfig.BLOCK_SIZE / 2 + 2, 
+        blockY - GameConfig.BLOCK_SIZE / 2 + 2, 
+        GameConfig.BLOCK_SIZE - 4, 
+        GameConfig.BLOCK_SIZE - 4
+      );
+      
+      // 鋼鉄の質感を表現する線
+      steelGraphics.lineStyle(1, 0x808080, 0.8);
+      
+      // 横線
+      for (let i = 1; i < 4; i++) {
+        const lineY = blockY - GameConfig.BLOCK_SIZE / 2 + 2 + i * (GameConfig.BLOCK_SIZE - 4) / 4;
+        steelGraphics.moveTo(blockX - GameConfig.BLOCK_SIZE / 2 + 2, lineY);
+        steelGraphics.lineTo(blockX + GameConfig.BLOCK_SIZE / 2 - 2, lineY);
+      }
+      
+      // 縦線
+      for (let i = 1; i < 4; i++) {
+        const lineX = blockX - GameConfig.BLOCK_SIZE / 2 + 2 + i * (GameConfig.BLOCK_SIZE - 4) / 4;
+        steelGraphics.moveTo(lineX, blockY - GameConfig.BLOCK_SIZE / 2 + 2);
+        steelGraphics.lineTo(lineX, blockY + GameConfig.BLOCK_SIZE / 2 - 2);
+      }
+      
+      steelGraphics.strokePath();
+      
+      // 輪郭
+      steelGraphics.lineStyle(2, 0x404040, 1);
+      steelGraphics.strokeRect(
+        blockX - GameConfig.BLOCK_SIZE / 2 + 2, 
+        blockY - GameConfig.BLOCK_SIZE / 2 + 2, 
+        GameConfig.BLOCK_SIZE - 4, 
+        GameConfig.BLOCK_SIZE - 4
+      );
+      
+      // スプライトとして扱うためのダミースプライト
+      const steelSprite = this.add.sprite(blockX, blockY, '__WHITE');
+      steelSprite.setScale(0.01); // ほぼ見えないサイズに
+      steelSprite.setAlpha(0.01); // ほぼ透明に
+      
+      // グラフィックスをスプライトに関連付ける
+      steelSprite.setData('steelGraphics', steelGraphics);
+      
+      // スプライト配列に保存
+      this.blockSprites[y][x] = steelSprite;
+      
+      // ブロックオブジェクトにスプライト参照を追加
+      this.blocks[y][x].sprite = steelSprite;
+      
+      // クリックイベント
+      steelSprite.setInteractive({ useHandCursor: true });
+      steelSprite.on('pointerdown', () => {
+        if (!this.isProcessing) {
+          this.onBlockClick(x, y);
+        }
+      });
+      
+      return steelSprite;
     } else if (block.type === BlockType.COUNTER_PLUS || block.type === BlockType.COUNTER_MINUS) {
       // カウンターブロックは輪郭と数字を表示
       const borderColor = block.type === BlockType.COUNTER_PLUS ? 0xFFD700 : 0xFF4500; // 金色または赤橙色
