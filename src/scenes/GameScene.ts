@@ -148,6 +148,14 @@ export class GameScene extends Phaser.Scene {
         } else if (rand < 0.08) {
           // 約3%の確率で氷結Lv2
           block = blockFactory.createIceBlockLv2(x, y, color);
+        } else if (rand < 0.10) {
+          // 約2%の確率で氷結カウンター+ブロック（テスト用）
+          const counterValue = Math.floor(Math.random() * 5) + 3; // 3〜7の値
+          block = blockFactory.createIceCounterPlusBlock(x, y, color, counterValue);
+        } else if (rand < 0.12) {
+          // 約2%の確率で氷結カウンター-ブロック（テスト用）
+          const counterValue = Math.floor(Math.random() * 5) + 3; // 3〜7の値
+          block = blockFactory.createIceCounterMinusBlock(x, y, color, counterValue);
         } else if (rand < 0.12) {
           // 約4%の確率でカウンター+ブロック
           // カウンター値は3〜7の間でランダム
@@ -209,6 +217,54 @@ export class GameScene extends Phaser.Scene {
     } else if (block.type === BlockType.ICE_LV2) {
       // 氷結Lv2は太い輪郭を付ける
       blockSprite.setStrokeStyle(4, 0x87CEFA);
+    } else if (block.type === BlockType.ICE_COUNTER_PLUS || block.type === BlockType.ICE_COUNTER_MINUS) {
+      // 氷結カウンターブロックは氷の輪郭と数字を表示
+      const borderColor = block.type === BlockType.ICE_COUNTER_PLUS ? 0xADD8E6 : 0xADD8E6; // 氷の色
+      blockSprite.setStrokeStyle(4, borderColor);
+      
+      // 内側に星のマークを追加
+      const starGraphics = this.add.graphics();
+      starGraphics.fillStyle(0xFFFFFF, 0.5);
+      const starSize = GameConfig.BLOCK_SIZE / 4;
+      
+      // 星形を描画
+      const starPoints = 5;
+      const starInnerRadius = starSize / 2;
+      const starOuterRadius = starSize;
+      
+      starGraphics.beginPath();
+      for (let i = 0; i < starPoints * 2; i++) {
+        const radius = i % 2 === 0 ? starOuterRadius : starInnerRadius;
+        const angle = (Math.PI * 2 * i) / (starPoints * 2) - Math.PI / 2;
+        const x = blockX + radius * Math.cos(angle);
+        const y = blockY + radius * Math.sin(angle);
+        
+        if (i === 0) {
+          starGraphics.moveTo(x, y);
+        } else {
+          starGraphics.lineTo(x, y);
+        }
+      }
+      starGraphics.closePath();
+      starGraphics.fillPath();
+      
+      // カウンター値のテキスト表示
+      const prefix = block.type === BlockType.ICE_COUNTER_PLUS ? '+' : '-';
+      const counterText = this.add.text(
+        blockX, 
+        blockY, 
+        `${prefix}${block.counterValue}`, 
+        { 
+          fontSize: '16px', 
+          color: '#FFFFFF',
+          stroke: '#000000',
+          strokeThickness: 2
+        }
+      ).setOrigin(0.5);
+      
+      // テキストをスプライトに関連付ける（後で一緒に削除するため）
+      blockSprite.setData('counterText', counterText);
+      blockSprite.setData('starGraphics', starGraphics);
     } else if (block.type === BlockType.COUNTER_PLUS || block.type === BlockType.COUNTER_MINUS) {
       // カウンターブロックは輪郭と数字を表示
       const borderColor = block.type === BlockType.COUNTER_PLUS ? 0xFFD700 : 0xFF4500; // 金色または赤橙色
@@ -264,7 +320,9 @@ export class GameScene extends Phaser.Scene {
     if (clickedBlock.type === BlockType.ICE_LV1 || 
         clickedBlock.type === BlockType.ICE_LV2 || 
         clickedBlock.type === BlockType.COUNTER_PLUS || 
-        clickedBlock.type === BlockType.COUNTER_MINUS) {
+        clickedBlock.type === BlockType.COUNTER_MINUS ||
+        clickedBlock.type === BlockType.ICE_COUNTER_PLUS ||
+        clickedBlock.type === BlockType.ICE_COUNTER_MINUS) {
       // 妨害ブロックは直接クリックできない
       console.log('妨害ブロックは直接クリックできません');
       return;
@@ -286,7 +344,10 @@ export class GameScene extends Phaser.Scene {
     if (connectedBlocks.length >= 2) {
       // 条件を満たさないカウンターブロックを特定
       const nonRemovableCounterBlocks = connectedBlocks.filter(block => {
-        if (block.type === BlockType.COUNTER_PLUS || block.type === BlockType.COUNTER_MINUS) {
+        if (block.type === BlockType.COUNTER_PLUS || 
+            block.type === BlockType.COUNTER_MINUS ||
+            block.type === BlockType.ICE_COUNTER_PLUS ||
+            block.type === BlockType.ICE_COUNTER_MINUS) {
           return !this.blockLogic.checkCounterCondition(this.blocks, block);
         }
         return false;
@@ -326,7 +387,9 @@ export class GameScene extends Phaser.Scene {
         // 氷結ブロックから変化した通常ブロックは消去しない
         if (beforeIceUpdate[block.y][block.x].type === BlockType.NORMAL ||
             beforeIceUpdate[block.y][block.x].type === BlockType.COUNTER_PLUS ||
-            beforeIceUpdate[block.y][block.x].type === BlockType.COUNTER_MINUS) {
+            beforeIceUpdate[block.y][block.x].type === BlockType.COUNTER_MINUS ||
+            beforeIceUpdate[block.y][block.x].type === BlockType.ICE_COUNTER_PLUS ||
+            beforeIceUpdate[block.y][block.x].type === BlockType.ICE_COUNTER_MINUS) {
           blocksToRemove.push(block);
         }
       }

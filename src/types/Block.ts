@@ -60,6 +60,8 @@ export enum BlockType {
   ICE_LV2 = 'iceLv2',
   COUNTER_PLUS = 'counterPlus',
   COUNTER_MINUS = 'counterMinus',
+  ICE_COUNTER_PLUS = 'iceCounterPlus',
+  ICE_COUNTER_MINUS = 'iceCounterMinus',
   ROCK = 'rock',
   STEEL = 'steel'
 }

@@ -1,154 +1,148 @@
-import { Block } from '../types/Block';
+import { Block, BlockType } from '../types/Block';
 
 /**
- * ブロックの状態をアスキーアートで表示するクラス
+ * ブロックのアスキーアート表示を行うユーティリティクラス
  */
 export class BlockAsciiRenderer {
   /**
-   * ブロック配列をアスキーアートとして文字列化
+   * ブロック配列をアスキーアートとしてコンソールに出力
    * @param blocks ブロック配列
-   * @param clickPosition クリック位置（オプション）
-   * @returns アスキーアート文字列
+   * @param title タイトル（省略可）
    */
-  static renderBlocks(blocks: Block[][], clickPosition?: {x: number, y: number}): string {
-    if (!blocks || blocks.length === 0) {
-      return 'Empty blocks array';
+  static logBlocks(blocks: (Block | null)[][], title?: string): void {
+    if (title) {
+      console.log(`=== ${title} ===`);
     }
-
-    const height = blocks.length;
-    const width = blocks[0]?.length || 0;
     
-    // 列のヘッダー（a, b, c, ...）を作成
+    // 列ヘッダーを出力
     let header = '     ';
-    for (let x = 0; x < width; x++) {
-      const columnLabel = String.fromCharCode(97 + x); // 97は'a'のUnicode
-      header += columnLabel + '   ';
+    for (let x = 0; x < blocks[0]?.length || 0; x++) {
+      const colName = String.fromCharCode(97 + x); // a, b, c, ...
+      header += colName + '   ';
     }
+    console.log(header);
     
     // 上部の枠線
-    let border = '  +';
-    for (let x = 0; x < width; x++) {
-      border += '----';
+    let topBorder = '  +';
+    for (let x = 0; x < blocks[0]?.length || 0; x++) {
+      topBorder += '---';
     }
-    border += '-+';
+    topBorder += '-+';
+    console.log(topBorder);
     
-    // 結果の文字列を構築
-    let result = header + '\n' + border + '\n';
-    
-    // 各行のブロックを描画
-    for (let y = 0; y < height; y++) {
-      let row = y + ' |';
-      
-      for (let x = 0; x < width; x++) {
+    // 各行を出力
+    for (let y = 0; y < blocks.length; y++) {
+      let line = y + ' |';
+      for (let x = 0; x < blocks[y].length; x++) {
         const block = blocks[y][x];
-        let blockStr = this.blockToAscii(block);
-        
-        // クリック位置がある場合、その位置を強調表示
-        if (clickPosition && clickPosition.x === x && clickPosition.y === y) {
-          blockStr = `[${blockStr}]`;
+        if (block === null) {
+          line += '   ';
         } else {
-          blockStr = ` ${blockStr} `;
+          line += ' ' + this.getBlockSymbol(block) + ' ';
         }
-        
-        row += blockStr;
       }
-      
-      row += '|';
-      result += row + '\n';
+      line += ' |';
+      console.log(line);
     }
     
     // 下部の枠線
-    result += border;
-    
-    return result;
+    let bottomBorder = '  +';
+    for (let x = 0; x < blocks[0]?.length || 0; x++) {
+      bottomBorder += '---';
+    }
+    bottomBorder += '-+';
+    console.log(bottomBorder);
   }
   
   /**
-   * 単一ブロックをアスキー表現に変換
-   * @param block ブロック
-   * @returns アスキー表現
+   * ブロック配列の比較をアスキーアートとしてコンソールに出力
+   * @param beforeBlocks 変更前のブロック配列
+   * @param afterBlocks 変更後のブロック配列
+   * @param title タイトル（省略可）
+   * @param clickPosition クリック位置（省略可）
    */
-  private static blockToAscii(block: Block | null): string {
-    if (!block) {
-      return '   '; // 空白ブロック
-    }
-    
-    // 色のマッピング
-    const colorMap: Record<string, string> = {
-      '#1E5799': 'B', // 深い青
-      '#7DB9E8': 'L', // 水色
-      '#2E8B57': 'G', // 海緑
-      '#FF6347': 'R', // 珊瑚赤
-      '#F4D03F': 'Y', // 砂金色
-      '#F5F5F5': 'W'  // 真珠白
-    };
-    
-    // 色コードを短縮表記に変換
-    const colorCode = colorMap[block.color] || '?';
-    
-    // ブロックタイプに基づいて表現を決定
-    switch (block.type) {
-      case 'normal':
-        return `__${colorCode}`;
-      case 'iceLv1':
-        return `_*${colorCode}`;
-      case 'iceLv2':
-        return `**${colorCode}`;
-      case 'counterPlus':
-        return `_+${colorCode}`;
-      case 'counterMinus':
-        return `_-${colorCode}`;
-      case 'iceCounterPlus':
-        return `*+${colorCode}`;
-      case 'iceCounterMinus':
-        return `*-${colorCode}`;
-      case 'rock':
-        return `[_]`;
-      case 'steel':
-        return `[-]`;
-      default:
-        return `??${colorCode}`;
-    }
-  }
-  
-  /**
-   * ブロック配列をコンソールに出力
-   * @param blocks ブロック配列
-   * @param label 出力時のラベル（オプション）
-   * @param clickPosition クリック位置（オプション）
-   */
-  static logBlocks(blocks: Block[][], label?: string, clickPosition?: {x: number, y: number}): void {
-    const asciiArt = this.renderBlocks(blocks, clickPosition);
-    if (label) {
-      console.log(`=== ${label} ===`);
-    } else {
-      console.log('=== BLOCK STATE ===');
-    }
-    console.log(asciiArt);
-    console.log('==================');
-  }
-  
-  /**
-   * ブロック配列の変化を前後で比較してコンソールに出力
-   * @param beforeBlocks 変化前のブロック配列
-   * @param afterBlocks 変化後のブロック配列
-   * @param label 出力時のラベル（オプション）
-   * @param clickPosition クリック位置（オプション）
-   */
-  static logBlocksComparison(beforeBlocks: Block[][], afterBlocks: Block[][], label?: string, clickPosition?: {x: number, y: number}): void {
-    const beforeAscii = this.renderBlocks(beforeBlocks, clickPosition);
-    const afterAscii = this.renderBlocks(afterBlocks, clickPosition);
-    
-    if (label) {
-      console.log(`=== ${label} ===`);
-    } else {
-      console.log('=== BLOCKS COMPARISON ===');
-    }
+  static logBlocksComparison(
+    beforeBlocks: (Block | null)[][],
+    afterBlocks: (Block | null)[][],
+    title?: string,
+    clickPosition?: { x: number, y: number }
+  ): void {
+    console.log(title ? `=== ${title} ===` : '=== BLOCKS COMPARISON ===');
     
     console.log('BEFORE:');
-    console.log(beforeAscii);
-    console.log('\nAFTER:');
-    console.log(afterAscii);
+    this.logBlocks(beforeBlocks);
+    
+    console.log('AFTER:');
+    this.logBlocks(afterBlocks);
+    
     console.log('========================');
+  }
+  
+  /**
+   * ブロックを表すシンボルを取得
+   * @param block ブロック
+   * @returns シンボル文字列
+   */
+  private static getBlockSymbol(block: Block): string {
+    // 色のシンボル
+    const colorSymbol = this.getColorSymbol(block.color);
+    
+    // ブロックタイプに応じたプレフィックス
+    let prefix = '';
+    switch (block.type) {
+      case BlockType.NORMAL:
+        prefix = '__';
+        break;
+      case BlockType.ICE_LV1:
+        prefix = '_*';
+        break;
+      case BlockType.ICE_LV2:
+        prefix = '**';
+        break;
+      case BlockType.COUNTER_PLUS:
+        prefix = '_+';
+        break;
+      case BlockType.COUNTER_MINUS:
+        prefix = '_-';
+        break;
+      case BlockType.ICE_COUNTER_PLUS:
+        prefix = '*+';
+        break;
+      case BlockType.ICE_COUNTER_MINUS:
+        prefix = '*-';
+        break;
+      case BlockType.ROCK:
+        return '<_>';
+      case BlockType.STEEL:
+        return '<->';
+      default:
+        prefix = '??';
+    }
+    
+    return prefix + colorSymbol;
+  }
+  
+  /**
+   * 色を表すシンボルを取得
+   * @param color 色（HEX形式）
+   * @returns 色のシンボル
+   */
+  private static getColorSymbol(color: string): string {
+    switch (color.toUpperCase()) {
+      case '#1E5799': // 深い青
+        return 'B';
+      case '#7DB9E8': // 水色
+        return 'L';
+      case '#2E8B57': // 海緑
+        return 'G';
+      case '#FF6347': // 珊瑚赤
+        return 'R';
+      case '#F4D03F': // 砂金色
+        return 'Y';
+      case '#F5F5F5': // 真珠白
+        return 'W';
+      default:
+        return '?';
+    }
   }
 }

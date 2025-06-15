@@ -76,6 +76,40 @@ export class BlockFactory {
   }
   
   /**
+   * 氷結カウンター+ブロックを作成
+   * @param x X座標
+   * @param y Y座標
+   * @param color 色
+   * @param counterValue カウンター値（指定数以上の同色ブロックグループで消去可能）
+   */
+  createIceCounterPlusBlock(x: number, y: number, color: string, counterValue: number): Block {
+    return {
+      x,
+      y,
+      color,
+      type: BlockType.ICE_COUNTER_PLUS,
+      counterValue
+    };
+  }
+  
+  /**
+   * 氷結カウンター-ブロックを作成
+   * @param x X座標
+   * @param y Y座標
+   * @param color 色
+   * @param counterValue カウンター値（指定数以下の同色ブロックグループで消去可能）
+   */
+  createIceCounterMinusBlock(x: number, y: number, color: string, counterValue: number): Block {
+    return {
+      x,
+      y,
+      color,
+      type: BlockType.ICE_COUNTER_MINUS,
+      counterValue
+    };
+  }
+  
+  /**
    * 岩ブロックを作成
    */
   createRockBlock(x: number, y: number): Block {

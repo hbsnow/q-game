@@ -61,6 +61,18 @@ export class GameScene {
           ...currentBlock,
           type: 'normal'
         };
+      } else if (currentBlock.type === 'iceCounterPlus') {
+        // 氷結カウンター+ → カウンター+
+        this.blocks[block.y][block.x] = {
+          ...currentBlock,
+          type: 'counterPlus'
+        };
+      } else if (currentBlock.type === 'iceCounterMinus') {
+        // 氷結カウンター- → カウンター-
+        this.blocks[block.y][block.x] = {
+          ...currentBlock,
+          type: 'counterMinus'
+        };
       }
     });
   }

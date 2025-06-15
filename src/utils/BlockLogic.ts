@@ -94,17 +94,20 @@ export class BlockLogic {
    */
   checkCounterCondition(blocks: Block[][], counterBlock: Block): boolean {
     // カウンターブロックでない場合は常にtrue
-    if (counterBlock.type !== BlockType.COUNTER_PLUS && counterBlock.type !== BlockType.COUNTER_MINUS) {
+    if (counterBlock.type !== BlockType.COUNTER_PLUS && 
+        counterBlock.type !== BlockType.COUNTER_MINUS &&
+        counterBlock.type !== BlockType.ICE_COUNTER_PLUS &&
+        counterBlock.type !== BlockType.ICE_COUNTER_MINUS) {
       return true;
     }
     
     // 隣接する同色ブロックを検索
     const connectedBlocks = this.findConnectedBlocks(blocks, counterBlock.x, counterBlock.y);
     
-    if (counterBlock.type === BlockType.COUNTER_PLUS) {
+    if (counterBlock.type === BlockType.COUNTER_PLUS || counterBlock.type === BlockType.ICE_COUNTER_PLUS) {
       // カウンター+ブロック: グループサイズがカウンター値以上である必要がある
       return connectedBlocks.length >= (counterBlock.counterValue || 0);
-    } else if (counterBlock.type === BlockType.COUNTER_MINUS) {
+    } else if (counterBlock.type === BlockType.COUNTER_MINUS || counterBlock.type === BlockType.ICE_COUNTER_MINUS) {
       // カウンター-ブロック: グループサイズがカウンター値以下である必要がある
       return connectedBlocks.length <= (counterBlock.counterValue || 0);
     }
@@ -125,9 +128,12 @@ export class BlockLogic {
       return [];
     }
     
-    // 開始ブロックが氷結ブロックでない場合は空配列を返す
+    // 開始ブロックが氷結系ブロックでない場合は空配列を返す
     const startBlock = blocks[startY][startX];
-    if (startBlock.type !== BlockType.ICE_LV1 && startBlock.type !== BlockType.ICE_LV2) {
+    if (startBlock.type !== BlockType.ICE_LV1 && 
+        startBlock.type !== BlockType.ICE_LV2 && 
+        startBlock.type !== BlockType.ICE_COUNTER_PLUS && 
+        startBlock.type !== BlockType.ICE_COUNTER_MINUS) {
       return [];
     }
     
@@ -160,8 +166,11 @@ export class BlockLogic {
         return;
       }
       
-      // 氷結ブロックのみを対象とする
-      if (blocks[y][x].type !== BlockType.ICE_LV1 && blocks[y][x].type !== BlockType.ICE_LV2) {
+      // 氷結系ブロックのみを対象とする
+      if (blocks[y][x].type !== BlockType.ICE_LV1 && 
+          blocks[y][x].type !== BlockType.ICE_LV2 && 
+          blocks[y][x].type !== BlockType.ICE_COUNTER_PLUS && 
+          blocks[y][x].type !== BlockType.ICE_COUNTER_MINUS) {
         return;
       }
       
@@ -310,6 +319,20 @@ export class BlockLogic {
         newBlocks[block.y][block.x] = {
           ...currentBlock,
           type: BlockType.NORMAL,
+          sprite: null
+        };
+      } else if (currentBlock && currentBlock.type === BlockType.ICE_COUNTER_PLUS) {
+        // 氷結カウンター+ → カウンター+
+        newBlocks[block.y][block.x] = {
+          ...currentBlock,
+          type: BlockType.COUNTER_PLUS,
+          sprite: null
+        };
+      } else if (currentBlock && currentBlock.type === BlockType.ICE_COUNTER_MINUS) {
+        // 氷結カウンター- → カウンター-
+        newBlocks[block.y][block.x] = {
+          ...currentBlock,
+          type: BlockType.COUNTER_MINUS,
           sprite: null
         };
       }
