@@ -375,6 +375,28 @@ export class BlockLogic {
     const width = blocks[0]?.length || 0;
     const height = blocks.length;
     
+    // 元のブロック配列のコピーを作成（参照を切るため）
+    const workingBlocks: (Block | null)[][] = [];
+    for (let y = 0; y < height; y++) {
+      workingBlocks[y] = [];
+      for (let x = 0; x < width; x++) {
+        if (blocks[y][x]) {
+          // ディープコピーを作成し、スプライト参照を明示的にnullに設定
+          workingBlocks[y][x] = {
+            ...blocks[y][x]!,
+            sprite: null
+          };
+          
+          // 元のブロックのスプライト参照もnullに設定（メモリリーク防止）
+          if (blocks[y][x]?.sprite) {
+            blocks[y][x]!.sprite = null;
+          }
+        } else {
+          workingBlocks[y][x] = null;
+        }
+      }
+    }
+    
     // 新しい空のブロック配列を作成
     const newBlocks: (Block | null)[][] = [];
     for (let y = 0; y < height; y++) {
@@ -384,35 +406,81 @@ export class BlockLogic {
       }
     }
     
-    // 各列ごとに処理
-    for (let x = 0; x < width; x++) {
-      // 列内のブロックを集める（nullでないものだけ）
-      const columnBlocks: Block[] = [];
-      for (let y = 0; y < height; y++) {
-        if (blocks[y][x] !== null && blocks[y][x] !== undefined) {
-          // ディープコピーを作成し、スプライト参照を明示的にnullに設定
-          const blockCopy: Block = {
-            ...blocks[y][x]!,
-            sprite: null // スプライト参照を明示的にnullに設定
+    // ステップ1: 鋼鉄ブロックを先に配置（固定位置）
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (workingBlocks[y][x]?.type === BlockType.STEEL) {
+          // 鋼鉄ブロックは元の位置にコピー
+          newBlocks[y][x] = {
+            ...workingBlocks[y][x]!,
+            sprite: null
           };
-          columnBlocks.push(blockCopy);
           
-          // 元のブロックのスプライト参照もnullに設定（メモリリーク防止）
-          if (blocks[y][x]?.sprite) {
-            blocks[y][x]!.sprite = null;
+          // 処理済みの鋼鉄ブロックをnullに設定
+          workingBlocks[y][x] = null;
+        }
+      }
+    }
+    
+    // ステップ2: 鋼鉄ブロックの上にあるブロックを固定する
+    for (let x = 0; x < width; x++) {
+      for (let y = height - 1; y >= 0; y--) {
+        // 鋼鉄ブロックを見つける
+        if (newBlocks[y][x]?.type === BlockType.STEEL) {
+          // 鋼鉄ブロックの上にあるブロックを探す
+          let checkY = y - 1;
+          while (checkY >= 0) {
+            if (workingBlocks[checkY][x]) {
+              // 鋼鉄ブロックの上のブロックを元の位置に固定
+              newBlocks[checkY][x] = {
+                ...workingBlocks[checkY][x]!,
+                sprite: null
+              };
+              workingBlocks[checkY][x] = null;
+            } else {
+              // 空白があれば、それより上のブロックは固定されない
+              break;
+            }
+            checkY--;
           }
         }
       }
+    }
+    
+    // ステップ3: 残りの通常ブロックに重力を適用
+    for (let x = 0; x < width; x++) {
+      // 列内の残りのブロックを集める（nullでないものだけ）
+      const columnBlocks: Block[] = [];
+      for (let y = 0; y < height; y++) {
+        if (workingBlocks[y][x] !== null && workingBlocks[y][x] !== undefined) {
+          columnBlocks.push({
+            ...workingBlocks[y][x]!,
+            sprite: null
+          });
+        }
+      }
       
-      // 集めたブロックを下から順に配置
-      for (let i = 0; i < columnBlocks.length; i++) {
-        const targetY = height - 1 - i; // 下から順に配置
-        newBlocks[targetY][x] = columnBlocks[columnBlocks.length - 1 - i];
+      // 下から順に空きマスを探して配置
+      if (columnBlocks.length > 0) {
+        let targetY = height - 1;
+        let blockIndex = columnBlocks.length - 1;
         
-        // 座標を更新
-        if (newBlocks[targetY][x]) {
-          newBlocks[targetY][x]!.y = targetY;
-          newBlocks[targetY][x]!.x = x;
+        while (blockIndex >= 0 && targetY >= 0) {
+          // 現在のマスが空いているか確認
+          if (newBlocks[targetY][x] === null) {
+            // ブロックを配置
+            newBlocks[targetY][x] = columnBlocks[blockIndex];
+            
+            // 座標を更新
+            if (newBlocks[targetY][x]) {
+              newBlocks[targetY][x]!.y = targetY;
+              newBlocks[targetY][x]!.x = x;
+            }
+            
+            blockIndex--;
+          }
+          
+          targetY--;
         }
       }
     }
@@ -425,9 +493,28 @@ export class BlockLogic {
    * @param blocks ブロック配列
    * @returns 更新されたブロック配列
    */
-  slideColumnsLeft(blocks: Block[][]): Block[][] {
+  applyHorizontalSlide(blocks: Block[][]): Block[][] {
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
+    
+    // 各列が空かどうかチェック
+    const isEmpty: boolean[] = [];
+    for (let x = 0; x < width; x++) {
+      isEmpty[x] = true;
+      for (let y = 0; y < height; y++) {
+        if (blocks[y][x] !== null) {
+          isEmpty[x] = false;
+          break;
+        }
+      }
+    }
+    
+    // 空の列がない場合は変更なし
+    if (!isEmpty.some(empty => empty)) {
+      return blocks.map(row => row.map(block => 
+        block ? { ...block, sprite: null } : null
+      ));
+    }
     
     // 新しい空のブロック配列を作成
     const newBlocks: (Block | null)[][] = [];
@@ -438,40 +525,25 @@ export class BlockLogic {
       }
     }
     
-    // 空でない列を特定
-    const nonEmptyColumns: number[] = [];
+    // 左詰めで配置
+    let targetX = 0;
     for (let x = 0; x < width; x++) {
-      let isEmpty = true;
-      for (let y = 0; y < height; y++) {
-        if (blocks[y][x] !== null) {
-          isEmpty = false;
-          break;
-        }
+      // 空の列はスキップ
+      if (isEmpty[x]) {
+        continue;
       }
-      if (!isEmpty) {
-        nonEmptyColumns.push(x);
-      }
-    }
-    
-    // 空でない列を左から順に配置
-    for (let newX = 0; newX < nonEmptyColumns.length; newX++) {
-      const oldX = nonEmptyColumns[newX];
+      
+      // 列全体を移動
       for (let y = 0; y < height; y++) {
-        if (blocks[y][oldX] !== null && blocks[y][oldX] !== undefined) {
-          // 元のブロックのスプライト参照をnullに設定（メモリリーク防止）
-          if (blocks[y][oldX]?.sprite) {
-            blocks[y][oldX]!.sprite = null;
-          }
-          
-          // ディープコピーを作成し、スプライト参照を明示的にnullに設定
-          newBlocks[y][newX] = {
-            ...blocks[y][oldX]!,
-            x: newX,
-            y: y,
+        if (blocks[y][x]) {
+          newBlocks[y][targetX] = {
+            ...blocks[y][x]!,
+            x: targetX,
             sprite: null
           };
         }
       }
+      targetX++;
     }
     
     return newBlocks as Block[][];
