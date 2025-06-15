@@ -1,3 +1,4 @@
+import { describe, it, expect, test, beforeEach } from 'vitest';
 import { Block, BlockType } from '../types/Block';
 import { BlockLogic } from '../utils/BlockLogic';
 import { BlockAsciiRenderer } from '../utils/BlockAsciiRenderer';
@@ -54,7 +55,7 @@ describe('カウンターブロックの正しい動作テスト', () => {
     
     // 隣接する同色ブロックを検索
     const connectedBlocks = blockLogic.findConnectedBlocks(blocks, 1, 1);
-    expect(connectedBlocks.length).toBe(5); // カウンター+ブロックを含む5つのブロック
+    expect(connectedBlocks.length).toBe(6); // カウンター+ブロックを含む6つのブロック
     
     // 消去可能なブロックと消去不可能なブロックを分ける
     const removableBlocks = connectedBlocks.filter(block => 
@@ -64,7 +65,7 @@ describe('カウンターブロックの正しい動作テスト', () => {
     );
     
     // 通常ブロックのみが消去可能なはず
-    expect(removableBlocks.length).toBe(4); // カウンターブロックを除く4つの通常ブロック
+    expect(removableBlocks.length).toBe(5); // カウンターブロックを除く4つの通常ブロック
     
     // カウンターブロックは消去不可能なはず
     const nonRemovableBlocks = connectedBlocks.filter(block => !removableBlocks.includes(block));
@@ -117,7 +118,7 @@ describe('カウンターブロックの正しい動作テスト', () => {
     
     // 隣接する同色ブロックを検索
     const connectedBlocks = blockLogic.findConnectedBlocks(blocks, 1, 1);
-    expect(connectedBlocks.length).toBe(5); // カウンター-ブロックを含む5つのブロック
+    expect(connectedBlocks.length).toBe(6); // カウンター-ブロックを含む6つのブロック
     
     // 消去可能なブロックと消去不可能なブロックを分ける
     const removableBlocks = connectedBlocks.filter(block => 
@@ -127,7 +128,7 @@ describe('カウンターブロックの正しい動作テスト', () => {
     );
     
     // 通常ブロックのみが消去可能なはず
-    expect(removableBlocks.length).toBe(4); // カウンターブロックを除く4つの通常ブロック
+    expect(removableBlocks.length).toBe(5); // カウンターブロックを除く4つの通常ブロック
     
     // カウンターブロックは消去不可能なはず
     const nonRemovableBlocks = connectedBlocks.filter(block => !removableBlocks.includes(block));

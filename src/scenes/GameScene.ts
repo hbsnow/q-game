@@ -218,12 +218,12 @@ export class GameScene extends Phaser.Scene {
         } else if (rand < 0.13) {
           // 約3%の確率で氷結Lv2
           block = blockFactory.createIceBlockLv2(x, y, color);
-        } else if (rand < 0.10) {
-          // 約2%の確率で氷結カウンター+ブロック（テスト用）
+        } else if (rand < 0.20) {
+          // 約7%の確率で氷結カウンター+ブロック（テスト用）
           const counterValue = Math.floor(Math.random() * 5) + 3; // 3〜7の値
           block = blockFactory.createIceCounterPlusBlock(x, y, color, counterValue);
-        } else if (rand < 0.12) {
-          // 約2%の確率で氷結カウンター-ブロック（テスト用）
+        } else if (rand < 0.30) {
+          // 約10%の確率で氷結カウンター-ブロック（テスト用）
           const counterValue = Math.floor(Math.random() * 5) + 3; // 3〜7の値
           block = blockFactory.createIceCounterMinusBlock(x, y, color, counterValue);
         } else if (rand < 0.12) {

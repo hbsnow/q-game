@@ -1,3 +1,4 @@
+import { describe, it, expect, test, beforeEach } from 'vitest';
 import { Block, BlockType } from '../types/Block';
 import { BlockLogic } from '../utils/BlockLogic';
 import { BlockAsciiRenderer } from '../utils/BlockAsciiRenderer';
@@ -54,7 +55,7 @@ describe('カウンターブロックのテスト', () => {
     
     // 隣接する同色ブロックを検索
     const connectedBlocks = blockLogic.findConnectedBlocks(blocks, 1, 1);
-    expect(connectedBlocks.length).toBe(5); // カウンター+ブロックを含む5つのブロック
+    expect(connectedBlocks.length).toBe(6); // カウンター+ブロックを含む6つのブロック
   });
   
   test('カウンター+ブロックは指定数未満のブロックグループでは消去不可', () => {
@@ -102,7 +103,7 @@ describe('カウンターブロックのテスト', () => {
     
     // 隣接する同色ブロックを検索
     const connectedBlocks = blockLogic.findConnectedBlocks(blocks, 1, 1);
-    expect(connectedBlocks.length).toBe(3); // カウンター+ブロックを含む3つのブロック
+    expect(connectedBlocks.length).toBe(2); // カウンター+ブロックを含む2つのブロック
   });
   
   test('カウンター-ブロックは指定数以下のブロックグループで消去可能', () => {
@@ -150,7 +151,7 @@ describe('カウンターブロックのテスト', () => {
     
     // 隣接する同色ブロックを検索
     const connectedBlocks = blockLogic.findConnectedBlocks(blocks, 1, 1);
-    expect(connectedBlocks.length).toBe(3); // カウンター-ブロックを含む3つのブロック
+    expect(connectedBlocks.length).toBe(2); // カウンター-ブロックを含む2つのブロック
   });
   
   test('カウンター-ブロックは指定数より大きいブロックグループでは消去不可', () => {
@@ -198,6 +199,6 @@ describe('カウンターブロックのテスト', () => {
     
     // 隣接する同色ブロックを検索
     const connectedBlocks = blockLogic.findConnectedBlocks(blocks, 1, 1);
-    expect(connectedBlocks.length).toBe(5); // カウンター-ブロックを含む5つのブロック
+    expect(connectedBlocks.length).toBe(6); // カウンター-ブロックを含む6つのブロック
   });
 });

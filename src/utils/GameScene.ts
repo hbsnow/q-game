@@ -62,16 +62,16 @@ export class GameScene {
           type: 'normal'
         };
       } else if (currentBlock.type === 'iceCounterPlus') {
-        // 氷結カウンター+ → カウンター+
+        // 氷結カウンター+ → 通常ブロック
         this.blocks[block.y][block.x] = {
           ...currentBlock,
-          type: 'counterPlus'
+          type: 'normal'
         };
       } else if (currentBlock.type === 'iceCounterMinus') {
-        // 氷結カウンター- → カウンター-
+        // 氷結カウンター- → 通常ブロック
         this.blocks[block.y][block.x] = {
           ...currentBlock,
-          type: 'counterMinus'
+          type: 'normal'
         };
       }
     });
