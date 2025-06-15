@@ -40,6 +40,48 @@ export class GameScene extends Phaser.Scene {
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
     
+    // 岩ブロック用のテクスチャを生成
+    if (!this.textures.exists('rockBlockTexture')) {
+      // 六角形のテクスチャを生成
+      const graphics = this.make.graphics({});
+      graphics.fillStyle(0x808080, 1); // 灰色
+      graphics.lineStyle(2, 0x000000, 1); // 黒い輪郭
+      
+      const size = GameConfig.BLOCK_SIZE / 2 - 2;
+      const sides = 6;
+      
+      // 中心を原点として六角形を描画
+      graphics.beginPath();
+      for (let i = 0; i < sides; i++) {
+        const angle = (Math.PI * 2 * i) / sides - Math.PI / 2;
+        const x = GameConfig.BLOCK_SIZE / 2 + size * Math.cos(angle);
+        const y = GameConfig.BLOCK_SIZE / 2 + size * Math.sin(angle);
+        
+        if (i === 0) {
+          graphics.moveTo(x, y);
+        } else {
+          graphics.lineTo(x, y);
+        }
+      }
+      graphics.closePath();
+      graphics.fillPath();
+      graphics.strokePath();
+      
+      // 岩の質感を表現する線を追加
+      graphics.lineStyle(1, 0x000000, 0.3);
+      graphics.moveTo(GameConfig.BLOCK_SIZE / 2 - size / 2, GameConfig.BLOCK_SIZE / 2 - size / 3);
+      graphics.lineTo(GameConfig.BLOCK_SIZE / 2 + size / 2, GameConfig.BLOCK_SIZE / 2 - size / 3);
+      graphics.moveTo(GameConfig.BLOCK_SIZE / 2 - size / 3, GameConfig.BLOCK_SIZE / 2);
+      graphics.lineTo(GameConfig.BLOCK_SIZE / 2 + size / 3, GameConfig.BLOCK_SIZE / 2);
+      graphics.moveTo(GameConfig.BLOCK_SIZE / 2 - size / 2, GameConfig.BLOCK_SIZE / 2 + size / 3);
+      graphics.lineTo(GameConfig.BLOCK_SIZE / 2 + size / 2, GameConfig.BLOCK_SIZE / 2 + size / 3);
+      graphics.strokePath();
+      
+      // テクスチャとして生成
+      graphics.generateTexture('rockBlockTexture', GameConfig.BLOCK_SIZE, GameConfig.BLOCK_SIZE);
+      graphics.destroy();
+    }
+    
     // ヘッダー（ステージ情報とスコア）
     const headerText = this.add.text(10, 30, `Stage ${this.currentStage}  Score: ${this.score}`, {
       fontSize: '18px',
@@ -143,9 +185,12 @@ export class GameScene extends Phaser.Scene {
         let block: Block;
         const rand = Math.random();
         if (rand < 0.05) {
+          // 約5%の確率で岩ブロック（ステージ1から出現）
+          block = blockFactory.createRockBlock(x, y);
+        } else if (rand < 0.10) {
           // 約5%の確率で氷結Lv1
           block = blockFactory.createIceBlockLv1(x, y, color);
-        } else if (rand < 0.08) {
+        } else if (rand < 0.13) {
           // 約3%の確率で氷結Lv2
           block = blockFactory.createIceBlockLv2(x, y, color);
         } else if (rand < 0.10) {
@@ -265,6 +310,30 @@ export class GameScene extends Phaser.Scene {
       // テキストをスプライトに関連付ける（後で一緒に削除するため）
       blockSprite.setData('counterText', counterText);
       blockSprite.setData('starGraphics', starGraphics);
+    } else if (block.type === BlockType.ROCK) {
+      // 岩ブロックはテクスチャを使用
+      blockSprite.destroy(); // 円形スプライトを破棄
+      
+      // 事前生成したテクスチャを使用
+      const rockSprite = this.add.sprite(blockX, blockY, 'rockBlockTexture');
+      
+      // スプライトを対話可能に設定
+      rockSprite.setInteractive({ useHandCursor: true });
+      
+      // スプライト配列に保存（型変換が必要）
+      this.blockSprites[y][x] = rockSprite as unknown as Phaser.GameObjects.Sprite;
+      
+      // ブロックオブジェクトにスプライト参照を追加
+      this.blocks[y][x].sprite = rockSprite as unknown as Phaser.GameObjects.Sprite;
+      
+      // クリックイベント
+      rockSprite.on('pointerdown', () => {
+        if (!this.isProcessing) {
+          this.onBlockClick(x, y);
+        }
+      });
+      
+      return rockSprite as unknown as Phaser.GameObjects.Sprite;
     } else if (block.type === BlockType.COUNTER_PLUS || block.type === BlockType.COUNTER_MINUS) {
       // カウンターブロックは輪郭と数字を表示
       const borderColor = block.type === BlockType.COUNTER_PLUS ? 0xFFD700 : 0xFF4500; // 金色または赤橙色
@@ -322,7 +391,8 @@ export class GameScene extends Phaser.Scene {
         clickedBlock.type === BlockType.COUNTER_PLUS || 
         clickedBlock.type === BlockType.COUNTER_MINUS ||
         clickedBlock.type === BlockType.ICE_COUNTER_PLUS ||
-        clickedBlock.type === BlockType.ICE_COUNTER_MINUS) {
+        clickedBlock.type === BlockType.ICE_COUNTER_MINUS ||
+        clickedBlock.type === BlockType.ROCK) {
       // 妨害ブロックは直接クリックできない
       console.log('妨害ブロックは直接クリックできません');
       return;
