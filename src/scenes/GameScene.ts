@@ -383,8 +383,19 @@ export class GameScene extends Phaser.Scene {
           continue;
         }
         
+        // 現在の状態で氷結ブロックかどうかをチェック
+        const currentBlock = this.blocks[block.y][block.x];
+        if (currentBlock && (
+            currentBlock.type === BlockType.ICE_LV1 ||
+            currentBlock.type === BlockType.ICE_LV2 ||
+            currentBlock.type === BlockType.ICE_COUNTER_PLUS ||
+            currentBlock.type === BlockType.ICE_COUNTER_MINUS
+        )) {
+          // 氷結ブロックは消去しない（レベルダウンのみ）
+          continue;
+        }
+        
         // 元々通常ブロックだったもの、または条件を満たすカウンターブロックを消去対象とする
-        // 氷結ブロックから変化した通常ブロックは消去しない
         if (beforeIceUpdate[block.y][block.x].type === BlockType.NORMAL ||
             beforeIceUpdate[block.y][block.x].type === BlockType.COUNTER_PLUS ||
             beforeIceUpdate[block.y][block.x].type === BlockType.COUNTER_MINUS ||
