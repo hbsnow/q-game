@@ -60,14 +60,13 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     // 横スライド適用後:
     //      a   b   c   d
     //   +-----------------+
-    // 0 | __B __R __Y     |
-    // 1 | __Y __R <->     |
-    // 2 | __B __R __Y     |
-    // 3 | __Y __R __R     |
+    // 0 | __B __R     __Y |
+    // 1 | __Y __R <-> __Y |
+    // 2 | __B __R     __Y |
+    // 3 | __Y __R __Y __R |
     //   +-----------------+
     // 鋼鉄ブロックは重力の影響を受けず、元の位置に留まる
     // 鋼鉄ブロックの右にブロックがある場合にはその列より右にあるブロックは左側にスライドされない
-    // 鋼鉄ブロックより下にあるブロックはスライドする
     const result = blockLogic.applyHorizontalSlide(afterGravity);
     
     // 鋼鉄ブロックは元の位置に留まるべき
@@ -75,13 +74,11 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     expect(result[1][2]?.x).toBe(2);
     expect(result[1][2]?.y).toBe(1);
     
-    // d列のブロックはc列に移動するべき
-    // 注: 現在の実装では、この部分のテストが失敗しています
-    // 実際の動作を確認し、テストを修正するか実装を修正する必要があります
-    // expect(result[0][3]).toBeNull();
-    // expect(result[1][3]).toBeNull();
-    // expect(result[2][3]).toBeNull();
-    // expect(result[3][3]).toBeNull();
+    // d列のブロックは移動しないべき（鋼鉄ブロックがあるため）
+    expect(result[0][3]?.color).toBe('yellow');
+    expect(result[1][3]?.color).toBe('yellow');
+    expect(result[2][3]?.color).toBe('yellow');
+    expect(result[3][3]?.color).toBe('red');
   });
 
   it('Steel blocks should prevent columns from sliding when they are in the middle', () => {
@@ -139,13 +136,13 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     // 横スライド適用後:
     //      a   b   c   d
     //   +-----------------+
-    // 0 | __B     __Y     |
-    // 1 | __Y <-> __Y     |
-    // 2 | __B     __Y     |
-    // 3 | __Y __Y __R     |
+    // 0 | __B     __R __Y |
+    // 1 | __Y <-> __R __Y |
+    // 2 | __B     __R __Y |
+    // 3 | __Y     __Y __R |
     //   +-----------------+
     // 鋼鉄ブロックは固定位置に留まる
-    // 鋼鉄ブロックの右隣にブロックがないので、cとd列が左にスライドする
+    // 鋼鉄ブロックがあるため、c列とd列は左にスライドしない
     const result = blockLogic.applyHorizontalSlide(afterGravity);
     
     // 鋼鉄ブロックは元の位置に留まるべき
@@ -155,7 +152,14 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     
     // c列とd列のブロックは左にスライドしない
     expect(result[0][2]?.color).toBe('red');
+    expect(result[1][2]?.color).toBe('red');
+    expect(result[2][2]?.color).toBe('red');
+    expect(result[3][2]?.color).toBe('yellow');
+    
     expect(result[0][3]?.color).toBe('yellow');
+    expect(result[1][3]?.color).toBe('yellow');
+    expect(result[2][3]?.color).toBe('yellow');
+    expect(result[3][3]?.color).toBe('red');
   });
 
   it('Steel blocks should allow columns to slide when they are not in the way', () => {
@@ -236,6 +240,12 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     expect(result[1][2]?.color).toBe('yellow');
     expect(result[2][2]?.color).toBe('yellow');
     expect(result[3][2]?.color).toBe('red');
+    
+    // d列は空になるべき
+    expect(result[0][3]).toBeNull();
+    expect(result[1][3]).toBeNull();
+    expect(result[2][3]).toBeNull();
+    expect(result[3][3]).toBeNull();
   });
 
   it('Multiple steel blocks should maintain their relative positions during horizontal slide', () => {
@@ -297,7 +307,7 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     // 0 | __B     __R __Y |
     // 1 | <->     <-> __Y |
     // 2 | __B         __Y |
-    // 3 | __Y __Y     __R |
+    // 3 | __Y     __Y __R |
     //   +-----------------+
     // ポイント: 複数の鋼鉄ブロックがあっても、それぞれが固定位置に留まります。
     const result = blockLogic.applyHorizontalSlide(afterGravity);
@@ -310,5 +320,97 @@ describe('Steel block horizontal slide behavior according to specifications', ()
     expect(result[1][2]?.type).toBe(BlockType.STEEL);
     expect(result[1][2]?.x).toBe(2);
     expect(result[1][2]?.y).toBe(1);
+    
+    // 他のブロックも正しい位置にあるべき
+    expect(result[0][0]?.color).toBe('blue');
+    expect(result[2][0]?.color).toBe('blue');
+    expect(result[3][0]?.color).toBe('yellow');
+    
+    expect(result[0][2]?.color).toBe('red');
+    expect(result[3][2]?.color).toBe('yellow');
+    
+    expect(result[0][3]?.color).toBe('yellow');
+    expect(result[1][3]?.color).toBe('yellow');
+    expect(result[2][3]?.color).toBe('yellow');
+    expect(result[3][3]?.color).toBe('red');
+  });
+  
+  it('Steel blocks with blocks above them should maintain their positions', () => {
+    // 初期状態:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __G __R __Y |
+    // 1 | <-> __R <-> __Y |
+    // 2 | __B __R __R __Y |
+    // 3 | __Y __R __Y __R |
+    //   +-----------------+
+    const blocks: (Block | null)[][] = [
+      [
+        { x: 0, y: 0, color: 'blue', type: BlockType.NORMAL, sprite: null },
+        { x: 1, y: 0, color: 'green', type: BlockType.NORMAL, sprite: null },
+        { x: 2, y: 0, color: 'red', type: BlockType.NORMAL, sprite: null },
+        { x: 3, y: 0, color: 'yellow', type: BlockType.NORMAL, sprite: null }
+      ],
+      [
+        { x: 0, y: 1, color: 'blue', type: BlockType.STEEL, sprite: null },
+        { x: 1, y: 1, color: 'red', type: BlockType.NORMAL, sprite: null },
+        { x: 2, y: 1, color: 'blue', type: BlockType.STEEL, sprite: null },
+        { x: 3, y: 1, color: 'yellow', type: BlockType.NORMAL, sprite: null }
+      ],
+      [
+        { x: 0, y: 2, color: 'blue', type: BlockType.NORMAL, sprite: null },
+        { x: 1, y: 2, color: 'red', type: BlockType.NORMAL, sprite: null },
+        { x: 2, y: 2, color: 'red', type: BlockType.NORMAL, sprite: null },
+        { x: 3, y: 2, color: 'yellow', type: BlockType.NORMAL, sprite: null }
+      ],
+      [
+        { x: 0, y: 3, color: 'yellow', type: BlockType.NORMAL, sprite: null },
+        { x: 1, y: 3, color: 'red', type: BlockType.NORMAL, sprite: null },
+        { x: 2, y: 3, color: 'yellow', type: BlockType.NORMAL, sprite: null },
+        { x: 3, y: 3, color: 'red', type: BlockType.NORMAL, sprite: null }
+      ]
+    ];
+
+    // b列の赤ブロックをすべて消去した場合
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __G __R __Y |
+    // 1 | <->     <-> __Y |
+    // 2 | __B         __Y |
+    // 3 | __Y     __Y __R |
+    //   +-----------------+
+    const blocksAfterRemoval = JSON.parse(JSON.stringify(blocks));
+    blocksAfterRemoval[1][1] = null;
+    blocksAfterRemoval[2][1] = null;
+    blocksAfterRemoval[3][1] = null;
+    
+    // 重力適用後
+    const afterGravity = blockLogic.applyGravity(blocksAfterRemoval);
+    
+    // 重力適用後:
+    //      a   b   c   d
+    //   +-----------------+
+    // 0 | __B __G __R __Y |
+    // 1 | <->     <-> __Y |
+    // 2 | __B         __Y |
+    // 3 | __Y     __Y __R |
+    //   +-----------------+
+    
+    // 鋼鉄ブロックは元の位置に留まるべき
+    expect(afterGravity[1][0]?.type).toBe(BlockType.STEEL);
+    expect(afterGravity[1][0]?.x).toBe(0);
+    expect(afterGravity[1][0]?.y).toBe(1);
+    
+    expect(afterGravity[1][2]?.type).toBe(BlockType.STEEL);
+    expect(afterGravity[1][2]?.x).toBe(2);
+    expect(afterGravity[1][2]?.y).toBe(1);
+    
+    // 鋼鉄ブロックの上のブロックも元の位置に留まるべき
+    expect(afterGravity[0][0]?.color).toBe('blue');
+    expect(afterGravity[0][2]?.color).toBe('red');
+    
+    // 緑ブロックは落下するべき
+    expect(afterGravity[0][1]).toBeNull();
+    expect(afterGravity[3][1]?.color).toBe('green');
   });
 });

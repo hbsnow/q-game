@@ -570,32 +570,64 @@ export class BlockLogic {
     }
     
     // 残りの列を左詰めで配置
-    let targetX = 0;
+    // 仕様によると、鋼鉄ブロックがある場合は列の移動が制限される
+    // 鋼鉄ブロックがある列の右側にあるブロックは、鋼鉄ブロックの右側の空列にのみ移動可能
+    
+    // 最も左の鋼鉄ブロックの位置を見つける
+    let leftmostSteelColumn = width;
     for (let x = 0; x < width; x++) {
-      // 鋼鉄ブロックがある列または空の列はスキップ
-      if (hasSteelBlock[x] || isEmpty[x]) {
+      if (hasSteelBlock[x]) {
+        leftmostSteelColumn = x;
+        break;
+      }
+    }
+    
+    // 鋼鉄ブロックの左側の列を処理
+    let targetX = 0;
+    for (let x = 0; x < leftmostSteelColumn; x++) {
+      // 空の列はスキップ
+      if (isEmpty[x]) {
         continue;
       }
       
-      // 次の空いている位置を探す
-      while (targetX < width) {
-        // 既に配置済みの列または鋼鉄ブロックがある列はスキップ
-        let isOccupied = false;
-        for (let y = 0; y < height; y++) {
-          if (newBlocks[y][targetX] !== null) {
-            isOccupied = true;
-            break;
-          }
+      // 列全体を移動
+      for (let y = 0; y < height; y++) {
+        if (workingBlocks[y][x]) {
+          newBlocks[y][targetX] = {
+            ...workingBlocks[y][x]!,
+            x: targetX,
+            sprite: null
+          };
+          // 処理済みのブロックをnullに設定
+          workingBlocks[y][x] = null;
+        }
+      }
+      targetX++;
+    }
+    
+    // 鋼鉄ブロックの右側の列を処理
+    // 各鋼鉄ブロックの間の領域を個別に処理
+    let steelColumns = [];
+    for (let x = 0; x < width; x++) {
+      if (hasSteelBlock[x]) {
+        steelColumns.push(x);
+      }
+    }
+    steelColumns.push(width); // 最後の境界として幅を追加
+    
+    for (let i = 0; i < steelColumns.length - 1; i++) {
+      const startCol = steelColumns[i] + 1;
+      const endCol = steelColumns[i + 1];
+      
+      // この区間の最初の空でない列を見つける
+      let targetX = startCol;
+      for (let x = startCol; x < endCol; x++) {
+        // 空の列はスキップ
+        if (isEmpty[x]) {
+          continue;
         }
         
-        if (!isOccupied && !hasSteelBlock[targetX]) {
-          break;
-        }
-        targetX++;
-      }
-      
-      // 列全体を移動
-      if (targetX < width) {
+        // 列全体を移動
         for (let y = 0; y < height; y++) {
           if (workingBlocks[y][x]) {
             newBlocks[y][targetX] = {
@@ -603,6 +635,8 @@ export class BlockLogic {
               x: targetX,
               sprite: null
             };
+            // 処理済みのブロックをnullに設定
+            workingBlocks[y][x] = null;
           }
         }
         targetX++;
