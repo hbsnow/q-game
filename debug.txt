@@ -1,1 +1,0 @@
-console.log('Debug - drawnItems:', JSON.stringify(this.drawnItems));
