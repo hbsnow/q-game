@@ -42,7 +42,7 @@ describe('列スライド機能テスト', () => {
       blocks[2][1] = null;
       
       // 横スライド処理を適用
-      const updatedBlocks = blockLogic.slideColumnsLeft(blocks);
+      const updatedBlocks = blockLogic.applyHorizontalSlide(blocks);
       
       // 期待される結果:
       // R B _
@@ -89,7 +89,7 @@ describe('列スライド機能テスト', () => {
       blocks[2][0] = null;
       
       // 横スライド処理を適用
-      const updatedBlocks = blockLogic.slideColumnsLeft(blocks);
+      const updatedBlocks = blockLogic.applyHorizontalSlide(blocks);
       
       // 期待される結果:
       // R B _
@@ -137,7 +137,7 @@ describe('列スライド機能テスト', () => {
       wideBlocks[2][4] = { x: 4, y: 2, color: GREEN, type: 'normal' };
       
       // 横スライド処理を適用
-      const updatedBlocks = blockLogic.slideColumnsLeft(wideBlocks);
+      const updatedBlocks = blockLogic.applyHorizontalSlide(wideBlocks);
       
       // 期待される結果:
       // R B _ _ _
@@ -182,7 +182,7 @@ describe('列スライド機能テスト', () => {
       blocks[2][2] = { x: 2, y: 2, color: BLUE, type: 'normal' };
       
       // 横スライド処理を適用
-      const updatedBlocks = blockLogic.slideColumnsLeft(blocks);
+      const updatedBlocks = blockLogic.applyHorizontalSlide(blocks);
       
       // 変更がないことを確認
       for (let y = 0; y < 3; y++) {
@@ -204,7 +204,7 @@ describe('列スライド機能テスト', () => {
       blocks[1][2] = { x: 2, y: 1, color: YELLOW, type: 'normal', sprite: {} as Phaser.GameObjects.Sprite };
       
       // 横スライド処理を適用
-      const updatedBlocks = blockLogic.slideColumnsLeft(blocks);
+      const updatedBlocks = blockLogic.applyHorizontalSlide(blocks);
       
       // スプライト参照がnullになっていることを確認
       for (let y = 0; y < 2; y++) {
