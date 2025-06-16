@@ -268,104 +268,32 @@ export class BlockLogic {
       }
     }
     
-    // 元のブロック配列をディープコピー
-    const newBlocks: Block[][] = JSON.parse(JSON.stringify(blocks));
+    // 新しいブロック配列を作成（nullで初期化）
+    const newBlocks: Block[][] = Array(height).fill(null).map(() => Array(width).fill(null));
     
-    // 鋼鉄ブロックとその上のブロックを特定
-    const steelBlocks: {x: number, y: number}[] = [];
-    const blocksAboveSteel: {x: number, y: number, block: Block}[] = [];
-    
-    // 鋼鉄ブロックとその上のブロックを特定
+    // 各列ごとに処理
     for (let x = 0; x < width; x++) {
-      let steelFound = false;
-      let steelY = -1;
-      
-      // 下から上に探索して鋼鉄ブロックを見つける
-      for (let y = height - 1; y >= 0; y--) {
-        if (blocks[y][x] && blocks[y][x].type === BlockType.STEEL) {
-          steelFound = true;
-          steelY = y;
-          steelBlocks.push({x, y});
-          break;
-        }
-      }
-      
-      // 鋼鉄ブロックの上にあるブロックを記録
-      if (steelFound) {
-        for (let y = steelY - 1; y >= 0; y--) {
-          if (blocks[y][x]) {
-            blocksAboveSteel.push({
-              x, 
-              y, 
-              block: {...blocks[y][x], sprite: null}
-            });
-          }
-        }
-      }
-    }
-    
-    // 新しい配列を初期化（nullで埋める）
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        newBlocks[y][x] = null;
-      }
-    }
-    
-    // 鋼鉄ブロックを元の位置に配置
-    for (const {x, y} of steelBlocks) {
-      newBlocks[y][x] = {
-        ...blocks[y][x],
-        sprite: null
-      };
-    }
-    
-    // 鋼鉄ブロックの上のブロックを元の位置に配置
-    for (const {x, y, block} of blocksAboveSteel) {
-      newBlocks[y][x] = {
-        ...block,
-        x,
-        y
-      };
-    }
-    
-    // 各列ごとに処理（鋼鉄ブロックとその上のブロック以外）
-    for (let x = 0; x < width; x++) {
-      // 鋼鉄ブロックの位置を特定
-      const steelY = steelBlocks.find(b => b.x === x)?.y ?? -1;
-      
-      // 各列の非nullブロック（鋼鉄とその上のブロック以外）を収集
+      // 各列の非nullブロックを収集
       const columnBlocks: Block[] = [];
       for (let y = 0; y < height; y++) {
-        // 鋼鉄ブロックとその上のブロックは除外
-        if (blocks[y][x] && 
-            blocks[y][x].type !== BlockType.STEEL && 
-            !(steelY !== -1 && y < steelY)) {
+        if (blocks[y][x]) {
           // スプライト参照をnullに設定（メモリリーク防止）
           const blockCopy = { ...blocks[y][x], sprite: null as any };
           columnBlocks.push(blockCopy);
         }
       }
       
-      // 収集したブロックを下から順に配置（鋼鉄ブロックの位置を避ける）
-      let destY = height - 1;
+      // 収集したブロックを下から順に配置
       for (let i = 0; i < columnBlocks.length; i++) {
-        // 鋼鉄ブロックの位置と既に配置済みの位置を避ける
-        while (destY >= 0 && newBlocks[destY][x] !== null) {
-          destY--;
-        }
+        const destY = height - 1 - i;
+        const block = columnBlocks[columnBlocks.length - 1 - i];
         
-        if (destY >= 0) {
-          const block = columnBlocks[columnBlocks.length - 1 - i];
-          
-          // 座標を更新
-          newBlocks[destY][x] = {
-            ...block,
-            x: x,
-            y: destY
-          };
-          
-          destY--;
-        }
+        // 座標を更新
+        newBlocks[destY][x] = {
+          ...block,
+          x: x,
+          y: destY
+        };
       }
     }
     
@@ -381,17 +309,8 @@ export class BlockLogic {
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
     
-    // 元のブロック配列をディープコピー
-    const newBlocks: Block[][] = JSON.parse(JSON.stringify(blocks));
-    
-    // スプライト参照をnullに設定（メモリリーク防止）
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        if (newBlocks[y][x]) {
-          newBlocks[y][x].sprite = null;
-        }
-      }
-    }
+    // 新しいブロック配列を作成（nullで初期化）
+    const newBlocks: Block[][] = Array(height).fill(null).map(() => Array(width).fill(null));
     
     // 列が空かどうかをチェック
     const isEmptyColumn: boolean[] = [];
@@ -405,48 +324,50 @@ export class BlockLogic {
       }
     }
     
-    // 鋼鉄ブロックがある列を特定
-    const steelColumns: boolean[] = [];
+    // 鋼鉄ブロックがある列は特別処理
+    const hasSteel: boolean[] = [];
     for (let x = 0; x < width; x++) {
-      steelColumns[x] = false;
+      hasSteel[x] = false;
       for (let y = 0; y < height; y++) {
         if (blocks[y][x] && blocks[y][x].type === BlockType.STEEL) {
-          steelColumns[x] = true;
+          hasSteel[x] = true;
           break;
         }
       }
     }
     
-    // 結果用の配列を初期化
-    const resultBlocks: (Block | null)[][] = Array(height).fill(null).map(() => Array(width).fill(null));
-    
-    // 鋼鉄ブロックがある列はそのままコピー
+    // 鋼鉄ブロックがある列は移動しない
     for (let x = 0; x < width; x++) {
-      if (steelColumns[x]) {
+      if (hasSteel[x]) {
         for (let y = 0; y < height; y++) {
-          resultBlocks[y][x] = newBlocks[y][x];
+          if (blocks[y][x]) {
+            newBlocks[y][x] = {
+              ...blocks[y][x],
+              sprite: null
+            };
+          }
         }
       }
     }
     
-    // 空でない列かつ鋼鉄ブロックがない列を左から詰める
+    // 空でない列を左から詰める
     let destX = 0;
     for (let x = 0; x < width; x++) {
-      // 空の列はスキップ
-      if (isEmptyColumn[x]) {
+      // 鋼鉄ブロックがある列はスキップ（すでに配置済み）
+      if (hasSteel[x]) {
+        destX = x + 1;
         continue;
       }
       
-      // 鋼鉄ブロックがある列はスキップ（すでにコピー済み）
-      if (steelColumns[x]) {
-        destX = x + 1;
+      // 空の列はスキップ
+      if (isEmptyColumn[x]) {
         continue;
       }
       
       // 次の鋼鉄ブロックがある列を探す
       let nextSteelX = width;
       for (let sx = destX; sx < width; sx++) {
-        if (steelColumns[sx]) {
+        if (hasSteel[sx]) {
           nextSteelX = sx;
           break;
         }
@@ -455,10 +376,11 @@ export class BlockLogic {
       // 鋼鉄ブロックの手前までしか移動できない
       if (destX < nextSteelX) {
         for (let y = 0; y < height; y++) {
-          if (newBlocks[y][x]) {
-            resultBlocks[y][destX] = {
-              ...newBlocks[y][x],
-              x: destX
+          if (blocks[y][x]) {
+            newBlocks[y][destX] = {
+              ...blocks[y][x],
+              x: destX,
+              sprite: null
             };
           }
         }
@@ -466,7 +388,7 @@ export class BlockLogic {
       }
     }
     
-    return resultBlocks;
+    return newBlocks;
   }
   
   /**
