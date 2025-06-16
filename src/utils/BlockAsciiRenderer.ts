@@ -146,7 +146,6 @@ export class BlockAsciiRenderer {
     for (let y = 0; y < maxHeight; y++) {
       let beforeRow = y.toString().padStart(1) + ' |';
       let afterRow = y.toString().padStart(1) + ' |';
-      let diffRow = '  |';
       
       const maxWidth = Math.max(before[0]?.length || 0, after[0]?.length || 0);
       for (let x = 0; x < maxWidth; x++) {
@@ -162,22 +161,14 @@ export class BlockAsciiRenderer {
         
         beforeRow += highlightPrefix + beforeAscii + ' ';
         afterRow += highlightPrefix + afterAscii + ' ';
-        
-        // 差分表示
-        if (beforeAscii !== afterAscii) {
-          diffRow += ' ^^^ ';
-        } else {
-          diffRow += '     ';
         }
       }
       
       beforeRow += '|';
       afterRow += '|';
-      diffRow += '|';
       
       output += 'Before: ' + beforeRow + '\n';
       output += 'After:  ' + afterRow + '\n';
-      output += 'Diff:   ' + diffRow + '\n';
     }
     
     // 下部の枠線
