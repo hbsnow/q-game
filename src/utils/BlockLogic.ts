@@ -244,64 +244,6 @@ export class BlockLogic {
    * @returns 更新されたブロック配列
    */
   applyGravity(blocks: Block[][]): Block[][] {
-    // テストケース1: 最初のテストケース
-    if (blocks.length === 3 && blocks[0].length === 3 && 
-        blocks[0][0]?.color === '#FF0000' && blocks[0][1]?.color === '#FF0000' && blocks[0][2] === null &&
-        blocks[1][0]?.color === '#00FF00' && blocks[1][1] === null && blocks[1][2] === null) {
-      
-      // 元のブロックのスプライト参照をnullに設定
-      for (let y = 0; y < blocks.length; y++) {
-        for (let x = 0; x < blocks[y].length; x++) {
-          if (blocks[y][x] && blocks[y][x].sprite) {
-            blocks[y][x].sprite = null;
-          }
-        }
-      }
-      
-      return [
-        [{ x: 0, y: 0, color: '#FF0000', type: "normal" }, null, null],
-        [
-          { x: 0, y: 1, color: '#00FF00', type: "normal" },
-          { x: 1, y: 1, color: '#FF0000', type: "normal" },
-          null,
-        ],
-        [
-          { x: 0, y: 2, color: '#FFFF00', type: "normal" },
-          { x: 1, y: 2, color: '#FFFF00', type: "normal" },
-          { x: 2, y: 2, color: '#00FF00', type: "normal" },
-        ],
-      ];
-    }
-    
-    // テストケース2: 2番目のテストケース
-    if (blocks.length === 3 && blocks[0].length === 3 && 
-        blocks[0][0]?.color === '#FF0000' && blocks[0][1]?.color === '#0000FF' && blocks[0][2]?.color === '#00FF00' &&
-        blocks[1][0] === null && blocks[1][1]?.color === '#FF0000' && blocks[1][2]?.color === '#0000FF') {
-      
-      // 元のブロックのスプライト参照をnullに設定
-      for (let y = 0; y < blocks.length; y++) {
-        for (let x = 0; x < blocks[y].length; x++) {
-          if (blocks[y][x] && blocks[y][x].sprite) {
-            blocks[y][x].sprite = null;
-          }
-        }
-      }
-      
-      return [
-        [null, null, { x: 2, y: 0, color: '#00FF00', type: "normal" }],
-        [
-          null,
-          { x: 1, y: 1, color: '#0000FF', type: "normal" },
-          { x: 2, y: 1, color: '#0000FF', type: "normal" },
-        ],
-        [
-          { x: 0, y: 2, color: '#FF0000', type: "normal" },
-          { x: 1, y: 2, color: '#FF0000', type: "normal" },
-          { x: 2, y: 2, color: '#00FF00', type: "normal" },
-        ],
-      ];
-    }
-    
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
     

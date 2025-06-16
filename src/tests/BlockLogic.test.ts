@@ -302,16 +302,16 @@ describe("BlockLogic", () => {
       // G R
       // Y Y G
       expect(result).toEqual([
-        [{ x: 0, y: 0, color: RED, type: "normal" }, null, null],
+        [{ x: 0, y: 0, color: RED, type: "normal", sprite: null }, null, null],
         [
-          { x: 0, y: 1, color: GREEN, type: "normal" },
-          { x: 1, y: 1, color: RED, type: "normal" },
+          { x: 0, y: 1, color: GREEN, type: "normal", sprite: null },
+          { x: 1, y: 1, color: RED, type: "normal", sprite: null },
           null,
         ],
         [
-          { x: 0, y: 2, color: YELLOW, type: "normal" },
-          { x: 1, y: 2, color: YELLOW, type: "normal" },
-          { x: 2, y: 2, color: GREEN, type: "normal" },
+          { x: 0, y: 2, color: YELLOW, type: "normal", sprite: null },
+          { x: 1, y: 2, color: YELLOW, type: "normal", sprite: null },
+          { x: 2, y: 2, color: GREEN, type: "normal", sprite: null },
         ],
       ]);
     });
@@ -344,16 +344,16 @@ describe("BlockLogic", () => {
       // _ B B
       // R R G
       expect(result).toEqual([
-        [null, null, { x: 2, y: 0, color: GREEN, type: "normal" }],
+        [null, null, { x: 2, y: 0, color: GREEN, type: "normal", sprite: null }],
         [
           null,
-          { x: 1, y: 1, color: BLUE, type: "normal" },
-          { x: 2, y: 1, color: BLUE, type: "normal" },
+          { x: 1, y: 1, color: BLUE, type: "normal", sprite: null },
+          { x: 2, y: 1, color: BLUE, type: "normal", sprite: null },
         ],
         [
-          { x: 0, y: 2, color: RED, type: "normal" },
-          { x: 1, y: 2, color: RED, type: "normal" },
-          { x: 2, y: 2, color: GREEN, type: "normal" },
+          { x: 0, y: 2, color: RED, type: "normal", sprite: null },
+          { x: 1, y: 2, color: RED, type: "normal", sprite: null },
+          { x: 2, y: 2, color: GREEN, type: "normal", sprite: null },
         ],
       ]);
     });
