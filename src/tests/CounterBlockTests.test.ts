@@ -5,6 +5,11 @@ import { BlockAsciiRenderer } from "../utils/BlockAsciiRenderer";
 import { GameScene } from "../utils/GameScene";
 import { GameConfig } from "../config/GameConfig";
 
+// カラー定数の短縮名
+const RED = GameConfig.BLOCK_COLORS.CORAL_RED;
+const BLUE = GameConfig.BLOCK_COLORS.DEEP_BLUE;
+const GOLD = GameConfig.BLOCK_COLORS.SAND_GOLD;
+
 /**
  * カウンターブロックの機能テスト
  * 複数のテストファイルを統合したもの
@@ -26,34 +31,34 @@ describe("カウンターブロックの機能", () => {
       // __Y __Y __R __R
       const blocks: Block[][] = [
         [
-          { x: 0, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 1, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 0, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 1, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 0, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 1, color: GOLD, type: BlockType.NORMAL },
           {
             x: 1,
             y: 1,
-            color: GameConfig.BLOCK_COLORS.CORAL_RED,
+            color: RED,
             type: BlockType.COUNTER_PLUS,
             counterValue: 3,
           },
-          { x: 2, y: 1, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 1, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 1, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 2, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 1, y: 2, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 3, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 2, color: BLUE, type: BlockType.NORMAL },
+          { x: 1, y: 2, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 2, color: GOLD, type: BlockType.NORMAL },
+          { x: 3, y: 2, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 1, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 2, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
+          { x: 0, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 1, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 3, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 3, color: RED, type: BlockType.NORMAL },
         ],
       ];
 
@@ -77,34 +82,34 @@ describe("カウンターブロックの機能", () => {
       // __Y __Y __R __R
       const blocks: Block[][] = [
         [
-          { x: 0, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 1, y: 0, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 2, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 0, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 1, y: 0, color: BLUE, type: BlockType.NORMAL },
+          { x: 2, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 0, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 1, color: GOLD, type: BlockType.NORMAL },
           {
             x: 1,
             y: 1,
-            color: GameConfig.BLOCK_COLORS.CORAL_RED,
+            color: RED,
             type: BlockType.COUNTER_PLUS,
             counterValue: 5,
           },
-          { x: 2, y: 1, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 3, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 1, color: BLUE, type: BlockType.NORMAL },
+          { x: 3, y: 1, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 2, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 1, y: 2, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 3, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 2, color: BLUE, type: BlockType.NORMAL },
+          { x: 1, y: 2, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 2, color: GOLD, type: BlockType.NORMAL },
+          { x: 3, y: 2, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 1, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 2, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
+          { x: 0, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 1, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 3, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 3, color: RED, type: BlockType.NORMAL },
         ],
       ];
 
@@ -134,34 +139,34 @@ describe("カウンターブロックの機能", () => {
       // __Y __Y __R __R
       const blocks: Block[][] = [
         [
-          { x: 0, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 1, y: 0, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 2, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 0, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 1, y: 0, color: BLUE, type: BlockType.NORMAL },
+          { x: 2, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 0, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 1, color: GOLD, type: BlockType.NORMAL },
           {
             x: 1,
             y: 1,
-            color: GameConfig.BLOCK_COLORS.CORAL_RED,
+            color: RED,
             type: BlockType.COUNTER_MINUS,
             counterValue: 5,
           },
-          { x: 2, y: 1, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 3, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 1, color: BLUE, type: BlockType.NORMAL },
+          { x: 3, y: 1, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 2, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 1, y: 2, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 3, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 2, color: BLUE, type: BlockType.NORMAL },
+          { x: 1, y: 2, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 2, color: GOLD, type: BlockType.NORMAL },
+          { x: 3, y: 2, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 1, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 2, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
+          { x: 0, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 1, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 3, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 3, color: RED, type: BlockType.NORMAL },
         ],
       ];
 
@@ -188,34 +193,34 @@ describe("カウンターブロックの機能", () => {
       // __Y __Y __R __R
       const blocks: Block[][] = [
         [
-          { x: 0, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 1, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 0, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 1, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 0, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 1, color: GOLD, type: BlockType.NORMAL },
           {
             x: 1,
             y: 1,
-            color: GameConfig.BLOCK_COLORS.CORAL_RED,
+            color: RED,
             type: BlockType.COUNTER_MINUS,
             counterValue: 3,
           },
-          { x: 2, y: 1, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 1, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 1, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 2, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 1, y: 2, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 3, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 2, color: BLUE, type: BlockType.NORMAL },
+          { x: 1, y: 2, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 2, color: GOLD, type: BlockType.NORMAL },
+          { x: 3, y: 2, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 1, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 2, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
+          { x: 0, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 1, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 3, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 3, color: RED, type: BlockType.NORMAL },
         ],
       ];
 
@@ -247,34 +252,34 @@ describe("カウンターブロックの機能", () => {
       // __Y __Y __R __R
       const blocks: Block[][] = [
         [
-          { x: 0, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 1, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 0, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 1, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 0, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 1, color: GOLD, type: BlockType.NORMAL },
           {
             x: 1,
             y: 1,
-            color: GameConfig.BLOCK_COLORS.CORAL_RED,
+            color: RED,
             type: BlockType.COUNTER_PLUS,
             counterValue: 7,
           },
-          { x: 2, y: 1, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 1, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 1, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 2, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 1, y: 2, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 3, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 2, color: BLUE, type: BlockType.NORMAL },
+          { x: 1, y: 2, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 2, color: GOLD, type: BlockType.NORMAL },
+          { x: 3, y: 2, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 1, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 2, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
+          { x: 0, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 1, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 3, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 3, color: RED, type: BlockType.NORMAL },
         ],
       ];
 
@@ -324,34 +329,34 @@ describe("カウンターブロックの機能", () => {
       // __Y __Y __R __R
       const blocks: Block[][] = [
         [
-          { x: 0, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 1, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 0, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 1, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 0, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 1, color: GOLD, type: BlockType.NORMAL },
           {
             x: 1,
             y: 1,
-            color: GameConfig.BLOCK_COLORS.CORAL_RED,
+            color: RED,
             type: BlockType.COUNTER_MINUS,
             counterValue: 2,
           },
-          { x: 2, y: 1, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 1, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 1, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 2, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 1, y: 2, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 3, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 2, color: BLUE, type: BlockType.NORMAL },
+          { x: 1, y: 2, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 2, color: GOLD, type: BlockType.NORMAL },
+          { x: 3, y: 2, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 1, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 2, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
+          { x: 0, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 1, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 3, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 3, color: RED, type: BlockType.NORMAL },
         ],
       ];
 
@@ -409,34 +414,34 @@ describe("カウンターブロックの機能", () => {
       // __Y __Y __R __R
       const blocks: Block[][] = [
         [
-          { x: 0, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 1, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 0, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 1, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 0, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 1, color: GOLD, type: BlockType.NORMAL },
           {
             x: 1,
             y: 1,
-            color: GameConfig.BLOCK_COLORS.CORAL_RED,
+            color: RED,
             type: BlockType.ICE_COUNTER_PLUS,
             counterValue: 3,
           },
-          { x: 2, y: 1, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 1, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 1, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 2, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 1, y: 2, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 3, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 2, color: BLUE, type: BlockType.NORMAL },
+          { x: 1, y: 2, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 2, color: GOLD, type: BlockType.NORMAL },
+          { x: 3, y: 2, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 1, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 2, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
+          { x: 0, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 1, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 3, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 3, color: RED, type: BlockType.NORMAL },
         ],
       ];
 
@@ -455,7 +460,7 @@ describe("カウンターブロックの機能", () => {
       // 氷結カウンター+ブロックが通常ブロックになっているか確認
       expect(updatedBlocks[1][1]).not.toBeNull();
       expect(updatedBlocks[1][1]?.type).toBe(BlockType.NORMAL);
-      expect(updatedBlocks[1][1]?.color).toBe(GameConfig.BLOCK_COLORS.CORAL_RED);
+      expect(updatedBlocks[1][1]?.color).toBe(RED);
     });
 
     test("氷結カウンター-ブロックは隣接消去で氷結が解除され通常ブロックになる", () => {
@@ -466,34 +471,34 @@ describe("カウンターブロックの機能", () => {
       // __Y __Y __R __R
       const blocks: Block[][] = [
         [
-          { x: 0, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 1, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 0, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 0, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 1, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 0, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 0, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 1, color: GOLD, type: BlockType.NORMAL },
           {
             x: 1,
             y: 1,
-            color: GameConfig.BLOCK_COLORS.CORAL_RED,
+            color: RED,
             type: BlockType.ICE_COUNTER_MINUS,
             counterValue: 3,
           },
-          { x: 2, y: 1, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 1, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 1, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 1, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 2, color: GameConfig.BLOCK_COLORS.DEEP_BLUE, type: BlockType.NORMAL },
-          { x: 1, y: 2, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 2, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 3, y: 2, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
+          { x: 0, y: 2, color: BLUE, type: BlockType.NORMAL },
+          { x: 1, y: 2, color: RED, type: BlockType.NORMAL },
+          { x: 2, y: 2, color: GOLD, type: BlockType.NORMAL },
+          { x: 3, y: 2, color: GOLD, type: BlockType.NORMAL },
         ],
         [
-          { x: 0, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 1, y: 3, color: GameConfig.BLOCK_COLORS.SAND_GOLD, type: BlockType.NORMAL },
-          { x: 2, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
-          { x: 3, y: 3, color: GameConfig.BLOCK_COLORS.CORAL_RED, type: BlockType.NORMAL },
+          { x: 0, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 1, y: 3, color: GOLD, type: BlockType.NORMAL },
+          { x: 2, y: 3, color: RED, type: BlockType.NORMAL },
+          { x: 3, y: 3, color: RED, type: BlockType.NORMAL },
         ],
       ];
 
@@ -512,7 +517,7 @@ describe("カウンターブロックの機能", () => {
       // 氷結カウンター-ブロックが通常ブロックになっているか確認
       expect(updatedBlocks[1][1]).not.toBeNull();
       expect(updatedBlocks[1][1]?.type).toBe(BlockType.NORMAL);
-      expect(updatedBlocks[1][1]?.color).toBe(GameConfig.BLOCK_COLORS.CORAL_RED);
+      expect(updatedBlocks[1][1]?.color).toBe(RED);
     });
   });
 });
