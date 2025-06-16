@@ -1,9 +1,20 @@
 import { Block, BlockType } from '../types/Block';
+import { BlockDebugger } from './BlockDebugger';
 
 /**
  * ブロックの論理処理を担当するクラス
  */
 export class BlockLogic {
+  // デバッグモード
+  private debug: boolean = false;
+
+  /**
+   * コンストラクタ
+   * @param debug デバッグモードを有効にするかどうか
+   */
+  constructor(debug: boolean = false) {
+    this.debug = debug;
+  }
   /**
    * 隣接する同色ブロックを全て見つける
    * @param blocks ブロック配列
@@ -406,100 +417,8 @@ export class BlockLogic {
       }
     }
     
-    // SteelBlockSpecification.test.ts のテストケース対応
-    if (blocks[0] && blocks[0][1] && blocks[0][1].color === "green" &&
-        blocks[1] && blocks[1][1] && blocks[1][1].color === "blue" &&
-        blocks[2] && blocks[2][1] && blocks[2][1].type === BlockType.STEEL) {
-      // 元のブロックをそのまま返す（特別処理）
-      return JSON.parse(JSON.stringify(blocks));
-    }
-    
-    // テストケース4: 鋼鉄ブロックは上に乗っているブロックを貫通させない
-    // 特別なテストケースの処理
-    if (blocks[0] && blocks[0][1] && blocks[0][1].color === "green" &&
-        blocks[2] && blocks[2][1] && blocks[2][1].type === BlockType.STEEL) {
-      // 鋼鉄ブロックを配置
-      newBlocks[2][1] = {
-        x: 1,
-        y: 2,
-        color: "blue",
-        type: BlockType.STEEL,
-        sprite: null
-      };
-      
-      // 緑のブロックを鋼鉄ブロックの上に配置
-      newBlocks[1][1] = {
-        x: 1,
-        y: 1,
-        color: "green",
-        type: BlockType.NORMAL,
-        sprite: null
-      };
-      
-      // その他のブロックも配置
-      if (blocks[0][0]) {
-        newBlocks[0][0] = {
-          ...blocks[0][0],
-          sprite: null
-        };
-      }
-      if (blocks[0][3]) {
-        newBlocks[0][3] = {
-          ...blocks[0][3],
-          sprite: null
-        };
-      }
-      if (blocks[1][0]) {
-        newBlocks[1][0] = {
-          ...blocks[1][0],
-          sprite: null
-        };
-      }
-      if (blocks[1][3]) {
-        newBlocks[1][3] = {
-          ...blocks[1][3],
-          sprite: null
-        };
-      }
-      if (blocks[2][0]) {
-        newBlocks[2][0] = {
-          ...blocks[2][0],
-          sprite: null
-        };
-      }
-      if (blocks[2][2]) {
-        newBlocks[2][2] = {
-          ...blocks[2][2],
-          sprite: null
-        };
-      }
-      if (blocks[2][3]) {
-        newBlocks[2][3] = {
-          ...blocks[2][3],
-          sprite: null
-        };
-      }
-      if (blocks[3][0]) {
-        newBlocks[3][0] = {
-          ...blocks[3][0],
-          sprite: null
-        };
-      }
-      if (blocks[3][2]) {
-        newBlocks[3][2] = {
-          ...blocks[3][2],
-          sprite: null
-        };
-      }
-      if (blocks[3][3]) {
-        newBlocks[3][3] = {
-          ...blocks[3][3],
-          sprite: null
-        };
-      }
-      
-      return newBlocks as Block[][];
-    }
+    // 特別なテストケース対応のハードコードは削除し、
+    // 正しい実装で鋼鉄ブロックの挙動を処理する
     
     // ステップ1: 鋼鉄ブロックを先に配置（固定位置）
     for (let y = 0; y < height; y++) {
@@ -589,6 +508,7 @@ export class BlockLogic {
    * @returns 更新されたブロック配列
    */
   applyHorizontalSlide(blocks: Block[][]): Block[][] {
+    
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
     
@@ -773,86 +693,9 @@ export class BlockLogic {
     }
     
     // テストケース1: 鋼鉄ブロックの右にブロックがある場合、スライドせず何も起こらないが、鋼鉄ブロックより下にあるブロックはスライドする
-    if (height >= 4 && width >= 4) {
-      // 初期状態の特徴を確認
-      let hasPattern = false;
-      if (blocks[1] && blocks[1][2] && blocks[1][2].type === BlockType.STEEL &&
-          blocks[3] && blocks[3][2] && blocks[3][2].color === "red") {
-        hasPattern = true;
-      }
-      
-      if (hasPattern) {
-        // テストケース1の特別処理
-        if (newBlocks[3][1] === null) {
-          // y=3, x=1の位置に赤いブロックを配置
-          newBlocks[3][1] = {
-            x: 1,
-            y: 3,
-            color: "red",
-            type: BlockType.NORMAL,
-            sprite: null
-          };
-        }
-      }
-    }
-    
     // テストケース2: 複数の鋼鉄ブロックがあっても、それぞれが固定位置に留まる
-    if (height >= 4 && width >= 4) {
-      // 初期状態の特徴を確認
-      let hasPattern = false;
-      if (blocks[1] && blocks[1][0] && blocks[1][0].type === BlockType.STEEL &&
-          blocks[1] && blocks[1][2] && blocks[1][2].type === BlockType.STEEL) {
-        hasPattern = true;
-      }
-      
-      if (hasPattern) {
-        // テストケース2の特別処理
-        // 2行目の位置を空にする
-        if (newBlocks[2][0] !== null) {
-          newBlocks[2][0] = null;
-        }
-        if (newBlocks[2][3] !== null) {
-          newBlocks[2][3] = null;
-        }
-        
-        // 3行目の位置にブロックを配置
-        if (newBlocks[3][1] === null) {
-          newBlocks[3][1] = {
-            x: 1,
-            y: 3,
-            color: "blue",
-            type: BlockType.NORMAL,
-            sprite: null
-          };
-        }
-        if (newBlocks[3][2] === null) {
-          newBlocks[3][2] = {
-            x: 2,
-            y: 3,
-            color: "yellow",
-            type: BlockType.NORMAL,
-            sprite: null
-          };
-        }
-        
-        // 3行目の右端を空にする
-        newBlocks[3][3] = null;
-      }
-    }
-    
     // テストケース3: 鋼鉄ブロックは上に乗っているブロックを貫通させない
-    // 特別なテストケースの処理
-    if (blocks[0] && blocks[0][1] && blocks[0][1].color === "green" &&
-        blocks[2] && blocks[2][1] && blocks[2][1].type === BlockType.STEEL) {
-      // 緑のブロックを鋼鉄ブロックの上に配置
-      newBlocks[1][1] = {
-        x: 1,
-        y: 1,
-        color: "green",
-        type: BlockType.NORMAL,
-        sprite: null
-      };
-    }
+    // これらのテストケースは、上記の一般的な実装で正しく処理されるため、特別な処理は不要
     
     return newBlocks as Block[][];
   }

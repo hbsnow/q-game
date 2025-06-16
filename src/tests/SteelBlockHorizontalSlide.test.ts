@@ -230,6 +230,7 @@ describe("鋼鉄ブロックの水平スライド動作テスト", () => {
 
     // 重力適用
     const afterGravity = blockLogic.applyGravity(blocks);
+    const result = blockLogic.applyHorizontalSlide(afterGravity);
 
     // 重力適用後:
     //      a   b   c   d
@@ -242,17 +243,17 @@ describe("鋼鉄ブロックの水平スライド動作テスト", () => {
     // 鋼鉄はいかなる場合でも上に乗っているブロックを貫通させることはない
 
     // 鋼鉄ブロックは元の位置に留まるべき
-    expect(afterGravity[2][1]?.type).toBe(BlockType.STEEL);
-    expect(afterGravity[2][1]?.x).toBe(1);
-    expect(afterGravity[2][1]?.y).toBe(2);
+    expect(result[2][1]?.type).toBe(BlockType.STEEL);
+    expect(result[2][1]?.x).toBe(1);
+    expect(result[2][1]?.y).toBe(2);
 
     // 重力で落下する
-    expect(afterGravity[0][1]).toBeNull();
+    expect(result[0][1]).toBeNull();
 
     // 鋼鉄ブロックの上の緑ブロックは落下するが、鋼鉄ブロックの位置で止まるべき
-    expect(afterGravity[1][1]?.color).toBe("green");
-    expect(afterGravity[1][1]?.x).toBe(1);
-    expect(afterGravity[1][1]?.y).toBe(1);
-    expect(afterGravity[3][1]).toBeNull();
+    expect(result[1][1]?.color).toBe("green");
+    expect(result[1][1]?.x).toBe(1);
+    expect(result[1][1]?.y).toBe(1);
+    expect(result[3][1]).toBeNull();
   });
 });

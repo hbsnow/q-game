@@ -10,8 +10,11 @@ export class BlockAsciiRenderer {
    * @param title タイトル（オプション）
    */
   static logBlocks(blocks: (Block | null)[][], title?: string): void {
+    // 出力を一つの文字列にまとめる
+    let output = '';
+    
     if (title) {
-      console.log(`=== ${title} ===`);
+      output += `=== ${title} ===\n`;
     }
     
     // 列のラベル（a, b, c, ...）
@@ -19,7 +22,7 @@ export class BlockAsciiRenderer {
     for (let x = 0; x < blocks[0].length; x++) {
       header += String.fromCharCode(97 + x) + '   ';
     }
-    console.log(header);
+    output += header + '\n';
     
     // 上部の枠線
     let topBorder = '  +-';
@@ -27,7 +30,7 @@ export class BlockAsciiRenderer {
       topBorder += '----';
     }
     topBorder += '-+';
-    console.log(topBorder);
+    output += topBorder + '\n';
     
     // 各行のブロック
     for (let y = 0; y < blocks.length; y++) {
@@ -39,7 +42,7 @@ export class BlockAsciiRenderer {
       }
       
       row += '|';
-      console.log(row);
+      output += row + '\n';
     }
     
     // 下部の枠線
@@ -48,7 +51,10 @@ export class BlockAsciiRenderer {
       bottomBorder += '----';
     }
     bottomBorder += '-+';
-    console.log(bottomBorder);
+    output += bottomBorder;
+    
+    // まとめた出力を一度に表示
+    console.log(output);
   }
   
   /**
@@ -113,8 +119,11 @@ export class BlockAsciiRenderer {
     title?: string,
     highlight?: {x: number, y: number}
   ): void {
+    // 出力を一つの文字列にまとめる
+    let output = '';
+    
     if (title) {
-      console.log(`=== ${title} ===`);
+      output += `=== ${title} ===\n`;
     }
     
     // 列のラベル（a, b, c, ...）
@@ -122,7 +131,7 @@ export class BlockAsciiRenderer {
     for (let x = 0; x < Math.max(before[0]?.length || 0, after[0]?.length || 0); x++) {
       header += String.fromCharCode(97 + x) + '   ';
     }
-    console.log(header);
+    output += header + '\n';
     
     // 上部の枠線
     let topBorder = '  +-';
@@ -130,7 +139,7 @@ export class BlockAsciiRenderer {
       topBorder += '----';
     }
     topBorder += '-+';
-    console.log(topBorder);
+    output += topBorder + '\n';
     
     // 各行のブロック
     const maxHeight = Math.max(before.length, after.length);
@@ -166,10 +175,9 @@ export class BlockAsciiRenderer {
       afterRow += '|';
       diffRow += '|';
       
-      console.log('Before: ' + beforeRow);
-      console.log('After : ' + afterRow);
-      console.log('Diff  : ' + diffRow);
-      console.log('');
+      output += 'Before: ' + beforeRow + '\n';
+      output += 'After:  ' + afterRow + '\n';
+      output += 'Diff:   ' + diffRow + '\n';
     }
     
     // 下部の枠線
@@ -178,6 +186,9 @@ export class BlockAsciiRenderer {
       bottomBorder += '----';
     }
     bottomBorder += '-+';
-    console.log(bottomBorder);
+    output += bottomBorder;
+    
+    // まとめた出力を一度に表示
+    console.log(output);
   }
 }
