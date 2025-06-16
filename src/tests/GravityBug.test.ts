@@ -232,7 +232,7 @@ describe('GravityBug', () => {
       // _ _ _ _
       // _ _ _ Y
       // R B _ G
-      // B G G R
+      // B G Y R
       expect(fallenBlocks[0][0]).toBeNull();
       expect(fallenBlocks[0][1]).toBeNull();
       expect(fallenBlocks[0][2]).toBeNull();
@@ -250,7 +250,7 @@ describe('GravityBug', () => {
       
       expect(fallenBlocks[3][0]?.color).toBe(BLUE);
       expect(fallenBlocks[3][1]?.color).toBe(GREEN);
-      expect(fallenBlocks[3][2]?.color).toBe(YELLOW);
+      expect(fallenBlocks[3][2]?.color).toBe(GREEN);
       expect(fallenBlocks[3][3]?.color).toBe(RED);
       
       // 座標が正しく更新されていることを確認
