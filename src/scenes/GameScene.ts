@@ -142,11 +142,6 @@ export class GameScene extends Phaser.Scene {
     // デバッグヘルパーにブロック配列を設定
     this.debugHelper.setBlocks(this.blocks);
     
-    // Bキーでブロック状態をアスキーアートで出力するように設定
-    this.input.keyboard?.addKey('B').on('down', () => {
-      BlockAsciiRenderer.logBlocks(this.blocks, 'CURRENT BLOCK STATE');
-    });
-    
     // デバッグライン
     if (GameConfig.DEBUG_MODE) {
       this.addDebugLines();
