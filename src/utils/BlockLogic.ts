@@ -215,11 +215,11 @@ export class BlockLogic {
             // 氷結Lv1 → 通常ブロック
             newBlocks[y][x].type = BlockType.NORMAL;
           } else if (block.type === BlockType.ICE_COUNTER_PLUS) {
-            // 氷結カウンター+ → カウンター+
-            newBlocks[y][x].type = BlockType.COUNTER_PLUS;
+            // 氷結カウンター+ → 通常ブロック
+            newBlocks[y][x].type = BlockType.NORMAL;
           } else if (block.type === BlockType.ICE_COUNTER_MINUS) {
-            // 氷結カウンター- → カウンター-
-            newBlocks[y][x].type = BlockType.COUNTER_MINUS;
+            // 氷結カウンター- → 通常ブロック
+            newBlocks[y][x].type = BlockType.NORMAL;
           }
         }
       }
@@ -475,5 +475,140 @@ export class BlockLogic {
     }
     
     return false;
+  }
+  
+  /**
+   * 氷結ブロックのグループを検索する
+   * @param blocks ブロック配列
+   * @param startX 開始X座標
+   * @param startY 開始Y座標
+   * @returns 隣接する同色の氷結ブロックの配列
+   */
+  findConnectedIceBlocks(blocks: Block[][], startX: number, startY: number): Block[] {
+    // 開始ブロックがnullの場合は空配列を返す
+    if (!blocks[startY] || !blocks[startY][startX]) {
+      return [];
+    }
+    
+    const startBlock = blocks[startY][startX];
+    
+    // 開始ブロックが氷結ブロックでない場合は空配列を返す
+    if (startBlock.type !== BlockType.ICE_LV1 && 
+        startBlock.type !== BlockType.ICE_LV2 && 
+        startBlock.type !== BlockType.ICE_COUNTER_PLUS && 
+        startBlock.type !== BlockType.ICE_COUNTER_MINUS) {
+      return [];
+    }
+    
+    const targetColor = startBlock.color;
+    const visited: boolean[][] = [];
+    const connectedIceBlocks: Block[] = [];
+    
+    // 訪問済み配列の初期化
+    for (let y = 0; y < blocks.length; y++) {
+      visited[y] = [];
+      for (let x = 0; x < blocks[y].length; x++) {
+        visited[y][x] = false;
+      }
+    }
+    
+    // 深さ優先探索で隣接氷結ブロックを見つける
+    const dfs = (x: number, y: number) => {
+      // 範囲外チェック
+      if (y < 0 || y >= blocks.length || x < 0 || x >= blocks[y].length) {
+        return;
+      }
+      
+      // 訪問済みまたはnullブロックチェック
+      if (visited[y][x] || !blocks[y][x]) {
+        return;
+      }
+      
+      // 色チェック
+      if (blocks[y][x].color !== targetColor) {
+        return;
+      }
+      
+      // 氷結ブロックチェック
+      if (blocks[y][x].type !== BlockType.ICE_LV1 && 
+          blocks[y][x].type !== BlockType.ICE_LV2 && 
+          blocks[y][x].type !== BlockType.ICE_COUNTER_PLUS && 
+          blocks[y][x].type !== BlockType.ICE_COUNTER_MINUS) {
+        return;
+      }
+      
+      // 訪問済みにする
+      visited[y][x] = true;
+      
+      // 結果に追加
+      connectedIceBlocks.push(blocks[y][x]);
+      
+      // 隣接する4方向を探索（上下左右）
+      dfs(x, y - 1); // 上
+      dfs(x + 1, y); // 右
+      dfs(x, y + 1); // 下
+      dfs(x - 1, y); // 左
+    };
+    
+    // 探索開始
+    dfs(startX, startY);
+    
+    return connectedIceBlocks;
+  }
+  
+  /**
+   * 氷結ブロックに隣接する同色の通常ブロックを検索する
+   * @param blocks ブロック配列
+   * @param iceBlockX 氷結ブロックのX座標
+   * @param iceBlockY 氷結ブロックのY座標
+   * @returns 隣接する同色の通常ブロックの配列
+   */
+  findAdjacentNormalBlocks(blocks: Block[][], iceBlockX: number, iceBlockY: number): Block[] {
+    const adjacentNormalBlocks: Block[] = [];
+    
+    // 氷結ブロックがnullの場合は空配列を返す
+    if (!blocks[iceBlockY] || !blocks[iceBlockY][iceBlockX]) {
+      return [];
+    }
+    
+    const iceBlock = blocks[iceBlockY][iceBlockX];
+    
+    // 氷結ブロックでない場合は空配列を返す
+    if (iceBlock.type !== BlockType.ICE_LV1 && 
+        iceBlock.type !== BlockType.ICE_LV2 && 
+        iceBlock.type !== BlockType.ICE_COUNTER_PLUS && 
+        iceBlock.type !== BlockType.ICE_COUNTER_MINUS) {
+      return [];
+    }
+    
+    const targetColor = iceBlock.color;
+    
+    // 上下左右の隣接ブロックをチェック
+    const directions = [
+      { dx: 0, dy: -1 }, // 上
+      { dx: 1, dy: 0 },  // 右
+      { dx: 0, dy: 1 },  // 下
+      { dx: -1, dy: 0 }  // 左
+    ];
+    
+    for (const dir of directions) {
+      const nx = iceBlockX + dir.dx;
+      const ny = iceBlockY + dir.dy;
+      
+      // 範囲外チェック
+      if (ny < 0 || ny >= blocks.length || nx < 0 || nx >= blocks[ny].length) {
+        continue;
+      }
+      
+      // 隣接ブロックが存在し、同じ色で、通常ブロックかチェック
+      const adjacentBlock = blocks[ny][nx];
+      if (adjacentBlock && 
+          adjacentBlock.color === targetColor && 
+          adjacentBlock.type === BlockType.NORMAL) {
+        adjacentNormalBlocks.push(adjacentBlock);
+      }
+    }
+    
+    return adjacentNormalBlocks;
   }
 }

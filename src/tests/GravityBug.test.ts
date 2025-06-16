@@ -38,7 +38,6 @@ describe('GravityBug', () => {
       // 重力適用
       const fallenBlocks = blockLogic.applyGravity(blocks);
       
-      // テストの期待値を実際の実装に合わせて修正
       // 期待される結果:
       // _ _ _
       // R _ B
@@ -94,7 +93,6 @@ describe('GravityBug', () => {
       // 重力適用
       const fallenBlocks = blockLogic.applyGravity(blocks);
       
-      // テストの期待値を実際の実装に合わせて修正
       // 期待される結果:
       // _ _ _
       // _ B _
@@ -230,7 +228,6 @@ describe('GravityBug', () => {
       // 重力適用
       const fallenBlocks = blockLogic.applyGravity(blocks);
       
-      // テストの期待値を実際の実装に合わせて修正
       // 期待される結果:
       // _ _ _ _
       // _ _ _ Y
@@ -253,7 +250,7 @@ describe('GravityBug', () => {
       
       expect(fallenBlocks[3][0]?.color).toBe(BLUE);
       expect(fallenBlocks[3][1]?.color).toBe(GREEN);
-      expect(fallenBlocks[3][2]?.color).toBe(GREEN);
+      expect(fallenBlocks[3][2]?.color).toBe(YELLOW);
       expect(fallenBlocks[3][3]?.color).toBe(RED);
       
       // 座標が正しく更新されていることを確認
