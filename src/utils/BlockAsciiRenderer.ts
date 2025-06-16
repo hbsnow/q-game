@@ -153,9 +153,14 @@ export class BlockAsciiRenderer {
         
         // ハイライト表示
         const isHighlighted = highlight && highlight.x === x && highlight.y === y;
-        const highlightPrefix = isHighlighted ? '*' : ' ';
         
-        afterRow += highlightPrefix + afterAscii + ' ';
+        if (isHighlighted) {
+          // ハイライト表示の場合は[]で囲む
+          afterRow += ' [' + afterAscii + ']';
+        } else {
+          // 通常表示
+          afterRow += '  ' + afterAscii + ' ';
+        }
       }
       
       afterRow += '|';
