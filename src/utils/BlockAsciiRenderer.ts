@@ -107,9 +107,9 @@ export class BlockAsciiRenderer {
   }
   
   /**
-   * 2つのブロック配列を比較して変更点をハイライト表示
-   * @param before 変更前のブロック配列
-   * @param after 変更後のブロック配列
+   * 適用後のブロック配列を表示
+   * @param before 変更前のブロック配列（比較用）
+   * @param after 変更後のブロック配列（表示対象）
    * @param title タイトル（オプション）
    * @param highlight ハイライトする座標（オプション）
    */
@@ -144,30 +144,23 @@ export class BlockAsciiRenderer {
     // 各行のブロック
     const maxHeight = Math.max(before.length, after.length);
     for (let y = 0; y < maxHeight; y++) {
-      let beforeRow = y.toString().padStart(1) + ' |';
       let afterRow = y.toString().padStart(1) + ' |';
       
       const maxWidth = Math.max(before[0]?.length || 0, after[0]?.length || 0);
       for (let x = 0; x < maxWidth; x++) {
-        const beforeBlock = before[y]?.[x] || null;
         const afterBlock = after[y]?.[x] || null;
-        
-        const beforeAscii = this.blockToAscii(beforeBlock);
         const afterAscii = this.blockToAscii(afterBlock);
         
         // ハイライト表示
         const isHighlighted = highlight && highlight.x === x && highlight.y === y;
         const highlightPrefix = isHighlighted ? '*' : ' ';
         
-        beforeRow += highlightPrefix + beforeAscii + ' ';
         afterRow += highlightPrefix + afterAscii + ' ';
       }
       
-      beforeRow += '|';
       afterRow += '|';
       
-      output += 'Before: ' + beforeRow + '\n';
-      output += 'After:  ' + afterRow + '\n';
+      output += afterRow + '\n';
     }
     
     // 下部の枠線
