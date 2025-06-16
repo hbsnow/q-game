@@ -215,11 +215,23 @@ export class BlockLogic {
             // 氷結Lv1 → 通常ブロック
             newBlocks[y][x].type = BlockType.NORMAL;
           } else if (block.type === BlockType.ICE_COUNTER_PLUS) {
-            // 氷結カウンター+ → 通常ブロック
-            newBlocks[y][x].type = BlockType.NORMAL;
+            // 氷結カウンター+ブロックの場合、カウンター条件を満たす場合のみ通常ブロックに変更
+            // カウンター条件を満たしているかチェック
+            const connectedToBlock = this.findConnectedBlocks(blocks, x, y);
+            if (connectedToBlock.length >= block.counterValue) {
+              // 条件を満たす場合は通常ブロックに変更
+              newBlocks[y][x].type = BlockType.NORMAL;
+            }
+            // 条件を満たさない場合は氷結カウンターブロックのまま
           } else if (block.type === BlockType.ICE_COUNTER_MINUS) {
-            // 氷結カウンター- → 通常ブロック
-            newBlocks[y][x].type = BlockType.NORMAL;
+            // 氷結カウンター-ブロックの場合、カウンター条件を満たす場合のみ通常ブロックに変更
+            // カウンター条件を満たしているかチェック
+            const connectedToBlock = this.findConnectedBlocks(blocks, x, y);
+            if (connectedToBlock.length <= block.counterValue) {
+              // 条件を満たす場合は通常ブロックに変更
+              newBlocks[y][x].type = BlockType.NORMAL;
+            }
+            // 条件を満たさない場合は氷結カウンターブロックのまま
           }
         }
       }

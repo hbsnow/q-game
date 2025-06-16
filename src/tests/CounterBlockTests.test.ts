@@ -329,7 +329,7 @@ describe("カウンター-ブロック", () => {
   });
 });
 
-describe("氷結カウンターブロックの挙動", () => {
+describe("氷結カウンター+ブロックの挙動", () => {
   it("氷結カウンター+ブロックはカウンターの条件を満たす隣接消去でカウンターと氷結が解除され通常ブロックになる", () => {
     const blockLogic = new BlockLogic();
 
@@ -388,7 +388,7 @@ describe("氷結カウンターブロックの挙動", () => {
 
     // テスト用の盤面を作成
     // __R __R __R __Y
-    // __Y *+R __R __Y  (氷結カウンター+ブロックの値が6)
+    // __Y *+R __B __Y  (氷結カウンター+ブロックの値が5)
     // __B __R __Y __Y
     // __Y __Y __R __R
     const blocks: Block[][] = [
@@ -407,7 +407,7 @@ describe("氷結カウンターブロックの挙動", () => {
           type: BlockType.ICE_COUNTER_PLUS,
           counterValue: 6,
         },
-        { x: 2, y: 1, color: RED, type: BlockType.NORMAL },
+        { x: 2, y: 1, color: BLUE, type: BlockType.NORMAL }, // 青色に変更して隣接しないようにする
         { x: 3, y: 1, color: YELLOW, type: BlockType.NORMAL },
       ],
       [
@@ -437,7 +437,7 @@ describe("氷結カウンターブロックの挙動", () => {
   });
 });
 
-describe("カウンター-ブロック", () => {
+describe("氷結カウンター-ブロック", () => {
   it("氷結カウンター-ブロックは隣接消去で氷結が解除され通常ブロックになる", () => {
     const blockLogic = new BlockLogic();
 
@@ -496,7 +496,7 @@ describe("カウンター-ブロック", () => {
 
     // テスト用の盤面を作成
     // __R __R __R __Y
-    // __Y *-R __R __Y  (氷結カウンター-ブロックの値が3)
+    // __Y *-R __B __Y  (氷結カウンター-ブロックの値が3)
     // __B __R __Y __Y
     // __Y __Y __R __R
     const blocks: Block[][] = [
@@ -515,7 +515,7 @@ describe("カウンター-ブロック", () => {
           type: BlockType.ICE_COUNTER_MINUS,
           counterValue: 3,
         },
-        { x: 2, y: 1, color: RED, type: BlockType.NORMAL },
+        { x: 2, y: 1, color: BLUE, type: BlockType.NORMAL }, // 青色に変更して隣接しないようにする
         { x: 3, y: 1, color: YELLOW, type: BlockType.NORMAL },
       ],
       [
