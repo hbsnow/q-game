@@ -161,7 +161,6 @@ export class BlockAsciiRenderer {
         
         beforeRow += highlightPrefix + beforeAscii + ' ';
         afterRow += highlightPrefix + afterAscii + ' ';
-        }
       }
       
       beforeRow += '|';
