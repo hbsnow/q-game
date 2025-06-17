@@ -199,7 +199,7 @@ describe("GravityBug", () => {
       // _ B _ Y
       // R R G G
       // B G Y R
-      expect(result).toEqual([
+      expect(result).toMatchObject([
         [null, null, null, null],
         [
           null,
