@@ -172,11 +172,8 @@ export class GameScene extends Phaser.Scene {
     // 鋼鉄ブロックを特定の位置に配置（ステージ1から出現）
     // 鋼鉄ブロックのパターンを定義（例：L字型）
     const steelBlockPositions = [
-      { x: 3, y: 8 },
-      { x: 3, y: 9 },
       { x: 3, y: 10 },
-      { x: 4, y: 10 },
-      { x: 5, y: 10 }
+      { x: 4, y: 10 }
     ];
     
     // 鋼鉄ブロックを配置
@@ -204,30 +201,30 @@ export class GameScene extends Phaser.Scene {
         // テスト用に妨害ブロックを配置（ランダムに配置）
         let block: Block;
         const rand = Math.random();
-        if (rand < 0.05) {
-          // 約5%の確率で岩ブロック（ステージ1から出現）
+        if (rand < 0.02) {
+          // 約2%の確率で岩ブロック（ステージ1から出現）
           block = blockFactory.createRockBlock(x, y);
-        } else if (rand < 0.10) {
-          // 約5%の確率で氷結Lv1
+        } else if (rand < 0.04) {
+          // 約2%の確率で氷結Lv1
           block = blockFactory.createIceBlockLv1(x, y, color);
-        } else if (rand < 0.13) {
-          // 約3%の確率で氷結Lv2
+        } else if (rand < 0.05) {
+          // 約1%の確率で氷結Lv2
           block = blockFactory.createIceBlockLv2(x, y, color);
-        } else if (rand < 0.20) {
-          // 約7%の確率で氷結カウンター+ブロック（テスト用）
+        } else if (rand < 0.07) {
+          // 約2%の確率で氷結カウンター+ブロック（テスト用）
           const counterValue = Math.floor(Math.random() * 5) + 3; // 3〜7の値
           block = blockFactory.createIceCounterPlusBlock(x, y, color, counterValue);
-        } else if (rand < 0.30) {
-          // 約10%の確率で氷結カウンター-ブロック（テスト用）
+        } else if (rand < 0.09) {
+          // 約2%の確率で氷結カウンター-ブロック（テスト用）
           const counterValue = Math.floor(Math.random() * 5) + 3; // 3〜7の値
           block = blockFactory.createIceCounterMinusBlock(x, y, color, counterValue);
-        } else if (rand < 0.12) {
-          // 約4%の確率でカウンター+ブロック
+        } else if (rand < 0.11) {
+          // 約2%の確率でカウンター+ブロック
           // カウンター値は3〜7の間でランダム
           const counterValue = Math.floor(Math.random() * 5) + 3;
           block = blockFactory.createCounterPlusBlock(x, y, color, counterValue);
-        } else if (rand < 0.15) {
-          // 約3%の確率でカウンター-ブロック
+        } else if (rand < 0.12) {
+          // 約1%の確率でカウンター-ブロック
           // カウンター値は3〜7の間でランダム
           const counterValue = Math.floor(Math.random() * 5) + 3;
           block = blockFactory.createCounterMinusBlock(x, y, color, counterValue);
