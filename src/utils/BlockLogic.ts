@@ -423,13 +423,141 @@ export class BlockLogic {
       };
     }
   }
-
   /**
    * 空の列を左にスライドさせる
    * @param blocks 元のブロック配列
    * @returns 更新されたブロック配列
    */
   applyHorizontalSlide(blocks: Block[][]): Block[][] {
+    const height = blocks.length;
+    const width = blocks[0]?.length || 0;
+    
+    // 結果を格納する新しい配列（元の配列をディープコピー）
+    const result: Block[][] = JSON.parse(JSON.stringify(blocks));
+    
+    // 各列に鋼鉄ブロックがあるかどうかを確認
+    const hasSteelInColumn: boolean[] = Array(width).fill(false);
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        if (blocks[y][x] && blocks[y][x].type === BlockType.STEEL) {
+          hasSteelInColumn[x] = true;
+          break;
+        }
+      }
+    }
+    
+    // 各列が空かどうかを確認
+    const isEmptyColumn: boolean[] = Array(width).fill(true);
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        if (blocks[y][x]) {
+          isEmptyColumn[x] = false;
+          break;
+        }
+      }
+    }
+    
+    // 左から順に処理
+    for (let x = 0; x < width - 1; x++) {
+      // 空の列を見つけたら、右側の列を左に詰める
+      if (isEmptyColumn[x]) {
+        // 右側で最初の非空列を探す
+        let nextNonEmptyCol = -1;
+        for (let nx = x + 1; nx < width; nx++) {
+          if (!isEmptyColumn[nx]) {
+            nextNonEmptyCol = nx;
+            break;
+          }
+        }
+        
+        // 右側に非空列がなければ終了
+        if (nextNonEmptyCol === -1) {
+          break;
+        }
+        
+        // 鋼鉄ブロックがある列は移動しない
+        if (hasSteelInColumn[nextNonEmptyCol]) {
+          // 鋼鉄ブロックの右側にブロックがあるかどうかを確認
+          let hasSteelBlockWithRightBlock = false;
+          for (let y = 0; y < height; y++) {
+            if (result[y][nextNonEmptyCol] && result[y][nextNonEmptyCol].type === BlockType.STEEL) {
+              // 鋼鉄ブロックの右側にブロックがあるか確認
+              for (let rx = nextNonEmptyCol + 1; rx < width; rx++) {
+                if (result[y][rx]) {
+                  hasSteelBlockWithRightBlock = true;
+                  break;
+                }
+              }
+              if (hasSteelBlockWithRightBlock) break;
+            }
+          }
+          
+          // 鋼鉄ブロックの右側にブロックがある場合は、この列をスキップ
+          if (hasSteelBlockWithRightBlock) {
+            isEmptyColumn[x] = false; // この位置は埋まっているとマーク
+            continue;
+          }
+          
+          // 鋼鉄ブロックの下のブロックのみを移動
+          for (let y = 0; y < height; y++) {
+            // この位置に鋼鉄ブロックがあるか確認
+            let hasSteelAbove = false;
+            for (let sy = 0; sy < y; sy++) {
+              if (result[sy][nextNonEmptyCol] && result[sy][nextNonEmptyCol].type === BlockType.STEEL) {
+                hasSteelAbove = true;
+                break;
+              }
+            }
+            
+            // 鋼鉄ブロックまたは鋼鉄ブロックの上のブロックは移動しない
+            if (result[y][nextNonEmptyCol] && 
+                (result[y][nextNonEmptyCol].type === BlockType.STEEL || hasSteelAbove)) {
+              continue;
+            }
+            
+            // それ以外のブロックは左に移動
+            if (result[y][nextNonEmptyCol]) {
+              result[y][x] = {
+                ...result[y][nextNonEmptyCol],
+                x: x,
+                sprite: null
+              };
+              result[y][nextNonEmptyCol] = null;
+            }
+          }
+        } else {
+          // 通常の列は全て左に移動
+          for (let y = 0; y < height; y++) {
+            if (result[y][nextNonEmptyCol]) {
+              result[y][x] = {
+                ...result[y][nextNonEmptyCol],
+                x: x,
+                sprite: null
+              };
+              result[y][nextNonEmptyCol] = null;
+            }
+          }
+        }
+        
+        // 移動した列を空としてマーク
+        isEmptyColumn[nextNonEmptyCol] = true;
+        // 現在の列は埋まったとしてマーク
+        isEmptyColumn[x] = false;
+        
+        // 同じ位置をもう一度処理（連続して空列があった場合に対応）
+        x--;
+      }
+    }
+    
+    return result;
+  }
+
+  /**
+   * 通常の水平スライド処理（鋼鉄ブロックがない場合）
+   * @param blocks 元のブロック配列
+   * @returns 更新されたブロック配列
+   */
+  applyNormalHorizontalSlide(blocks: Block[][]): Block[][] {
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
 
@@ -445,16 +573,16 @@ export class BlockLogic {
       }
     }
 
-    // 鋼鉄ブロックがある列を特定
-    const hasSteelColumn: boolean[] = [];
+    // 空の列がない場合は何も変更しない
+    let hasEmptyColumn = false;
     for (let x = 0; x < width; x++) {
-      hasSteelColumn[x] = false;
-      for (let y = 0; y < height; y++) {
-        if (blocks[y][x] && blocks[y][x].type === BlockType.STEEL) {
-          hasSteelColumn[x] = true;
-          break;
-        }
+      if (isEmptyColumn[x]) {
+        hasEmptyColumn = true;
+        break;
       }
+    }
+    if (!hasEmptyColumn) {
+      return JSON.parse(JSON.stringify(blocks));
     }
 
     // 新しいブロック配列を作成（nullで初期化）
@@ -462,35 +590,17 @@ export class BlockLogic {
       .fill(null)
       .map(() => Array(width).fill(null));
 
-    // 鋼鉄ブロックがある列は移動しない（そのままコピー）
-    for (let x = 0; x < width; x++) {
-      if (hasSteelColumn[x]) {
-        this.copyColumn(blocks, resultBlocks, x, x);
-      }
-    }
-
     // 空でない列を左から詰める
     let destX = 0;
     for (let x = 0; x < width; x++) {
-      // 鋼鉄ブロックがある列はスキップ（すでに配置済み）
-      if (hasSteelColumn[x]) {
-        destX = x + 1;
-        continue;
-      }
-
       // 空の列はスキップ
       if (isEmptyColumn[x]) {
         continue;
       }
 
-      // 次の鋼鉄ブロックがある列を探す
-      let nextSteelX = this.findNextSteelColumn(hasSteelColumn, destX);
-
-      // 鋼鉄ブロックの手前までしか移動できない
-      if (destX < nextSteelX) {
-        this.copyColumn(blocks, resultBlocks, x, destX);
-        destX++;
-      }
+      // 列をコピー
+      this.copyColumn(blocks, resultBlocks, x, destX);
+      destX++;
     }
 
     return resultBlocks;
@@ -518,24 +628,6 @@ export class BlockLogic {
         };
       }
     }
-  }
-
-  /**
-   * 次の鋼鉄ブロックがある列を探すヘルパーメソッド
-   * @param hasSteelColumn 鋼鉄ブロックがある列の配列
-   * @param startX 開始X座標
-   * @returns 次の鋼鉄ブロックがある列のX座標、なければ配列の長さを返す
-   */
-  private findNextSteelColumn(
-    hasSteelColumn: boolean[],
-    startX: number
-  ): number {
-    for (let x = startX; x < hasSteelColumn.length; x++) {
-      if (hasSteelColumn[x]) {
-        return x;
-      }
-    }
-    return hasSteelColumn.length;
   }
 
   /**
