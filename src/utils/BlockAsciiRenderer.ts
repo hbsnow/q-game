@@ -10,27 +10,51 @@ export class BlockAsciiRenderer {
    * @param title タイトル（オプション）
    */
   static logBlocks(blocks: (Block | null)[][], title?: string): void {
-    // JSON形式で出力
-    console.log(`=== ${title || 'BLOCKS'} ===`);
+    // 出力を一つの文字列にまとめる
+    let output = '';
     
-    // ブロックの状態をJSON形式に変換
-    const blocksJson = blocks.map(row => 
-      row.map(block => {
-        if (!block) return null;
-        
-        // 必要なプロパティのみを抽出
-        return {
-          x: block.x,
-          y: block.y,
-          color: block.color,
-          type: block.type,
-          ...(block.counterValue !== undefined ? { counterValue: block.counterValue } : {})
-        };
-      })
-    );
+    if (title) {
+      output += `=== ${title} ===\n`;
+    }
     
-    // 整形されたJSONとして出力
-    console.log(JSON.stringify(blocksJson, null, 2));
+    // 列のラベル（a, b, c, ...）
+    let header = '     ';
+    for (let x = 0; x < blocks[0].length; x++) {
+      header += String.fromCharCode(97 + x) + '   ';
+    }
+    output += header + '\n';
+    
+    // 上部の枠線
+    let topBorder = '  +-';
+    for (let x = 0; x < blocks[0].length; x++) {
+      topBorder += '----';
+    }
+    topBorder += '-+';
+    output += topBorder + '\n';
+    
+    // 各行のブロック
+    for (let y = 0; y < blocks.length; y++) {
+      let row = y.toString().padStart(1) + ' |';
+      
+      for (let x = 0; x < blocks[y].length; x++) {
+        const block = blocks[y][x];
+        row += ' ' + this.blockToAscii(block) + ' ';
+      }
+      
+      row += '|';
+      output += row + '\n';
+    }
+    
+    // 下部の枠線
+    let bottomBorder = '  +-';
+    for (let x = 0; x < blocks[0].length; x++) {
+      bottomBorder += '----';
+    }
+    bottomBorder += '-+';
+    output += bottomBorder;
+    
+    // まとめた出力を一度に表示
+    console.log(output);
   }
   
   /**
@@ -95,32 +119,93 @@ export class BlockAsciiRenderer {
     title?: string,
     highlight?: {x: number, y: number}
   ): void {
-    console.log(`=== ${title || 'BLOCKS COMPARISON'} ===`);
+    // 出力を一つの文字列にまとめる
+    let output = '';
+    
+    if (title) {
+      output += `=== ${title} ===\n`;
+    }
+    
+    // 列のラベル（a, b, c, ...）
+    let header = '     ';
+    for (let x = 0; x < Math.max(before[0]?.length || 0, after[0]?.length || 0); x++) {
+      header += String.fromCharCode(97 + x) + '   ';
+    }
+    output += header + '\n';
+    
+    // 上部の枠線
+    let topBorder = '  +-';
+    for (let x = 0; x < Math.max(before[0]?.length || 0, after[0]?.length || 0); x++) {
+      topBorder += '----';
+    }
+    topBorder += '-+';
+    output += topBorder + '\n';
+    
+    // 各行のブロック
+    const maxHeight = Math.max(before.length, after.length);
+    for (let y = 0; y < maxHeight; y++) {
+      let afterRow = y.toString().padStart(1) + ' |';
+      
+      const maxWidth = Math.max(before[0]?.length || 0, after[0]?.length || 0);
+      for (let x = 0; x < maxWidth; x++) {
+        const afterBlock = after[y]?.[x] || null;
+        const afterAscii = this.blockToAscii(afterBlock);
+        
+        // ハイライト表示
+        const isHighlighted = highlight && highlight.x === x && highlight.y === y;
+        
+        if (isHighlighted) {
+          // ハイライト表示の場合は[]で囲む
+          afterRow += ' [' + afterAscii + ']';
+        } else {
+          // 通常表示
+          afterRow += '  ' + afterAscii + ' ';
+        }
+      }
+      
+      afterRow += '|';
+      
+      output += afterRow + '\n';
+    }
+    
+    // 下部の枠線
+    let bottomBorder = '  +-';
+    for (let x = 0; x < Math.max(before[0]?.length || 0, after[0]?.length || 0); x++) {
+      bottomBorder += '----';
+    }
+    bottomBorder += '-+';
+    output += bottomBorder;
+    
+    // まとめた出力を一度に表示
+    console.log(output);
+  }
+  
+  /**
+   * ブロック配列をJSON形式でコンソールに出力
+   * @param blocks ブロック配列
+   * @param title タイトル（オプション）
+   */
+  static logBlocksAsJson(blocks: (Block | null)[][], title?: string): void {
+    // JSON形式で出力
+    console.log(`=== ${title || 'BLOCKS JSON'} ===`);
     
     // ブロックの状態をJSON形式に変換
-    const afterJson = after.map(row => 
+    const blocksJson = blocks.map(row => 
       row.map(block => {
         if (!block) return null;
         
         // 必要なプロパティのみを抽出
-        const blockData = {
+        return {
           x: block.x,
           y: block.y,
           color: block.color,
           type: block.type,
           ...(block.counterValue !== undefined ? { counterValue: block.counterValue } : {})
         };
-        
-        // ハイライト情報を追加
-        if (highlight && highlight.x === block.x && highlight.y === block.y) {
-          return { ...blockData, highlighted: true };
-        }
-        
-        return blockData;
       })
     );
     
     // 整形されたJSONとして出力
-    console.log(JSON.stringify(afterJson, null, 2));
+    console.log(JSON.stringify(blocksJson, null, 2));
   }
 }

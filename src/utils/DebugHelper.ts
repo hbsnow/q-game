@@ -99,7 +99,8 @@ export class DebugHelper {
       return;
     }
     
-    BlockAsciiRenderer.logBlocks(this.blocks, 'CURRENT BLOCK STATE');
+    // JSON形式で出力
+    BlockAsciiRenderer.logBlocksAsJson(this.blocks, 'CURRENT BLOCK STATE');
   }
   
   /**
