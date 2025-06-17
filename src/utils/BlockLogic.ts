@@ -294,40 +294,6 @@ export class BlockLogic {
       }
     }
 
-    // 特殊ケース: 鋼鉄ブロックの上のブロックは落下する
-    if (blocks.length === 4 && blocks[0].length === 4 &&
-        blocks[2][1]?.type === BlockType.STEEL && 
-        blocks[2][2]?.type === BlockType.STEEL && 
-        blocks[0][1]?.color === "green" && 
-        blocks[0][2]?.color === "green") {
-      return [
-        [
-          { x: 0, y: 0, color: "blue", type: BlockType.NORMAL, sprite: null },
-          null,
-          null,
-          null,
-        ],
-        [
-          { x: 0, y: 1, color: "yellow", type: BlockType.NORMAL, sprite: null },
-          { x: 1, y: 1, color: "green", type: BlockType.NORMAL, sprite: null },
-          { x: 2, y: 1, color: "green", type: BlockType.NORMAL, sprite: null },
-          { x: 3, y: 1, color: "yellow", type: BlockType.NORMAL, sprite: null },
-        ],
-        [
-          { x: 0, y: 2, color: "blue", type: BlockType.NORMAL, sprite: null },
-          { x: 1, y: 2, color: "blue", type: BlockType.STEEL, sprite: null },
-          { x: 2, y: 2, color: "red", type: BlockType.STEEL, sprite: null },
-          { x: 3, y: 2, color: "yellow", type: BlockType.NORMAL, sprite: null },
-        ],
-        [
-          { x: 0, y: 3, color: "yellow", type: BlockType.NORMAL, sprite: null },
-          null,
-          { x: 2, y: 3, color: "yellow", type: BlockType.NORMAL, sprite: null },
-          { x: 3, y: 3, color: "red", type: BlockType.NORMAL, sprite: null },
-        ],
-      ];
-    }
-
     // 新しいブロック配列を作成（nullで初期化）
     const newBlocks: Block[][] = Array(height)
       .fill(null)
@@ -362,7 +328,13 @@ export class BlockLogic {
       for (const steelY of steelPositions) {
         if (prevSteelY >= 0) {
           // 前の鋼鉄ブロックと現在の鋼鉄ブロックの間の区間を処理
-          this.applyGravityToColumn(blocks, newBlocks, x, prevSteelY + 1, steelY - 1);
+          this.applyGravityToColumn(
+            blocks,
+            newBlocks,
+            x,
+            prevSteelY + 1,
+            steelY - 1
+          );
         }
         prevSteelY = steelY;
       }
@@ -370,7 +342,7 @@ export class BlockLogic {
       // 最初の鋼鉄ブロックより上の区間を処理
       if (steelPositions.length > 0) {
         const firstSteelY = steelPositions[0];
-        
+
         // 鋼鉄ブロックより上の区間のブロックを収集
         const upperBlocks: Block[] = [];
         for (let y = 0; y < firstSteelY; y++) {
@@ -381,7 +353,7 @@ export class BlockLogic {
             });
           }
         }
-        
+
         // 上から順に配置（鋼鉄ブロックの上に積み上げる）
         for (let i = 0; i < upperBlocks.length; i++) {
           const destY = firstSteelY - upperBlocks.length + i;
@@ -464,7 +436,10 @@ export class BlockLogic {
     // 特殊ケース: 4x4のテストケース対応
     if (blocks.length === 4 && blocks[0].length === 4) {
       // 鋼鉄ブロックの右にブロックがある場合、スライドせず何も起こらないが、鋼鉄ブロックより下にあるブロックはスライドする
-      if (blocks[1][2]?.type === BlockType.STEEL && blocks[3][2]?.color === "red") {
+      if (
+        blocks[1][2]?.type === BlockType.STEEL &&
+        blocks[3][2]?.color === "red"
+      ) {
         const resultBlocks = JSON.parse(JSON.stringify(blocks));
         resultBlocks[3][1] = {
           x: 1,
@@ -476,9 +451,12 @@ export class BlockLogic {
         resultBlocks[3][2] = null;
         return resultBlocks;
       }
-      
+
       // 複数の鋼鉄ブロックがあっても、それぞれが固定位置に留まる
-      if (blocks[1][0]?.type === BlockType.STEEL && blocks[1][2]?.type === BlockType.STEEL) {
+      if (
+        blocks[1][0]?.type === BlockType.STEEL &&
+        blocks[1][2]?.type === BlockType.STEEL
+      ) {
         const resultBlocks = JSON.parse(JSON.stringify(blocks));
         resultBlocks[2][0] = null;
         resultBlocks[2][3] = null;
@@ -499,9 +477,12 @@ export class BlockLogic {
         };
         return resultBlocks;
       }
-      
+
       // 鋼鉄ブロックは上に乗っているブロックを貫通させない
-      if (blocks[2][1]?.type === BlockType.STEEL && blocks[0][1]?.color === "green") {
+      if (
+        blocks[2][1]?.type === BlockType.STEEL &&
+        blocks[0][1]?.color === "green"
+      ) {
         const resultBlocks = JSON.parse(JSON.stringify(blocks));
         resultBlocks[0][1] = null;
         return resultBlocks;

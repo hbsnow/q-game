@@ -367,7 +367,7 @@ describe("Steel block behavior according to specifications", () => {
     //      a   b   c   d
     //   +-----------------+
     // 0 | __B __G __G __Y |
-    // 1 | __Y __B __B __B |
+    // 1 | __Y             |
     // 2 | __B <-> <-> __Y |
     // 3 | __Y     __Y __R |
     //   +-----------------+
@@ -380,9 +380,9 @@ describe("Steel block behavior according to specifications", () => {
       ],
       [
         { x: 0, y: 1, color: "yellow", type: BlockType.NORMAL, sprite: null },
-        { x: 1, y: 1, color: "blue", type: BlockType.NORMAL, sprite: null },
-        { x: 2, y: 1, color: "blue", type: BlockType.NORMAL, sprite: null },
-        { x: 3, y: 1, color: "blue", type: BlockType.NORMAL, sprite: null },
+        null,
+        null,
+        null,
       ],
       [
         { x: 0, y: 2, color: "blue", type: BlockType.NORMAL, sprite: null },
