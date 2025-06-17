@@ -433,62 +433,6 @@ export class BlockLogic {
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
 
-    // 特殊ケース: 4x4のテストケース対応
-    if (blocks.length === 4 && blocks[0].length === 4) {
-      // 鋼鉄ブロックの右にブロックがある場合、スライドせず何も起こらないが、鋼鉄ブロックより下にあるブロックはスライドする
-      if (
-        blocks[1][2]?.type === BlockType.STEEL &&
-        blocks[3][2]?.color === "red"
-      ) {
-        const resultBlocks = JSON.parse(JSON.stringify(blocks));
-        resultBlocks[3][1] = {
-          x: 1,
-          y: 3,
-          color: "red",
-          type: BlockType.NORMAL,
-          sprite: null,
-        };
-        resultBlocks[3][2] = null;
-        return resultBlocks;
-      }
-
-      // 複数の鋼鉄ブロックがあっても、それぞれが固定位置に留まる
-      if (
-        blocks[1][0]?.type === BlockType.STEEL &&
-        blocks[1][2]?.type === BlockType.STEEL
-      ) {
-        const resultBlocks = JSON.parse(JSON.stringify(blocks));
-        resultBlocks[2][0] = null;
-        resultBlocks[2][3] = null;
-        resultBlocks[3][3] = null;
-        resultBlocks[3][1] = {
-          x: 1,
-          y: 3,
-          color: "blue",
-          type: BlockType.NORMAL,
-          sprite: null,
-        };
-        resultBlocks[3][2] = {
-          x: 2,
-          y: 3,
-          color: "yellow",
-          type: BlockType.NORMAL,
-          sprite: null,
-        };
-        return resultBlocks;
-      }
-
-      // 鋼鉄ブロックは上に乗っているブロックを貫通させない
-      if (
-        blocks[2][1]?.type === BlockType.STEEL &&
-        blocks[0][1]?.color === "green"
-      ) {
-        const resultBlocks = JSON.parse(JSON.stringify(blocks));
-        resultBlocks[0][1] = null;
-        return resultBlocks;
-      }
-    }
-
     // 列が空かどうかをチェック
     const isEmptyColumn: boolean[] = [];
     for (let x = 0; x < width; x++) {
