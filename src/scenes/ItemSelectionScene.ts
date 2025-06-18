@@ -58,9 +58,19 @@ export class ItemSelectionScene extends Phaser.Scene {
     this.itemManager.addItem('changeOne', 2);
     this.itemManager.addItem('miniBomb', 5);
     this.itemManager.addItem('shuffle', 4);
-    this.itemManager.addItem('meltingAgent', 1);
+    
+    // Phase 7: 中級アイテムを追加
+    this.itemManager.addItem('meltingAgent', 2);
+    this.itemManager.addItem('changeArea', 2);
+    this.itemManager.addItem('counterReset', 3);
+    this.itemManager.addItem('adPlus', 1);
+    
+    // 上級アイテムを追加
     this.itemManager.addItem('bomb', 1);
     this.itemManager.addItem('scoreBooster', 1);
+    this.itemManager.addItem('hammer', 2);
+    this.itemManager.addItem('steelHammer', 1);
+    this.itemManager.addItem('specialHammer', 1);
   }
 
   /**

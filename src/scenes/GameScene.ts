@@ -801,19 +801,9 @@ export class GameScene extends Phaser.Scene {
         break;
         
       case 'changeOne':
-        // 色変更（とりあえず赤色に変更）
-        result = ItemEffectManager.applyChangeOne(this.blocks, {x, y}, '#FF0000');
-        if (result && result.success) {
-          // 色変更エフェクトを表示
-          this.itemEffectVisualizer.showColorChangeEffect(
-            [{x, y}], 
-            this.boardX, 
-            this.boardY, 
-            GameConfig.BLOCK_SIZE, 
-            0xFF0000
-          );
-        }
-        break;
+        // 色選択UIを表示
+        this.showColorSelectionUI(x, y, 'changeOne');
+        return; // 色選択後に処理を継続
         
       case 'miniBomb':
         result = ItemEffectManager.applyMiniBomb(this.blocks, {x, y});
@@ -826,20 +816,9 @@ export class GameScene extends Phaser.Scene {
         break;
         
       case 'changeArea':
-        // エリア色変更（とりあえず青色に変更）
-        const connectedBlocks = this.getConnectedBlocksForPreview(x, y);
-        result = ItemEffectManager.applyChangeArea(this.blocks, {x, y}, '#0000FF');
-        if (result && result.success && connectedBlocks.length > 0) {
-          // 色変更エフェクトを表示
-          this.itemEffectVisualizer.showColorChangeEffect(
-            connectedBlocks, 
-            this.boardX, 
-            this.boardY, 
-            GameConfig.BLOCK_SIZE, 
-            0x0000FF
-          );
-        }
-        break;
+        // 色選択UIを表示
+        this.showColorSelectionUI(x, y, 'changeArea');
+        return; // 色選択後に処理を継続
         
       case 'meltingAgent':
         result = ItemEffectManager.applyMeltingAgent(this.blocks, {x, y});
@@ -1805,5 +1784,177 @@ export class GameScene extends Phaser.Scene {
     }
     
     return connected;
+  }
+
+  /**
+   * 色選択UIを表示
+   */
+  private showColorSelectionUI(x: number, y: number, itemType: 'changeOne' | 'changeArea'): void {
+    const { width, height } = this.cameras.main;
+    
+    // モーダル背景
+    const modalBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
+      .setInteractive()
+      .setDepth(1000)
+      .setName('colorSelectionModalBg');
+
+    // モーダルウィンドウ
+    const modalWidth = width * 0.8;
+    const modalHeight = 200;
+    const modal = this.add.rectangle(width / 2, height / 2, modalWidth, modalHeight, 0x333333, 0.95)
+      .setStrokeStyle(2, 0xFFFFFF)
+      .setDepth(1001)
+      .setName('colorSelectionModal');
+
+    // タイトル
+    const title = itemType === 'changeOne' ? 'ブロックの色を選択' : 'エリアの色を選択';
+    this.add.text(width / 2, height / 2 - modalHeight / 2 + 30, title, {
+      fontSize: '16px',
+      color: '#FFFFFF',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5).setDepth(1002).setName('colorSelectionTitle');
+
+    // 色選択ボタン
+    const colors = [
+      { name: '深い青', color: '#1E5799', hex: 0x1E5799 },
+      { name: '水色', color: '#7DB9E8', hex: 0x7DB9E8 },
+      { name: '海緑', color: '#2E8B57', hex: 0x2E8B57 },
+      { name: '珊瑚赤', color: '#FF6347', hex: 0xFF6347 },
+      { name: '砂金色', color: '#F4D03F', hex: 0xF4D03F },
+      { name: '真珠白', color: '#F5F5F5', hex: 0xF5F5F5 }
+    ];
+
+    const buttonSize = 30;
+    const buttonSpacing = 45;
+    const startX = width / 2 - (colors.length - 1) * buttonSpacing / 2;
+    const buttonY = height / 2 + 10;
+
+    colors.forEach((colorData, index) => {
+      const buttonX = startX + index * buttonSpacing;
+      
+      // 色ボタン
+      const colorButton = this.add.rectangle(buttonX, buttonY, buttonSize, buttonSize, colorData.hex)
+        .setStrokeStyle(2, 0xFFFFFF)
+        .setInteractive({ useHandCursor: true })
+        .setDepth(1002)
+        .setName(`colorButton_${index}`);
+
+      // 色名ラベル
+      this.add.text(buttonX, buttonY + buttonSize / 2 + 15, colorData.name, {
+        fontSize: '10px',
+        color: '#FFFFFF',
+        fontFamily: 'Arial'
+      }).setOrigin(0.5).setDepth(1002).setName(`colorLabel_${index}`);
+
+      // クリックイベント
+      colorButton.on('pointerdown', () => {
+        this.applyColorChange(x, y, itemType, colorData.color, colorData.hex);
+        this.closeColorSelectionUI();
+      });
+
+      // ホバーエフェクト
+      colorButton.on('pointerover', () => {
+        colorButton.setScale(1.1);
+      });
+
+      colorButton.on('pointerout', () => {
+        colorButton.setScale(1);
+      });
+    });
+
+    // 閉じるボタン
+    const closeButton = this.add.rectangle(width / 2, height / 2 + modalHeight / 2 - 20, 80, 25, 0x9E9E9E)
+      .setInteractive({ useHandCursor: true })
+      .setDepth(1002)
+      .setName('colorSelectionCloseButton');
+    
+    this.add.text(width / 2, height / 2 + modalHeight / 2 - 20, '閉じる', {
+      fontSize: '12px',
+      color: '#FFFFFF',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5).setDepth(1002).setName('colorSelectionCloseText');
+
+    closeButton.on('pointerdown', () => {
+      this.closeColorSelectionUI();
+    });
+
+    // モーダル背景クリックで閉じる
+    modalBg.on('pointerdown', () => {
+      this.closeColorSelectionUI();
+    });
+  }
+
+  /**
+   * 色変更を適用
+   */
+  private applyColorChange(x: number, y: number, itemType: 'changeOne' | 'changeArea', color: string, colorHex: number): void {
+    let result;
+    
+    if (itemType === 'changeOne') {
+      result = ItemEffectManager.applyChangeOne(this.blocks, {x, y}, color);
+      if (result && result.success) {
+        this.itemEffectVisualizer.showColorChangeEffect(
+          [{x, y}], 
+          this.boardX, 
+          this.boardY, 
+          GameConfig.BLOCK_SIZE, 
+          colorHex
+        );
+      }
+    } else if (itemType === 'changeArea') {
+      const connectedBlocks = this.getConnectedBlocksForPreview(x, y);
+      result = ItemEffectManager.applyChangeArea(this.blocks, {x, y}, color);
+      if (result && result.success && connectedBlocks.length > 0) {
+        this.itemEffectVisualizer.showColorChangeEffect(
+          connectedBlocks, 
+          this.boardX, 
+          this.boardY, 
+          GameConfig.BLOCK_SIZE, 
+          colorHex
+        );
+      }
+    }
+
+    if (result && result.success) {
+      // ブロック表示を更新
+      this.updateBlockSprites();
+      
+      // アイテムボタンの表示を更新
+      this.updateItemButtons();
+      
+      // アイテムモードを終了
+      this.exitItemMode();
+    } else {
+      console.log('色変更に失敗しました:', result?.message);
+    }
+  }
+
+  /**
+   * 色選択UIを閉じる
+   */
+  private closeColorSelectionUI(): void {
+    // モーダル関連のオブジェクトを削除
+    const modalObjects = [
+      'colorSelectionModalBg',
+      'colorSelectionModal',
+      'colorSelectionTitle',
+      'colorSelectionCloseButton',
+      'colorSelectionCloseText'
+    ];
+
+    modalObjects.forEach(name => {
+      const obj = this.children.getByName(name);
+      if (obj) {
+        obj.destroy();
+      }
+    });
+
+    // 色ボタンとラベルを削除
+    for (let i = 0; i < 6; i++) {
+      const button = this.children.getByName(`colorButton_${i}`);
+      const label = this.children.getByName(`colorLabel_${i}`);
+      if (button) button.destroy();
+      if (label) label.destroy();
+    }
   }
 }
