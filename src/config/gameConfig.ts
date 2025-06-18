@@ -37,7 +37,7 @@ export const GameConfig = {
     HOVER_DURATION: 150,             // ホバーエフェクト時間
     PULSE_DURATION: 800,             // 脈動エフェクト時間
     PROCESSING_DELAY: 300,           // 処理間の待機時間
-    SCORE_ANIMATION_DURATION: 500,   // スコア表示アニメーション時間
+    SCORE_ANIMATION_DURATION: 1200,  // スコア表示アニメーション時間
   },
   
   // デバッグモード

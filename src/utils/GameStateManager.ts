@@ -70,6 +70,17 @@ export class GameStateManager {
   public addGold(amount: number): void {
     this.gameState.gold += amount;
   }
+
+  /**
+   * ゴールドを消費
+   */
+  public spendGold(amount: number): boolean {
+    if (amount > 0 && this.gameState.gold >= amount) {
+      this.gameState.gold -= amount;
+      return true;
+    }
+    return false;
+  }
   
   /**
    * ゴールドを消費

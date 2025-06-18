@@ -6,6 +6,11 @@ import { BlockLogic } from '../utils/BlockLogic';
 import { GameStateManager } from '../utils/GameStateManager';
 import { BlockFactory } from '../utils/BlockFactory';
 import { BlockAsciiRenderer } from '../utils/BlockAsciiRenderer';
+import { StageManager } from '../managers/StageManager';
+import { StageConfig } from '../types/StageConfig';
+import { ItemManager } from '../managers/ItemManager';
+import { ItemEffectManager } from '../managers/ItemEffectManager';
+import { ITEM_DATA } from '../data/ItemData';
 
 /**
  * ゲーム画面
@@ -20,20 +25,57 @@ export class GameScene extends Phaser.Scene {
   private boardX: number = 0;
   private boardY: number = 0;
   private isProcessing: boolean = false;
-  private processingOverlay: Phaser.GameObjects.Rectangle | null = null;
+
   private gameStateManager: GameStateManager;
   private blockLogic: BlockLogic;
+  private stageManager: StageManager;
+  private itemManager: ItemManager;
+  private currentStageConfig: StageConfig | null = null;
+  
+  // アイテム使用状態
+  private isItemMode: boolean = false;
+  private selectedItemSlot: 'special' | 'normal' | null = null;
+  private scoreBoosterActive: boolean = false; // スコアブースターが有効かどうか
 
   constructor() {
     super({ key: 'GameScene' });
     this.gameStateManager = GameStateManager.getInstance();
     this.blockLogic = new BlockLogic();
+    this.stageManager = new StageManager();
+    this.itemManager = new ItemManager();
   }
 
   init(data: any): void {
-    // GameStateManagerから現在のステージを取得、データで上書きされた場合はそれを使用
-    this.currentStage = data.stage || this.gameStateManager.getCurrentStage();
+    // ステージ情報を設定
+    if (data.stage) {
+      this.currentStage = data.stage;
+      this.stageManager.goToStage(data.stage);
+    } else {
+      this.currentStage = this.stageManager.getCurrentStage();
+    }
+    
+    // ステージ設定を取得
+    this.currentStageConfig = this.stageManager.getCurrentStageConfig();
+    if (this.currentStageConfig) {
+      this.targetScore = this.currentStageConfig.targetScore;
+    } else {
+      this.targetScore = GameConfig.TARGET_SCORE;
+    }
+    
+    // 装備されたアイテムを設定
+    if (data.equippedItems) {
+      if (data.equippedItems.specialSlot) {
+        this.itemManager.equipItem(data.equippedItems.specialSlot, 'special');
+      }
+      if (data.equippedItems.normalSlot) {
+        this.itemManager.equipItem(data.equippedItems.normalSlot, 'normal');
+      }
+    }
+    
     this.score = 0;
+    this.isItemMode = false;
+    this.selectedItemSlot = null;
+    this.scoreBoosterActive = false;
   }
 
   create(): void {
@@ -121,9 +163,14 @@ export class GameScene extends Phaser.Scene {
       0.3
     );
     
-    // リタイアボタン
+    // ボタンエリア
     const buttonHeight = 60;
     const buttonCenterY = height - buttonHeight / 2;
+    
+    // アイテムボタンを作成
+    this.createItemButtons(buttonCenterY);
+    
+    // リタイアボタン
     const retireButton = this.add.rectangle(width - 70, buttonCenterY, 120, 40, 0xAA2222)
       .setInteractive({ useHandCursor: true })
       .setName('retireButton');
@@ -167,84 +214,75 @@ export class GameScene extends Phaser.Scene {
       Array(GameConfig.BOARD_WIDTH).fill(null)
     );
     
-    // 色の配列（ステージに応じて色数を変える）
+    // ステージ設定から色数を取得
+    const colorCount = this.currentStageConfig?.colors || 3;
     const colorKeys = Object.keys(GameConfig.BLOCK_COLORS);
-    const colorCount = Math.min(3 + Math.floor(this.currentStage / 5), 6); // ステージが進むと色が増える
     const availableColors = colorKeys.slice(0, colorCount);
     
     // ブロックファクトリーの作成
     const blockFactory = new BlockFactory();
     
-    // 鋼鉄ブロックを特定の位置に配置（ステージ1から出現）
-    // 鋼鉄ブロックのパターンを定義（例：L字型）
-    // 注意: 鋼鉄ブロックは仕様として定義されていますが、現在のゲームバージョンでは出現しません
-    /*
-    const steelBlockPositions = [
-      { x: 3, y: 10 },
-      { x: 4, y: 10 }
-    ];
+    // まず妨害ブロックを配置
+    if (this.currentStageConfig?.obstacles) {
+      this.currentStageConfig.obstacles.forEach(obstacle => {
+        if (obstacle.y < GameConfig.BOARD_HEIGHT && obstacle.x < GameConfig.BOARD_WIDTH) {
+          let block: Block;
+          
+          switch (obstacle.type) {
+            case 'iceLv1':
+              block = blockFactory.createIceBlockLv1(obstacle.x, obstacle.y, obstacle.color || availableColors[0]);
+              break;
+            case 'iceLv2':
+              block = blockFactory.createIceBlockLv2(obstacle.x, obstacle.y, obstacle.color || availableColors[0]);
+              break;
+            case 'counterPlus':
+              block = blockFactory.createCounterPlusBlock(obstacle.x, obstacle.y, obstacle.color || availableColors[0], obstacle.counter || 3);
+              break;
+            case 'counterMinus':
+              block = blockFactory.createCounterMinusBlock(obstacle.x, obstacle.y, obstacle.color || availableColors[0], obstacle.counter || 3);
+              break;
+            case 'iceCounterPlus':
+              block = blockFactory.createIceCounterPlusBlock(obstacle.x, obstacle.y, obstacle.color || availableColors[0], obstacle.counter || 3);
+              break;
+            case 'iceCounterMinus':
+              block = blockFactory.createIceCounterMinusBlock(obstacle.x, obstacle.y, obstacle.color || availableColors[0], obstacle.counter || 3);
+              break;
+            case 'rock':
+              block = blockFactory.createRockBlock(obstacle.x, obstacle.y);
+              break;
+            case 'steel':
+              // 注意: 鋼鉄ブロックは仕様として定義されていますが、現在のゲームバージョンでは出現しません
+              block = blockFactory.createSteelBlock(obstacle.x, obstacle.y);
+              break;
+            default:
+              // 不明なタイプの場合は通常ブロックを作成
+              const colorKey = availableColors[Math.floor(Math.random() * availableColors.length)];
+              const color = GameConfig.BLOCK_COLORS[colorKey as keyof typeof GameConfig.BLOCK_COLORS];
+              block = blockFactory.createNormalBlock(obstacle.x, obstacle.y, color);
+              break;
+          }
+          
+          this.blocks[obstacle.y][obstacle.x] = block;
+        }
+      });
+    }
     
-    // 鋼鉄ブロックを配置
-    steelBlockPositions.forEach(pos => {
-      if (pos.y < GameConfig.BOARD_HEIGHT && pos.x < GameConfig.BOARD_WIDTH) {
-        const steelBlock = blockFactory.createSteelBlock(pos.x, pos.y);
-        this.blocks[pos.y][pos.x] = steelBlock;
-      }
-    });
-    */
-    
-    // ブロックの生成
+    // 残りの位置に通常ブロックを配置
     for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
       for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
-        // 既に鋼鉄ブロックが配置されている場合はスキップ
-        // 注意: 鋼鉄ブロックは仕様として定義されていますが、現在のゲームバージョンでは出現しません
-        /*
-        if (this.blocks[y][x] && this.blocks[y][x]?.type === BlockType.STEEL) {
+        // 既に妨害ブロックが配置されている場合はスキップ
+        if (this.blocks[y][x]) {
           // スプライトのみ作成
           this.createBlockSprite(x, y, this.blocks[y][x]!);
           continue;
         }
-        */
         
         // ランダムな色を選択
         const colorKey = availableColors[Math.floor(Math.random() * availableColors.length)];
         const color = GameConfig.BLOCK_COLORS[colorKey as keyof typeof GameConfig.BLOCK_COLORS];
         
-        // テスト用に妨害ブロックを配置（ランダムに配置）
-        let block: Block;
-        const rand = Math.random();
-        if (rand < 0.02) {
-          // 約2%の確率で岩ブロック（ステージ1から出現）
-          block = blockFactory.createRockBlock(x, y);
-        } else if (rand < 0.04) {
-          // 約2%の確率で氷結Lv1
-          block = blockFactory.createIceBlockLv1(x, y, color);
-        } else if (rand < 0.05) {
-          // 約1%の確率で氷結Lv2
-          block = blockFactory.createIceBlockLv2(x, y, color);
-        } else if (rand < 0.07) {
-          // 約2%の確率で氷結カウンター+ブロック（テスト用）
-          const counterValue = Math.floor(Math.random() * 5) + 3; // 3〜7の値
-          block = blockFactory.createIceCounterPlusBlock(x, y, color, counterValue);
-        } else if (rand < 0.09) {
-          // 約2%の確率で氷結カウンター-ブロック（テスト用）
-          const counterValue = Math.floor(Math.random() * 5) + 3; // 3〜7の値
-          block = blockFactory.createIceCounterMinusBlock(x, y, color, counterValue);
-        } else if (rand < 0.11) {
-          // 約2%の確率でカウンター+ブロック
-          // カウンター値は3〜7の間でランダム
-          const counterValue = Math.floor(Math.random() * 5) + 3;
-          block = blockFactory.createCounterPlusBlock(x, y, color, counterValue);
-        } else if (rand < 0.12) {
-          // 約1%の確率でカウンター-ブロック
-          // カウンター値は3〜7の間でランダム
-          const counterValue = Math.floor(Math.random() * 5) + 3;
-          block = blockFactory.createCounterMinusBlock(x, y, color, counterValue);
-        } else {
-          // 残りは通常ブロック
-          block = blockFactory.createNormalBlock(x, y, color);
-        }
-        
+        // 通常ブロックを作成
+        const block = blockFactory.createNormalBlock(x, y, color);
         this.blocks[y][x] = block;
         
         // ブロックのスプライトを作成
@@ -533,57 +571,7 @@ export class GameScene extends Phaser.Scene {
     });
   }
   
-  /**
-   * 処理中の視覚的フィードバックを表示
-   */
-  private showProcessingFeedback(): void {
-    if (this.processingOverlay) return;
-    
-    const { width, height } = this.cameras.main;
-    
-    // 半透明のオーバーレイを作成
-    this.processingOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.3)
-      .setDepth(1000); // 最前面に表示
-    
-    // 処理中テキスト
-    const processingText = this.add.text(width / 2, height / 2, '処理中...', {
-      fontSize: '24px',
-      color: '#FFFFFF',
-      stroke: '#000000',
-      strokeThickness: 3
-    }).setOrigin(0.5).setDepth(1001);
-    
-    // 点滅エフェクト
-    this.tweens.add({
-      targets: processingText,
-      alpha: 0.5,
-      duration: 500,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-    
-    // オーバーレイにテキスト参照を保存
-    this.processingOverlay.setData('processingText', processingText);
-  }
-  
-  /**
-   * 処理中の視覚的フィードバックを非表示
-   */
-  private hideProcessingFeedback(): void {
-    if (!this.processingOverlay) return;
-    
-    // テキストを取得して削除
-    const processingText = this.processingOverlay.getData('processingText') as Phaser.GameObjects.Text;
-    if (processingText) {
-      this.tweens.killTweensOf(processingText);
-      processingText.destroy();
-    }
-    
-    // オーバーレイを削除
-    this.processingOverlay.destroy();
-    this.processingOverlay = null;
-  }
+
   
   /**
    * ボタンにホバーエフェクトを追加
@@ -630,6 +618,144 @@ export class GameScene extends Phaser.Scene {
   private onBlockClick(x: number, y: number): void {
     if (this.isProcessing) return;
     
+    // アイテムモード時の処理
+    if (this.isItemMode && this.selectedItemSlot) {
+      this.handleItemModeClick(x, y);
+      return;
+    }
+    
+    // 通常のブロック消去処理
+    this.handleNormalBlockClick(x, y);
+  }
+
+  /**
+   * アイテムモード時のクリック処理
+   */
+  private handleItemModeClick(x: number, y: number): void {
+    const equippedItems = this.itemManager.getEquippedItems();
+    const item = this.selectedItemSlot === 'special' ? equippedItems.specialSlot : equippedItems.normalSlot;
+    
+    if (!item) {
+      this.exitItemMode();
+      return;
+    }
+    
+    let result;
+    
+    switch (item.effectType) {
+      case 'swap':
+        // スワップは2つのブロックが必要（簡略化のため、隣接ブロックと入れ替え）
+        const adjacentPos = this.findAdjacentBlock(x, y);
+        if (adjacentPos) {
+          result = ItemEffectManager.applySwap(this.blocks, {x, y}, adjacentPos);
+        }
+        break;
+        
+      case 'changeOne':
+        // 色変更（とりあえず赤色に変更）
+        result = ItemEffectManager.applyChangeOne(this.blocks, {x, y}, '#FF0000');
+        break;
+        
+      case 'miniBomb':
+        result = ItemEffectManager.applyMiniBomb(this.blocks, {x, y});
+        break;
+        
+      case 'changeArea':
+        // エリア色変更（とりあえず青色に変更）
+        result = ItemEffectManager.applyChangeArea(this.blocks, {x, y}, '#0000FF');
+        break;
+        
+      case 'meltingAgent':
+        result = ItemEffectManager.applyMeltingAgent(this.blocks, {x, y});
+        break;
+        
+      case 'counterReset':
+        result = ItemEffectManager.applyCounterReset(this.blocks, {x, y});
+        break;
+        
+      case 'adPlus':
+        result = ItemEffectManager.applyAdPlus(this.blocks, {x, y});
+        break;
+        
+      case 'bomb':
+        result = ItemEffectManager.applyBomb(this.blocks, {x, y});
+        break;
+        
+      case 'hammer':
+        result = ItemEffectManager.applyHammer(this.blocks, {x, y});
+        break;
+        
+      case 'steelHammer':
+        result = ItemEffectManager.applySteelHammer(this.blocks, {x, y});
+        break;
+        
+      case 'specialHammer':
+        result = ItemEffectManager.applySpecialHammer(this.blocks, {x, y});
+        break;
+        
+      default:
+        console.log(`アイテム ${item.name} の効果は未実装です`);
+        this.exitItemMode();
+        return;
+    }
+    
+    if (result && result.success && result.newBlocks) {
+      this.isProcessing = true;
+      
+      // アイテムを使用済みに設定
+      this.itemManager.useItem(this.selectedItemSlot!);
+      
+      // ブロック配列を更新
+      this.blocks = result.newBlocks;
+      
+      // 視覚表現を更新
+      this.updateBlockSprites();
+      
+      // アイテムボタンの表示を更新
+      this.updateItemButtons();
+      
+      // アイテムモードを終了
+      this.exitItemMode();
+      
+      this.isProcessing = false;
+    } else {
+      // 失敗時はメッセージを表示
+      console.log(result?.message || 'アイテムの使用に失敗しました');
+    }
+  }
+
+  /**
+   * 隣接するブロックを見つける（スワップ用の簡易実装）
+   */
+  private findAdjacentBlock(x: number, y: number): {x: number, y: number} | null {
+    const directions = [
+      {x: 0, y: -1}, // 上
+      {x: 1, y: 0},  // 右
+      {x: 0, y: 1},  // 下
+      {x: -1, y: 0}  // 左
+    ];
+    
+    for (const dir of directions) {
+      const newX = x + dir.x;
+      const newY = y + dir.y;
+      
+      if (newX >= 0 && newX < GameConfig.BOARD_WIDTH && 
+          newY >= 0 && newY < GameConfig.BOARD_HEIGHT &&
+          this.blocks[newY][newX]) {
+        return {x: newX, y: newY};
+      }
+    }
+    
+    return null;
+  }
+
+  /**
+   * 通常のブロッククリック処理
+   */
+  /**
+   * 通常のブロッククリック処理
+   */
+  private handleNormalBlockClick(x: number, y: number): void {
     // クリックされたブロックが氷結ブロックまたはカウンターブロックかチェック
     const clickedBlock = this.blocks[y][x];
     if (!clickedBlock) return;
@@ -647,9 +773,6 @@ export class GameScene extends Phaser.Scene {
     }
     
     this.isProcessing = true;
-    
-    // 処理中の視覚的フィードバックを表示
-    this.showProcessingFeedback();
     
     // デバッグヘルパーにクリック位置を設定
     this.debugHelper.setLastClickPosition({x, y});
@@ -681,7 +804,13 @@ export class GameScene extends Phaser.Scene {
       
       // スコア計算（消去可能なブロックの数で計算）
       const removableCount = connectedBlocks.length - nonRemovableCounterBlocks.length;
-      const score = this.blockLogic.calculateScore(removableCount);
+      let score = this.blockLogic.calculateScore(removableCount);
+      
+      // スコアブースターが有効な場合は1.5倍
+      if (this.scoreBoosterActive) {
+        score = Math.round(score * 1.5);
+      }
+      
       this.score += score;
       
       // スコア獲得エフェクトを表示
@@ -754,8 +883,15 @@ export class GameScene extends Phaser.Scene {
         
         // 全消し判定
         if (this.blockLogic.isAllCleared(this.blocks)) {
-          // 全消しボーナス
-          this.score = Math.floor(this.score * 1.5);
+          // 全消しボーナス（1.5倍）
+          let bonusScore = Math.floor(this.score * 0.5); // 0.5倍分がボーナス
+          
+          // スコアブースターが有効な場合はボーナス分にも適用
+          if (this.scoreBoosterActive) {
+            bonusScore = Math.round(bonusScore * 1.5);
+          }
+          
+          this.score += bonusScore;
           this.updateScoreDisplay();
           
           // 全消し演出
@@ -775,15 +911,9 @@ export class GameScene extends Phaser.Scene {
         }
         
         this.isProcessing = false;
-        
-        // 処理中の視覚的フィードバックを非表示
-        this.hideProcessingFeedback();
       });
     } else {
       this.isProcessing = false;
-      
-      // 処理中の視覚的フィードバックを非表示
-      this.hideProcessingFeedback();
     }
   }
   
@@ -920,6 +1050,11 @@ export class GameScene extends Phaser.Scene {
     if (headerText) {
       headerText.setText(`Stage ${this.currentStage}  Score: ${this.score}`);
     }
+    
+    // 目標スコア達成チェック
+    if (this.score >= this.targetScore) {
+      this.showClearButton();
+    }
   }
   
   /**
@@ -1003,22 +1138,25 @@ export class GameScene extends Phaser.Scene {
    * ステージクリア時の処理
    */
   private onStageClear(): void {
-    // 獲得ゴールドを計算（スコアと同じ）
-    const earnedGold = this.score;
+    // StageManager でステージクリア処理
+    this.stageManager.clearStage(this.currentStage, this.score);
     
-    // ゲーム状態を更新
-    this.gameStateManager.setScore(this.score);
-    this.gameStateManager.onStageClear();
+    // ItemManager でアイテム消費処理
+    this.itemManager.onStageComplete();
+    
+    // スコアブースターをリセット
+    this.scoreBoosterActive = false;
     
     // 最終ステージかどうかを判定
-    const isGameComplete = this.currentStage >= GameConfig.MAX_STAGE;
+    const isGameComplete = this.stageManager.isCurrentStageFinal();
     
     // リザルト画面に遷移
     this.scene.start('ResultScene', {
       stage: this.currentStage,
       score: this.score,
-      earnedGold: earnedGold,
-      isGameComplete: isGameComplete
+      earnedGold: this.score, // スコア = ゴールド
+      isGameComplete: isGameComplete,
+      isStageCleared: true
     });
   }
 
@@ -1026,11 +1164,234 @@ export class GameScene extends Phaser.Scene {
    * リタイア時の処理
    */
   private onRetire(): void {
-    // リタイア時はゲーム状態をリセット
-    this.gameStateManager.onStageRetry();
+    // ItemManager でリトライ処理（アイテム消費なし）
+    this.itemManager.onStageRetry();
     
-    // メイン画面に戻る
-    this.scene.start('MainScene');
+    // スコアブースターをリセット
+    this.scoreBoosterActive = false;
+    
+    // リザルト画面に遷移（失敗として）
+    this.scene.start('ResultScene', {
+      stage: this.currentStage,
+      score: this.score,
+      earnedGold: 0, // リタイア時はゴールド獲得なし
+      isGameComplete: false,
+      isStageCleared: false // ステージ失敗
+    });
+  }
+
+  /**
+   * リタイア時の処理
+   */
+  /**
+   * アイテムボタンを作成
+   */
+  private createItemButtons(buttonY: number): void {
+    const equippedItems = this.itemManager.getEquippedItems();
+    
+    // 特殊枠アイテムボタン
+    if (equippedItems.specialSlot) {
+      this.createItemButton(equippedItems.specialSlot.name, 'special', 80, buttonY);
+    }
+    
+    // 通常枠アイテムボタン
+    if (equippedItems.normalSlot) {
+      this.createItemButton(equippedItems.normalSlot.name, 'normal', 220, buttonY);
+    }
+  }
+
+  /**
+   * 個別のアイテムボタンを作成
+   */
+  private createItemButton(itemName: string, slot: 'special' | 'normal', x: number, y: number): void {
+    const isUsed = this.itemManager.isItemUsed(slot);
+    const buttonColor = isUsed ? 0x666666 : 0x0066CC;
+    const textColor = isUsed ? '#AAAAAA' : '#FFFFFF';
+    
+    const button = this.add.rectangle(x, y, 120, 40, buttonColor)
+      .setInteractive({ useHandCursor: !isUsed })
+      .setName(`itemButton_${slot}`);
+    
+    const text = this.add.text(x, y, itemName, {
+      fontSize: '14px',
+      color: textColor
+    }).setOrigin(0.5).setName(`itemText_${slot}`);
+    
+    if (!isUsed) {
+      button.on('pointerdown', () => {
+        this.onItemButtonClick(slot);
+      });
+      
+      // ホバーエフェクト
+      this.addButtonHoverEffect(button, text);
+    }
+  }
+
+  /**
+   * アイテムボタンクリック時の処理
+   */
+  private onItemButtonClick(slot: 'special' | 'normal'): void {
+    const equippedItems = this.itemManager.getEquippedItems();
+    const item = slot === 'special' ? equippedItems.specialSlot : equippedItems.normalSlot;
+    
+    if (!item) return;
+    
+    // アイテムの種類に応じて処理を分岐
+    switch (item.effectType) {
+      case 'shuffle':
+        this.useShuffleItem(slot);
+        break;
+      case 'scoreBooster':
+        this.useScoreBoosterItem(slot);
+        break;
+      case 'swap':
+      case 'changeOne':
+      case 'miniBomb':
+      case 'changeArea':
+      case 'meltingAgent':
+      case 'counterReset':
+      case 'adPlus':
+      case 'bomb':
+      case 'hammer':
+      case 'steelHammer':
+      case 'specialHammer':
+        // 対象選択が必要なアイテム
+        this.enterItemMode(slot);
+        break;
+      default:
+        // 未実装のアイテム
+        console.log(`アイテム ${item.name} は未実装です`);
+        break;
+    }
+  }
+
+  /**
+   * スコアブースターアイテムを使用
+   */
+  private useScoreBoosterItem(slot: 'special' | 'normal'): void {
+    if (this.isProcessing) return;
+    
+    const result = ItemEffectManager.applyScoreBooster();
+    if (result.success) {
+      // スコアブースターフラグを設定
+      this.scoreBoosterActive = true;
+      
+      // アイテムを使用済みに設定
+      this.itemManager.useItem(slot);
+      
+      // アイテムボタンの表示を更新
+      this.updateItemButtons();
+      
+      // メッセージ表示
+      console.log(result.message);
+    }
+  }
+
+  /**
+   * シャッフルアイテムを使用
+   */
+  private useShuffleItem(slot: 'special' | 'normal'): void {
+    if (this.isProcessing) return;
+    
+    const result = ItemEffectManager.applyShuffle(this.blocks);
+    if (result.success && result.newBlocks) {
+      this.isProcessing = true;
+      
+      // アイテムを使用済みに設定
+      this.itemManager.useItem(slot);
+      
+      // ブロック配列を更新
+      this.blocks = result.newBlocks;
+      
+      // 視覚表現を更新
+      this.updateBlockSprites();
+      
+      // アイテムボタンの表示を更新
+      this.updateItemButtons();
+      
+      this.isProcessing = false;
+    }
+  }
+
+  /**
+   * アイテムモードに入る（対象選択が必要なアイテム用）
+   */
+  private enterItemMode(slot: 'special' | 'normal'): void {
+    this.isItemMode = true;
+    this.selectedItemSlot = slot;
+    
+    // UI表示を変更（アイテム使用中であることを示す）
+    this.showItemModeUI();
+  }
+
+  /**
+   * アイテムモードのUI表示
+   */
+  private showItemModeUI(): void {
+    const { width, height } = this.cameras.main;
+    
+    // アイテム使用中のメッセージを表示
+    const equippedItems = this.itemManager.getEquippedItems();
+    const item = this.selectedItemSlot === 'special' ? equippedItems.specialSlot : equippedItems.normalSlot;
+    
+    if (item) {
+      const message = this.add.text(width / 2, 100, `${item.name}を使用中 - 対象を選択してください`, {
+        fontSize: '16px',
+        color: '#FFFF00',
+        stroke: '#000000',
+        strokeThickness: 2
+      }).setOrigin(0.5).setName('itemModeMessage');
+      
+      // キャンセルボタン
+      const cancelButton = this.add.rectangle(width - 50, 100, 80, 30, 0xAA2222)
+        .setInteractive({ useHandCursor: true })
+        .setName('itemCancelButton');
+      
+      const cancelText = this.add.text(width - 50, 100, 'キャンセル', {
+        fontSize: '12px',
+        color: '#FFFFFF'
+      }).setOrigin(0.5).setName('itemCancelText');
+      
+      cancelButton.on('pointerdown', () => {
+        this.exitItemMode();
+      });
+    }
+  }
+
+  /**
+   * アイテムモードを終了
+   */
+  private exitItemMode(): void {
+    this.isItemMode = false;
+    this.selectedItemSlot = null;
+    
+    // UI要素を削除
+    const message = this.children.getByName('itemModeMessage');
+    const cancelButton = this.children.getByName('itemCancelButton');
+    const cancelText = this.children.getByName('itemCancelText');
+    
+    if (message) message.destroy();
+    if (cancelButton) cancelButton.destroy();
+    if (cancelText) cancelText.destroy();
+  }
+
+  /**
+   * アイテムボタンの表示を更新
+   */
+  private updateItemButtons(): void {
+    // 既存のアイテムボタンを削除
+    ['special', 'normal'].forEach(slot => {
+      const button = this.children.getByName(`itemButton_${slot}`);
+      const text = this.children.getByName(`itemText_${slot}`);
+      if (button) button.destroy();
+      if (text) text.destroy();
+    });
+    
+    // アイテムボタンを再作成
+    const { height } = this.cameras.main;
+    const buttonHeight = 60;
+    const buttonCenterY = height - buttonHeight / 2;
+    this.createItemButtons(buttonCenterY);
   }
   
   private addDebugLines(): void {
@@ -1083,16 +1444,25 @@ export class GameScene extends Phaser.Scene {
       strokeThickness: 2
     }).setOrigin(0.5).setDepth(500);
     
-    // アニメーション
+    // 上昇アニメーション（最初の0.8秒は完全に表示）
     this.tweens.add({
       targets: scoreText,
-      y: screenY - 50,
-      alpha: 0,
+      y: screenY - 30,
       scale: score >= 100 ? 1.5 : 1.2,
-      duration: GameConfig.ANIMATION.SCORE_ANIMATION_DURATION,
+      duration: GameConfig.ANIMATION.SCORE_ANIMATION_DURATION * 0.7,
       ease: 'Power2',
       onComplete: () => {
-        scoreText.destroy();
+        // フェードアウトアニメーション
+        this.tweens.add({
+          targets: scoreText,
+          y: screenY - 50,
+          alpha: 0,
+          duration: GameConfig.ANIMATION.SCORE_ANIMATION_DURATION * 0.3,
+          ease: 'Power2',
+          onComplete: () => {
+            scoreText.destroy();
+          }
+        });
       }
     });
   }

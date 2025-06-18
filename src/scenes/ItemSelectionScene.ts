@@ -10,6 +10,9 @@ export class ItemSelectionScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
   private gameStateManager: GameStateManager;
   private currentStage: number = 1;
+  private mockItems: any[] = [];
+  private selectedSpecialItem: any = null;
+  private selectedNormalItem: any = null;
 
   constructor() {
     super({ key: 'ItemSelectionScene' });
@@ -29,8 +32,32 @@ export class ItemSelectionScene extends Phaser.Scene {
     // 背景色を設定
     this.cameras.main.setBackgroundColor('#1E5799');
     
+    // テスト用：基本アイテムを追加
+    this.addTestItems();
+    
     this.createUI();
     this.addDebugLines();
+  }
+
+  /**
+   * テスト用アイテムを追加
+   */
+  private addTestItems(): void {
+    // 基本アイテムを追加（テスト用）
+    this.mockItems = [
+      { id: 'swap', name: 'スワップ', count: 3, rarity: 'E' },
+      { id: 'changeOne', name: 'チェンジワン', count: 2, rarity: 'D' },
+      { id: 'miniBomb', name: 'ミニ爆弾', count: 5, rarity: 'F' },
+      { id: 'shuffle', name: 'シャッフル', count: 4, rarity: 'E' },
+      { id: 'bomb', name: '爆弾', count: 1, rarity: 'S' },
+      { id: 'hammer', name: 'ハンマー', count: 2, rarity: 'C' },
+      { id: 'scoreBooster', name: 'スコアブースター', count: 1, rarity: 'A' },
+      { id: 'meltingAgent', name: '溶解剤', count: 3, rarity: 'E' },
+      { id: 'counterReset', name: 'カウンター+リセット', count: 2, rarity: 'F' },
+      { id: 'adPlus', name: 'アドプラス', count: 1, rarity: 'B' },
+      { id: 'steelHammer', name: '鋼鉄ハンマー', count: 1, rarity: 'B' },
+      { id: 'specialHammer', name: 'スペシャルハンマー', count: 1, rarity: 'S' }
+    ];
   }
 
   private createUI(): void {
@@ -186,8 +213,17 @@ export class ItemSelectionScene extends Phaser.Scene {
 
     // イベントハンドラー
     confirmButton.on('pointerdown', () => {
-      // ゲーム画面に遷移
-      this.scene.start('GameScene', { stage: this.currentStage });
+      // 選択されたアイテムを取得
+      const equippedItems = {
+        specialSlot: this.selectedSpecialItem,
+        normalSlot: this.selectedNormalItem
+      };
+      
+      // ゲーム画面に遷移（装備アイテム情報を渡す）
+      this.scene.start('GameScene', { 
+        stage: this.currentStage,
+        equippedItems: equippedItems
+      });
     });
 
     cancelButton.on('pointerdown', () => {

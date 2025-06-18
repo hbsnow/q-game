@@ -1,13 +1,26 @@
 /**
+ * アイテムのレア度
+ */
+export enum ItemRarity {
+  S = 'S',
+  A = 'A',
+  B = 'B',
+  C = 'C',
+  D = 'D',
+  E = 'E',
+  F = 'F'
+}
+
+/**
  * アイテムの基本インターフェース
  */
 export interface Item {
   id: string;
   name: string;
   description: string;
-  rarity: 'S' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F';
-  count: number;
+  rarity: ItemRarity;
   unlockStage: number;
+  effectType: ItemEffectType;
 }
 
 /**

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { GameStateManager } from '../utils/GameStateManager';
+import { StageManager } from '../managers/StageManager';
 
 /**
  * メイン画面（ステージ選択画面）
@@ -9,10 +10,12 @@ import { GameStateManager } from '../utils/GameStateManager';
 export class MainScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
   private gameStateManager: GameStateManager;
+  private stageManager: StageManager;
 
   constructor() {
     super({ key: 'MainScene' });
     this.gameStateManager = GameStateManager.getInstance();
+    this.stageManager = new StageManager();
   }
 
   create(): void {
@@ -21,9 +24,13 @@ export class MainScene extends Phaser.Scene {
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
     
-    // GameStateManagerから現在の状態を取得
-    const currentStage = this.gameStateManager.getCurrentStage();
-    const gold = this.gameStateManager.getGold();
+    // テスト用：ゴールドを追加（ガチャテスト用）
+    this.gameStateManager.addGold(5000);
+    
+    // StageManagerから現在の状態を取得
+    const currentStage = this.stageManager.getCurrentStage();
+    const gold = this.stageManager.getCurrentGold();
+    const stageConfig = this.stageManager.getCurrentStageConfig();
     
     // ヘッダー（ゴールド表示）
     const goldText = this.add.text(width - 10, 30, `ゴールド: ${gold}`, {
@@ -34,12 +41,33 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(1, 0.5);
     
     // ステージ情報
-    const stageText = this.add.text(width / 2, height / 4, `ステージ ${currentStage}`, {
+    const stageTitle = stageConfig?.name || `ステージ ${currentStage}`;
+    const stageText = this.add.text(width / 2, height / 4, stageTitle, {
       fontSize: '32px',
       color: '#FFFFFF',
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5);
+    
+    // ステージ詳細情報
+    if (stageConfig) {
+      const detailText = `${stageConfig.colors}色 - 目標: ${stageConfig.targetScore}点`;
+      this.add.text(width / 2, height / 4 + 50, detailText, {
+        fontSize: '16px',
+        color: '#CCCCCC',
+        stroke: '#000000',
+        strokeThickness: 1
+      }).setOrigin(0.5);
+      
+      if (stageConfig.description) {
+        this.add.text(width / 2, height / 4 + 75, stageConfig.description, {
+          fontSize: '14px',
+          color: '#AAAAAA',
+          stroke: '#000000',
+          strokeThickness: 1
+        }).setOrigin(0.5);
+      }
+    }
     
     // プレイボタン
     const playButton = this.add.rectangle(width / 2, height / 2, 200, 60, 0x0088FF)
@@ -74,6 +102,16 @@ export class MainScene extends Phaser.Scene {
       this.scene.start('ItemSelectionScene', { stage: currentStage });
     });
     
+    itemButton.on('pointerdown', () => {
+      // アイテム一覧画面に遷移
+      this.scene.start('ItemListScene');
+    });
+    
+    gachaButton.on('pointerdown', () => {
+      // ガチャ画面に遷移
+      this.scene.start('GachaScene');
+    });
+    
     // ボタンホバーエフェクト
     playButton.on('pointerover', () => {
       this.tweens.add({
@@ -100,6 +138,44 @@ export class MainScene extends Phaser.Scene {
         scale: 0.95,
         duration: 100,
         yoyo: true,
+        ease: 'Power2'
+      });
+    });
+    
+    // アイテムボタンのホバーエフェクト
+    itemButton.on('pointerover', () => {
+      this.tweens.add({
+        targets: [itemButton, itemText],
+        scale: 1.05,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+    });
+    
+    itemButton.on('pointerout', () => {
+      this.tweens.add({
+        targets: [itemButton, itemText],
+        scale: 1,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+    });
+    
+    // ガチャボタンのホバーエフェクト
+    gachaButton.on('pointerover', () => {
+      this.tweens.add({
+        targets: [gachaButton, gachaText],
+        scale: 1.05,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+    });
+    
+    gachaButton.on('pointerout', () => {
+      this.tweens.add({
+        targets: [gachaButton, gachaText],
+        scale: 1,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
         ease: 'Power2'
       });
     });
