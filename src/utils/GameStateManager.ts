@@ -168,4 +168,11 @@ export class GameStateManager {
       usedItems: []
     };
   }
+
+  /**
+   * ゲームをリセット（resetGameStateのエイリアス）
+   */
+  public resetGame(): void {
+    this.resetGameState();
+  }
 }

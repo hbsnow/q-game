@@ -20,6 +20,7 @@ export class GameScene extends Phaser.Scene {
   private boardX: number = 0;
   private boardY: number = 0;
   private isProcessing: boolean = false;
+  private processingOverlay: Phaser.GameObjects.Rectangle | null = null;
   private gameStateManager: GameStateManager;
   private blockLogic: BlockLogic;
 
@@ -30,7 +31,8 @@ export class GameScene extends Phaser.Scene {
   }
 
   init(data: any): void {
-    this.currentStage = data.stage || 1;
+    // GameStateManagerから現在のステージを取得、データで上書きされた場合はそれを使用
+    this.currentStage = data.stage || this.gameStateManager.getCurrentStage();
     this.score = 0;
   }
 
@@ -133,8 +135,12 @@ export class GameScene extends Phaser.Scene {
     
     // ボタンクリックイベント
     retireButton.on('pointerdown', () => {
-      this.scene.start('MainScene');
+      // リタイア時の処理
+      this.onRetire();
     });
+    
+    // ボタンホバーエフェクト
+    this.addButtonHoverEffect(retireButton, retireText);
     
     // ブロックの初期配置
     this.createInitialBlocks();
@@ -343,6 +349,9 @@ export class GameScene extends Phaser.Scene {
       // スプライトを対話可能に設定
       rockSprite.setInteractive({ useHandCursor: true });
       
+      // ホバーエフェクトを追加
+      this.addBlockHoverEffect(rockSprite as unknown as Phaser.GameObjects.Sprite, block);
+      
       // スプライト配列に保存（型変換が必要）
       this.blockSprites[y][x] = rockSprite as unknown as Phaser.GameObjects.Sprite;
       
@@ -417,6 +426,10 @@ export class GameScene extends Phaser.Scene {
       
       // クリックイベント
       steelSprite.setInteractive({ useHandCursor: true });
+      
+      // ホバーエフェクトを追加
+      this.addBlockHoverEffect(steelSprite, block);
+      
       steelSprite.on('pointerdown', () => {
         if (!this.isProcessing) {
           this.onBlockClick(x, y);
@@ -450,6 +463,9 @@ export class GameScene extends Phaser.Scene {
     // スプライトを対話可能に設定
     blockSprite.setInteractive({ useHandCursor: true });
     
+    // ホバーエフェクトを追加
+    this.addBlockHoverEffect(blockSprite, block);
+    
     // スプライト配列に保存（型変換が必要）
     this.blockSprites[y][x] = blockSprite as unknown as Phaser.GameObjects.Sprite;
     
@@ -464,6 +480,148 @@ export class GameScene extends Phaser.Scene {
     });
     
     return blockSprite as unknown as Phaser.GameObjects.Sprite;
+  }
+  
+  /**
+   * ブロックにホバーエフェクトを追加
+   */
+  private addBlockHoverEffect(sprite: Phaser.GameObjects.Sprite | Phaser.GameObjects.Arc, block: Block): void {
+    // 元のスケールを保存
+    const originalScale = sprite.scale;
+    const originalAlpha = sprite.alpha;
+    
+    // ホバー時のエフェクト
+    sprite.on('pointerover', () => {
+      if (this.isProcessing) return;
+      
+      // 色弱対応：スケールと透明度の変化で視覚的フィードバック
+      this.tweens.add({
+        targets: sprite,
+        scale: originalScale * 1.1,
+        alpha: 0.8,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+      
+      // 脈動エフェクト（妨害ブロック以外）
+      if (block.type === BlockType.NORMAL) {
+        this.tweens.add({
+          targets: sprite,
+          scaleX: originalScale * 1.05,
+          scaleY: originalScale * 1.05,
+          duration: GameConfig.ANIMATION.PULSE_DURATION,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+    });
+    
+    // ホバー終了時のエフェクト
+    sprite.on('pointerout', () => {
+      // 全てのTweenを停止
+      this.tweens.killTweensOf(sprite);
+      
+      // 元の状態に戻す
+      this.tweens.add({
+        targets: sprite,
+        scale: originalScale,
+        alpha: originalAlpha,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+    });
+  }
+  
+  /**
+   * 処理中の視覚的フィードバックを表示
+   */
+  private showProcessingFeedback(): void {
+    if (this.processingOverlay) return;
+    
+    const { width, height } = this.cameras.main;
+    
+    // 半透明のオーバーレイを作成
+    this.processingOverlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.3)
+      .setDepth(1000); // 最前面に表示
+    
+    // 処理中テキスト
+    const processingText = this.add.text(width / 2, height / 2, '処理中...', {
+      fontSize: '24px',
+      color: '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 3
+    }).setOrigin(0.5).setDepth(1001);
+    
+    // 点滅エフェクト
+    this.tweens.add({
+      targets: processingText,
+      alpha: 0.5,
+      duration: 500,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    // オーバーレイにテキスト参照を保存
+    this.processingOverlay.setData('processingText', processingText);
+  }
+  
+  /**
+   * 処理中の視覚的フィードバックを非表示
+   */
+  private hideProcessingFeedback(): void {
+    if (!this.processingOverlay) return;
+    
+    // テキストを取得して削除
+    const processingText = this.processingOverlay.getData('processingText') as Phaser.GameObjects.Text;
+    if (processingText) {
+      this.tweens.killTweensOf(processingText);
+      processingText.destroy();
+    }
+    
+    // オーバーレイを削除
+    this.processingOverlay.destroy();
+    this.processingOverlay = null;
+  }
+  
+  /**
+   * ボタンにホバーエフェクトを追加
+   */
+  private addButtonHoverEffect(button: Phaser.GameObjects.Rectangle, text: Phaser.GameObjects.Text): void {
+    const originalScale = button.scale;
+    const originalTextScale = text.scale;
+    
+    button.on('pointerover', () => {
+      // ボタンとテキストを少し拡大
+      this.tweens.add({
+        targets: [button, text],
+        scale: originalScale * 1.05,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+    });
+    
+    button.on('pointerout', () => {
+      // 元のサイズに戻す
+      this.tweens.add({
+        targets: [button, text],
+        scale: originalScale,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+    });
+    
+    button.on('pointerdown', () => {
+      // クリック時の押し込みエフェクト
+      this.tweens.add({
+        targets: [button, text],
+        scale: originalScale * 0.95,
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2'
+      });
+    });
   }
   
   /**
@@ -489,6 +647,9 @@ export class GameScene extends Phaser.Scene {
     }
     
     this.isProcessing = true;
+    
+    // 処理中の視覚的フィードバックを表示
+    this.showProcessingFeedback();
     
     // デバッグヘルパーにクリック位置を設定
     this.debugHelper.setLastClickPosition({x, y});
@@ -522,6 +683,9 @@ export class GameScene extends Phaser.Scene {
       const removableCount = connectedBlocks.length - nonRemovableCounterBlocks.length;
       const score = this.blockLogic.calculateScore(removableCount);
       this.score += score;
+      
+      // スコア獲得エフェクトを表示
+      this.showScoreGainEffect(score, x, y);
       
       // スコア表示を更新
       this.updateScoreDisplay();
@@ -575,7 +739,7 @@ export class GameScene extends Phaser.Scene {
       });
       
       // 少し待ってから重力を適用（アニメーション完了を待つ）
-      this.time.delayedCall(300, () => {
+      this.time.delayedCall(GameConfig.ANIMATION.PROCESSING_DELAY, () => {
         // デバッグ用：重力適用前の状態を記録
         const beforeGravity = JSON.parse(JSON.stringify(this.blocks));
         
@@ -611,9 +775,15 @@ export class GameScene extends Phaser.Scene {
         }
         
         this.isProcessing = false;
+        
+        // 処理中の視覚的フィードバックを非表示
+        this.hideProcessingFeedback();
       });
     } else {
       this.isProcessing = false;
+      
+      // 処理中の視覚的フィードバックを非表示
+      this.hideProcessingFeedback();
     }
   }
   
@@ -675,7 +845,7 @@ export class GameScene extends Phaser.Scene {
           targets: sprite,
           alpha: 0,
           scale: 0.5,
-          duration: 200,
+          duration: GameConfig.ANIMATION.BLOCK_REMOVE_DURATION,
           onComplete: () => {
             // スプライトを破棄
             sprite.destroy();
@@ -833,12 +1003,33 @@ export class GameScene extends Phaser.Scene {
    * ステージクリア時の処理
    */
   private onStageClear(): void {
+    // 獲得ゴールドを計算（スコアと同じ）
+    const earnedGold = this.score;
+    
     // ゲーム状態を更新
     this.gameStateManager.setScore(this.score);
     this.gameStateManager.onStageClear();
-    this.gameStateManager.goToNextStage();
     
-    // TODO: リザルト画面に遷移
+    // 最終ステージかどうかを判定
+    const isGameComplete = this.currentStage >= GameConfig.MAX_STAGE;
+    
+    // リザルト画面に遷移
+    this.scene.start('ResultScene', {
+      stage: this.currentStage,
+      score: this.score,
+      earnedGold: earnedGold,
+      isGameComplete: isGameComplete
+    });
+  }
+
+  /**
+   * リタイア時の処理
+   */
+  private onRetire(): void {
+    // リタイア時はゲーム状態をリセット
+    this.gameStateManager.onStageRetry();
+    
+    // メイン画面に戻る
     this.scene.start('MainScene');
   }
   
@@ -875,5 +1066,34 @@ export class GameScene extends Phaser.Scene {
     const buttonHeight = 60;
     const buttonCenterY = height - buttonHeight / 2;
     this.debugHelper.addAreaBorder(width / 2, buttonCenterY, width, buttonHeight, 0xFF00FF, 'ボタン/アクションエリア');
+  }
+  
+  /**
+   * スコア獲得エフェクトを表示
+   */
+  private showScoreGainEffect(score: number, blockX: number, blockY: number): void {
+    const screenX = this.boardX + blockX * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+    const screenY = this.boardY + blockY * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+    
+    // スコアテキストを作成
+    const scoreText = this.add.text(screenX, screenY, `+${score}`, {
+      fontSize: score >= 100 ? '24px' : '18px',
+      color: score >= 100 ? '#FFD700' : '#FFFFFF',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5).setDepth(500);
+    
+    // アニメーション
+    this.tweens.add({
+      targets: scoreText,
+      y: screenY - 50,
+      alpha: 0,
+      scale: score >= 100 ? 1.5 : 1.2,
+      duration: GameConfig.ANIMATION.SCORE_ANIMATION_DURATION,
+      ease: 'Power2',
+      onComplete: () => {
+        scoreText.destroy();
+      }
+    });
   }
 }

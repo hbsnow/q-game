@@ -30,6 +30,16 @@ export const GameConfig = {
   MAX_STAGE: 100,
   TARGET_SCORE: 500, // 全ステージ共通の目標スコア
   
+  // アニメーション設定
+  ANIMATION: {
+    BLOCK_REMOVE_DURATION: 200,      // ブロック消去アニメーション時間
+    BLOCK_FALL_DURATION: 300,        // ブロック落下アニメーション時間
+    HOVER_DURATION: 150,             // ホバーエフェクト時間
+    PULSE_DURATION: 800,             // 脈動エフェクト時間
+    PROCESSING_DELAY: 300,           // 処理間の待機時間
+    SCORE_ANIMATION_DURATION: 500,   // スコア表示アニメーション時間
+  },
+  
   // デバッグモード
   DEBUG_MODE: true,
 };

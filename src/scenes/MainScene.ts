@@ -1,17 +1,18 @@
 import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
+import { GameStateManager } from '../utils/GameStateManager';
 
 /**
  * メイン画面（ステージ選択画面）
  */
 export class MainScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
-  private currentStage: number = 1;
-  private gold: number = 0;
+  private gameStateManager: GameStateManager;
 
   constructor() {
     super({ key: 'MainScene' });
+    this.gameStateManager = GameStateManager.getInstance();
   }
 
   create(): void {
@@ -20,8 +21,12 @@ export class MainScene extends Phaser.Scene {
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
     
+    // GameStateManagerから現在の状態を取得
+    const currentStage = this.gameStateManager.getCurrentStage();
+    const gold = this.gameStateManager.getGold();
+    
     // ヘッダー（ゴールド表示）
-    const goldText = this.add.text(width - 10, 30, `ゴールド: ${this.gold}`, {
+    const goldText = this.add.text(width - 10, 30, `ゴールド: ${gold}`, {
       fontSize: '18px',
       color: '#FFFFFF',
       stroke: '#000000',
@@ -29,7 +34,7 @@ export class MainScene extends Phaser.Scene {
     }).setOrigin(1, 0.5);
     
     // ステージ情報
-    const stageText = this.add.text(width / 2, height / 4, `ステージ ${this.currentStage}`, {
+    const stageText = this.add.text(width / 2, height / 4, `ステージ ${currentStage}`, {
       fontSize: '32px',
       color: '#FFFFFF',
       stroke: '#000000',
@@ -65,16 +70,38 @@ export class MainScene extends Phaser.Scene {
     
     // ボタンクリックイベント
     playButton.on('pointerdown', () => {
-      this.scene.start('GameScene', { stage: this.currentStage });
+      // アイテム選択画面に遷移
+      this.scene.start('ItemSelectionScene', { stage: currentStage });
     });
     
     // ボタンホバーエフェクト
     playButton.on('pointerover', () => {
-      playButton.setFillStyle(0x00AAFF);
+      this.tweens.add({
+        targets: [playButton, playText],
+        scale: 1.05,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
     });
     
     playButton.on('pointerout', () => {
-      playButton.setFillStyle(0x0088FF);
+      this.tweens.add({
+        targets: [playButton, playText],
+        scale: 1,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+    });
+    
+    playButton.on('pointerdown', () => {
+      // クリック時の押し込みエフェクト
+      this.tweens.add({
+        targets: [playButton, playText],
+        scale: 0.95,
+        duration: 100,
+        yoyo: true,
+        ease: 'Power2'
+      });
     });
     
     // デバッグライン
@@ -85,6 +112,9 @@ export class MainScene extends Phaser.Scene {
   
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
+    
+    // GameStateManagerから現在の状態を取得
+    const currentStage = this.gameStateManager.getCurrentStage();
     
     // タイトルエリア（ゴールド表示）
     const titleHeight = 60;
