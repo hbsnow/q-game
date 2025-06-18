@@ -10,11 +10,11 @@ export const GameConfig = {
   BACKGROUND_COLOR: '#87CEEB', // 海をイメージした水色
   
   // ゲーム盤面のサイズ
-  BOARD_WIDTH: 10,
-  BOARD_HEIGHT: 14,
+  BOARD_WIDTH: 9,
+  BOARD_HEIGHT: 13,
   
   // ブロックサイズ
-  BLOCK_SIZE: 40,
+  BLOCK_SIZE: 44,
   
   // ブロックの色（海のテーマに合わせた色）
   BLOCK_COLORS: {

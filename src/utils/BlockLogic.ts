@@ -432,23 +432,36 @@ export class BlockLogic {
     const height = blocks.length;
     const width = blocks[0]?.length || 0;
     
-    // 結果を格納する新しい配列（元の配列をディープコピー）
-    const result: Block[][] = JSON.parse(JSON.stringify(blocks));
-    
-    // 各列に鋼鉄ブロックがあるかどうかを確認
-    const hasSteelInColumn: boolean[] = Array(width).fill(false);
-    for (let x = 0; x < width; x++) {
-      for (let y = 0; y < height; y++) {
+    // 鋼鉄ブロックの位置を特定
+    const steelPositions: {x: number, y: number}[] = [];
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
         if (blocks[y][x] && blocks[y][x].type === BlockType.STEEL) {
-          hasSteelInColumn[x] = true;
+          steelPositions.push({x, y});
+        }
+      }
+    }
+    
+    // 鋼鉄ブロックがない場合は通常の水平スライド処理
+    if (steelPositions.length === 0) {
+      return this.applyNormalHorizontalSlide(blocks);
+    }
+    
+    // 鋼鉄ブロックの列ごとに、右側にブロックがあるかをチェック
+    const steelColumnsWithBlocksToRight = new Set<number>();
+    for (const pos of steelPositions) {
+      for (let x = pos.x + 1; x < width; x++) {
+        if (blocks[pos.y][x]) {
+          steelColumnsWithBlocksToRight.add(pos.x);
           break;
         }
       }
     }
     
-    // 各列が空かどうかを確認
-    const isEmptyColumn: boolean[] = Array(width).fill(true);
+    // 列が空かどうかをチェック
+    const isEmptyColumn: boolean[] = [];
     for (let x = 0; x < width; x++) {
+      isEmptyColumn[x] = true;
       for (let y = 0; y < height; y++) {
         if (blocks[y][x]) {
           isEmptyColumn[x] = false;
@@ -457,99 +470,118 @@ export class BlockLogic {
       }
     }
     
-    // 左から順に処理
-    for (let x = 0; x < width - 1; x++) {
-      // 空の列を見つけたら、右側の列を左に詰める
-      if (isEmptyColumn[x]) {
-        // 右側で最初の非空列を探す
-        let nextNonEmptyCol = -1;
-        for (let nx = x + 1; nx < width; nx++) {
-          if (!isEmptyColumn[nx]) {
-            nextNonEmptyCol = nx;
-            break;
-          }
+    // 空の列がない場合は何も変更しない
+    if (!isEmptyColumn.some(empty => empty)) {
+      return JSON.parse(JSON.stringify(blocks));
+    }
+    
+    // 結果の配列を作成（元の配列をディープコピー）
+    const resultBlocks: (Block | null)[][] = JSON.parse(JSON.stringify(blocks));
+    
+    // スプライト参照をnullに設定
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        if (resultBlocks[y][x]) {
+          resultBlocks[y][x]!.sprite = null;
         }
-        
-        // 右側に非空列がなければ終了
-        if (nextNonEmptyCol === -1) {
-          break;
-        }
-        
-        // 鋼鉄ブロックがある列は移動しない
-        if (hasSteelInColumn[nextNonEmptyCol]) {
-          // 鋼鉄ブロックの右側にブロックがあるかどうかを確認
-          let hasSteelBlockWithRightBlock = false;
-          for (let y = 0; y < height; y++) {
-            if (result[y][nextNonEmptyCol] && result[y][nextNonEmptyCol].type === BlockType.STEEL) {
-              // 鋼鉄ブロックの右側にブロックがあるか確認
-              for (let rx = nextNonEmptyCol + 1; rx < width; rx++) {
-                if (result[y][rx]) {
-                  hasSteelBlockWithRightBlock = true;
-                  break;
-                }
-              }
-              if (hasSteelBlockWithRightBlock) break;
-            }
-          }
-          
-          // 鋼鉄ブロックの右側にブロックがある場合は、この列をスキップ
-          if (hasSteelBlockWithRightBlock) {
-            isEmptyColumn[x] = false; // この位置は埋まっているとマーク
-            continue;
-          }
-          
-          // 鋼鉄ブロックの下のブロックのみを移動
-          for (let y = 0; y < height; y++) {
-            // この位置に鋼鉄ブロックがあるか確認
-            let hasSteelAbove = false;
-            for (let sy = 0; sy < y; sy++) {
-              if (result[sy][nextNonEmptyCol] && result[sy][nextNonEmptyCol].type === BlockType.STEEL) {
-                hasSteelAbove = true;
-                break;
-              }
-            }
-            
-            // 鋼鉄ブロックまたは鋼鉄ブロックの上のブロックは移動しない
-            if (result[y][nextNonEmptyCol] && 
-                (result[y][nextNonEmptyCol].type === BlockType.STEEL || hasSteelAbove)) {
-              continue;
-            }
-            
-            // それ以外のブロックは左に移動
-            if (result[y][nextNonEmptyCol]) {
-              result[y][x] = {
-                ...result[y][nextNonEmptyCol],
-                x: x,
-                sprite: null
-              };
-              result[y][nextNonEmptyCol] = null;
-            }
-          }
-        } else {
-          // 通常の列は全て左に移動
-          for (let y = 0; y < height; y++) {
-            if (result[y][nextNonEmptyCol]) {
-              result[y][x] = {
-                ...result[y][nextNonEmptyCol],
-                x: x,
-                sprite: null
-              };
-              result[y][nextNonEmptyCol] = null;
-            }
-          }
-        }
-        
-        // 移動した列を空としてマーク
-        isEmptyColumn[nextNonEmptyCol] = true;
-        // 現在の列は埋まったとしてマーク
-        isEmptyColumn[x] = false;
-        
-        // 同じ位置をもう一度処理（連続して空列があった場合に対応）
-        x--;
       }
     }
     
-    return result;
+    // 鋼鉄ブロックの右側にブロックがある場合、その列より右側のブロックは左にスライドしない
+    let minSteelWithBlocksToRightX = width;
+    for (const pos of steelPositions) {
+      if (steelColumnsWithBlocksToRight.has(pos.x) && pos.x < minSteelWithBlocksToRightX) {
+        minSteelWithBlocksToRightX = pos.x;
+      }
+    }
+    
+    // 鋼鉄ブロックの列と、その上のブロックは固定
+    const fixedColumns = new Set<number>();
+    for (const pos of steelPositions) {
+      fixedColumns.add(pos.x);
+    }
+    
+    // 各行ごとに処理
+    for (let y = 0; y < height; y++) {
+      // 鋼鉄ブロックがある行かどうかをチェック
+      const steelInRow = steelPositions.filter(pos => pos.y === y);
+      
+      if (steelInRow.length > 0) {
+        // 鋼鉄ブロックがある行の場合、鋼鉄ブロックとその右側のブロックは固定
+        for (const steelPos of steelInRow) {
+          if (steelColumnsWithBlocksToRight.has(steelPos.x)) {
+            // 鋼鉄ブロックの右側のブロックも固定
+            for (let x = steelPos.x + 1; x < width; x++) {
+              fixedColumns.add(x);
+            }
+          }
+        }
+      }
+    }
+    
+    // 固定されていない列を左詰めで配置
+    const emptyColumns: number[] = [];
+    for (let x = 0; x < width; x++) {
+      if (isEmptyColumn[x] && !fixedColumns.has(x)) {
+        emptyColumns.push(x);
+      }
+    }
+    
+    // 各行ごとに処理
+    for (let y = 0; y < height; y++) {
+      // 鋼鉄ブロックがある行かどうかをチェック
+      const steelInRow = steelPositions.filter(pos => pos.y === y);
+      
+      if (steelInRow.length > 0) {
+        // 鋼鉄ブロックがある行の場合、鋼鉄ブロックとその右側のブロックは固定
+        // 何もしない
+      } else {
+        // 鋼鉄ブロックがない行の場合、通常の水平スライド処理
+        // ただし、固定列は移動しない
+        
+        // 空の列を特定
+        const rowEmptyColumns: number[] = [];
+        for (let x = 0; x < width; x++) {
+          if (!resultBlocks[y][x] && !fixedColumns.has(x)) {
+            rowEmptyColumns.push(x);
+          }
+        }
+        
+        // 空の列がない場合は何もしない
+        if (rowEmptyColumns.length === 0) {
+          continue;
+        }
+        
+        // 左詰めで配置
+        for (let x = 0; x < width; x++) {
+          if (fixedColumns.has(x)) {
+            // 固定列はスキップ
+            continue;
+          }
+          
+          if (resultBlocks[y][x]) {
+            // ブロックがある場合、左詰めで配置
+            let destX = x;
+            while (destX > 0 && rowEmptyColumns.includes(destX - 1)) {
+              destX--;
+              rowEmptyColumns.splice(rowEmptyColumns.indexOf(destX), 1);
+              rowEmptyColumns.push(x);
+            }
+            
+            if (destX < x) {
+              resultBlocks[y][destX] = {
+                ...resultBlocks[y][x]!,
+                x: destX,
+                sprite: null
+              };
+              resultBlocks[y][x] = null;
+            }
+          }
+        }
+      }
+    }
+    
+    return resultBlocks;
   }
 
   /**
@@ -582,7 +614,16 @@ export class BlockLogic {
       }
     }
     if (!hasEmptyColumn) {
-      return JSON.parse(JSON.stringify(blocks));
+      // ディープコピーを作成し、スプライト参照をnullに設定
+      const result = JSON.parse(JSON.stringify(blocks));
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          if (result[y][x]) {
+            result[y][x].sprite = null;
+          }
+        }
+      }
+      return result;
     }
 
     // 新しいブロック配列を作成（nullで初期化）

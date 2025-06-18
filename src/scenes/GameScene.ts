@@ -83,14 +83,14 @@ export class GameScene extends Phaser.Scene {
     }
     
     // ヘッダー（ステージ情報とスコア）
-    const headerText = this.add.text(10, 30, `Stage ${this.currentStage}  Score: ${this.score}`, {
+    const headerText = this.add.text(10, 15, `Stage ${this.currentStage}  Score: ${this.score}`, { // 30から15に調整
       fontSize: '18px',
       color: '#FFFFFF',
       stroke: '#000000',
       strokeThickness: 2
     }).setName('headerText');
     
-    const targetText = this.add.text(10, 60, `Target: ${this.targetScore}`, {
+    const targetText = this.add.text(10, 40, `Target: ${this.targetScore}`, { // 60から40に調整
       fontSize: '16px',
       color: '#FFFFFF',
       stroke: '#000000',
@@ -98,8 +98,8 @@ export class GameScene extends Phaser.Scene {
     });
     
     // ゲーム盤面の位置を計算
-    const titleHeight = 90;
-    const titleCenterY = 45;
+    const titleHeight = 80; // 60px + 20px（旧タイトル下空白エリア）
+    const titleCenterY = 40; // 中心位置を調整
     const titleBottomY = titleCenterY + titleHeight / 2;
     const boardWidth = GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE;
     const boardHeight = GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE;
@@ -171,6 +171,8 @@ export class GameScene extends Phaser.Scene {
     
     // 鋼鉄ブロックを特定の位置に配置（ステージ1から出現）
     // 鋼鉄ブロックのパターンを定義（例：L字型）
+    // 注意: 鋼鉄ブロックは仕様として定義されていますが、現在のゲームバージョンでは出現しません
+    /*
     const steelBlockPositions = [
       { x: 3, y: 10 },
       { x: 4, y: 10 }
@@ -183,16 +185,20 @@ export class GameScene extends Phaser.Scene {
         this.blocks[pos.y][pos.x] = steelBlock;
       }
     });
+    */
     
     // ブロックの生成
     for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
       for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
         // 既に鋼鉄ブロックが配置されている場合はスキップ
+        // 注意: 鋼鉄ブロックは仕様として定義されていますが、現在のゲームバージョンでは出現しません
+        /*
         if (this.blocks[y][x] && this.blocks[y][x]?.type === BlockType.STEEL) {
           // スプライトのみ作成
           this.createBlockSprite(x, y, this.blocks[y][x]!);
           continue;
         }
+        */
         
         // ランダムな色を選択
         const colorKey = availableColors[Math.floor(Math.random() * availableColors.length)];
@@ -839,9 +845,9 @@ export class GameScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
-    // タイトルエリア（ステージ情報とスコア）
-    const titleHeight = 90;
-    const titleCenterY = 45;
+    // タイトルエリア（ステージ情報とスコア + 下部余白）
+    const titleHeight = 80; // 60px + 20px（旧タイトル下空白エリア）
+    const titleCenterY = 40; // 中心位置を調整
     this.debugHelper.addAreaBorder(width / 2, titleCenterY, width, titleHeight, 0xFF0000, 'タイトルエリア');
     
     // メインコンテンツエリア（ゲーム盤面）
@@ -862,50 +868,12 @@ export class GameScene extends Phaser.Scene {
       'メインコンテンツエリア'
     );
     
-    // 左側空白エリア
-    const sideSpaceWidth = (width - boardWidth) / 2;
-    if (sideSpaceWidth > 0) {
-      this.debugHelper.addAreaBorder(
-        sideSpaceWidth / 2,
-        adjustedBoardCenterY,
-        sideSpaceWidth,
-        boardHeight,
-        0x0000FF,
-        '左側空白エリア'
-      );
-    }
-    
-    // 右側空白エリア
-    if (sideSpaceWidth > 0) {
-      this.debugHelper.addAreaBorder(
-        width - sideSpaceWidth / 2,
-        adjustedBoardCenterY,
-        sideSpaceWidth,
-        boardHeight,
-        0x0000FF,
-        '右側空白エリア'
-      );
-    }
+    // 左右の空白エリアは2pxずつしかないため、デバッグ表示から除外
+    // const sideSpaceWidth = (width - boardWidth) / 2; // 2px
     
     // ボタン/アクションエリア（アイテムボタン）
     const buttonHeight = 60;
     const buttonCenterY = height - buttonHeight / 2;
     this.debugHelper.addAreaBorder(width / 2, buttonCenterY, width, buttonHeight, 0xFF00FF, 'ボタン/アクションエリア');
-    
-    // メインコンテンツとボタンの間の空白
-    const boardBottomY = adjustedBoardCenterY + boardHeight / 2;
-    const buttonTopY = buttonCenterY - buttonHeight / 2;
-    const contentToButtonSpaceHeight = buttonTopY - boardBottomY;
-    
-    if (contentToButtonSpaceHeight > 0) {
-      this.debugHelper.addAreaBorder(
-        width / 2,
-        boardBottomY + contentToButtonSpaceHeight / 2,
-        width,
-        contentToButtonSpaceHeight,
-        0x0000FF,
-        'コンテンツ下空白エリア'
-      );
-    }
   }
 }
