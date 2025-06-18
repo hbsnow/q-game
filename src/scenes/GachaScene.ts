@@ -22,7 +22,7 @@ export class GachaScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GachaScene' });
     this.gameStateManager = GameStateManager.getInstance();
-    this.stageManager = new StageManager();
+    this.stageManager = StageManager.getInstance();
     this.itemManager = new ItemManager();
   }
 
@@ -357,16 +357,24 @@ export class GachaScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
-    // タイトルエリア
-    this.debugHelper.addAreaBorder(0, 0, width, 70, 0xFF0000, 'タイトルエリア');
+    // DebugHelperは中心点座標を期待するため、左上座標から中心点座標に変換
     
-    // メインコンテンツエリア
-    this.debugHelper.addAreaBorder(0, 70, width, 180, 0x0000FF, 'メインコンテンツエリア');
+    // タイトルエリア（0-70px → 中心点: 35px）
+    this.debugHelper.addAreaBorder(width / 2, 35, width, 70, 0xFF0000, 'タイトルエリア');
     
-    // アイテムリストエリア
-    this.debugHelper.addAreaBorder(0, 250, width, 200, 0xFFFF00, 'アイテムリストエリア');
+    // ガチャ名・価格エリア（70-170px → 中心点: 120px）
+    this.debugHelper.addAreaBorder(width / 2, 120, width, 100, 0x0000FF, 'ガチャ名・価格エリア');
     
-    // ボタンエリア
-    this.debugHelper.addAreaBorder(0, height - 100, width, 100, 0xFF00FF, 'ボタンエリア');
+    // ガチャボタンエリア（170-250px → 中心点: 210px）
+    this.debugHelper.addAreaBorder(width / 2, 210, width, 80, 0x00FF00, 'ガチャボタンエリア');
+    
+    // アイテムリストエリア（250-530px → 中心点: 390px）
+    this.debugHelper.addAreaBorder(width / 2, 390, width, 280, 0xFFFF00, 'アイテムリストエリア');
+    
+    // 確率表示ボタンエリア（height-135からheight-105px → 中心点: height-120px）
+    this.debugHelper.addAreaBorder(width / 2, height - 120, width, 30, 0x00FFFF, '確率表示ボタンエリア');
+    
+    // 戻るボタンエリア（height-80からheight → 中心点: height-40px）
+    this.debugHelper.addAreaBorder(width / 2, height - 40, width, 80, 0xFF00FF, '戻るボタンエリア');
   }
 }

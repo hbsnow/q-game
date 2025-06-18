@@ -557,4 +557,162 @@ export class ItemEffectManager {
     
     return connected;
   }
+
+  /**
+   * アイテム効果の詳細情報を取得
+   */
+  static getItemEffectInfo(itemId: string, blocks: Block[][], pos?: {x: number, y: number}): {
+    canUse: boolean;
+    affectedBlocks: {x: number, y: number}[];
+    description: string;
+  } {
+    const result = {
+      canUse: false,
+      affectedBlocks: [] as {x: number, y: number}[],
+      description: ''
+    };
+
+    if (!pos) {
+      return result;
+    }
+
+    const block = blocks[pos.y]?.[pos.x];
+
+    switch (itemId) {
+      case 'bomb':
+        // 爆弾は任意の場所に使用可能
+        result.canUse = true;
+        result.description = '3×3範囲のブロックを消去します';
+        
+        // 影響範囲を計算
+        const boardHeight = blocks.length;
+        const boardWidth = blocks[0]?.length || 0;
+        
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const targetX = pos.x + dx;
+            const targetY = pos.y + dy;
+            
+            if (targetX >= 0 && targetX < boardWidth && targetY >= 0 && targetY < boardHeight) {
+              const targetBlock = blocks[targetY][targetX];
+              if (targetBlock && targetBlock.type !== 'steel') {
+                result.affectedBlocks.push({x: targetX, y: targetY});
+              }
+            }
+          }
+        }
+        break;
+
+      case 'changeArea':
+        if (block && !this.isUnchangeableBlock(block)) {
+          result.canUse = true;
+          result.description = '隣接する同色ブロック全体の色を変更します';
+          result.affectedBlocks = this.getConnectedBlocks(blocks, pos.x, pos.y);
+        } else {
+          result.description = '岩ブロックと鋼鉄ブロックは色変更できません';
+        }
+        break;
+
+      case 'hammer':
+        if (block && block.type === 'rock') {
+          result.canUse = true;
+          result.description = '岩ブロックを破壊します';
+          result.affectedBlocks = [{x: pos.x, y: pos.y}];
+        } else {
+          result.description = 'このアイテムは岩ブロック専用です';
+        }
+        break;
+
+      case 'steelHammer':
+        if (block && block.type === 'steel') {
+          result.canUse = true;
+          result.description = '鋼鉄ブロックを破壊します';
+          result.affectedBlocks = [{x: pos.x, y: pos.y}];
+        } else {
+          result.description = 'このアイテムは鋼鉄ブロック専用です';
+        }
+        break;
+
+      case 'specialHammer':
+        if (block) {
+          result.canUse = true;
+          result.description = 'あらゆるブロックを破壊します';
+          result.affectedBlocks = [{x: pos.x, y: pos.y}];
+        } else {
+          result.description = 'ブロックが存在しません';
+        }
+        break;
+
+      case 'meltingAgent':
+        if (block && (block.type === 'iceLv1' || block.type === 'iceLv2')) {
+          result.canUse = true;
+          result.description = block.type === 'iceLv2' ? '氷結レベルを下げます' : '氷結を解除します';
+          result.affectedBlocks = [{x: pos.x, y: pos.y}];
+        } else {
+          result.description = 'このアイテムは氷結ブロック専用です';
+        }
+        break;
+
+      case 'counterReset':
+        if (block && block.type === 'counterPlus') {
+          result.canUse = true;
+          result.description = 'カウンター+ブロックを通常ブロックにします';
+          result.affectedBlocks = [{x: pos.x, y: pos.y}];
+        } else {
+          result.description = 'このアイテムはカウンター+ブロック専用です';
+        }
+        break;
+
+      case 'adPlus':
+        if (block && block.type === 'counterMinus') {
+          result.canUse = true;
+          result.description = 'カウンターブロックをカウンター+ブロックに変更します';
+          result.affectedBlocks = [{x: pos.x, y: pos.y}];
+        } else {
+          result.description = 'このアイテムはカウンターブロック専用です';
+        }
+        break;
+
+      default:
+        result.description = '不明なアイテムです';
+    }
+
+    return result;
+  }
+
+  /**
+   * アイテム使用時のプレビュー情報を取得
+   */
+  static getItemPreview(itemId: string, blocks: Block[][], pos: {x: number, y: number}): {
+    previewBlocks: Block[][];
+    message: string;
+  } {
+    const result = {
+      previewBlocks: this.deepCopyBlocks(blocks),
+      message: ''
+    };
+
+    const effectInfo = this.getItemEffectInfo(itemId, blocks, pos);
+    
+    if (!effectInfo.canUse) {
+      result.message = effectInfo.description;
+      return result;
+    }
+
+    // プレビュー用にブロックをハイライト表示用に変更
+    effectInfo.affectedBlocks.forEach(blockPos => {
+      const block = result.previewBlocks[blockPos.y][blockPos.x];
+      if (block) {
+        // プレビュー用の特別な状態を設定（実際の描画では異なる色で表示）
+        result.previewBlocks[blockPos.y][blockPos.x] = {
+          ...block,
+          // プレビュー状態を示すフラグを追加
+          isPreview: true
+        } as Block & { isPreview: boolean };
+      }
+    });
+
+    result.message = effectInfo.description;
+    return result;
+  }
 }

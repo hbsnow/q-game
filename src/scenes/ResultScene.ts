@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
-import { GameStateManager } from '../utils/GameStateManager';
 import { StageManager } from '../managers/StageManager';
 
 /**
@@ -9,18 +8,17 @@ import { StageManager } from '../managers/StageManager';
  */
 export class ResultScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
-  private gameStateManager: GameStateManager;
   private stageManager: StageManager;
   private clearedStage: number = 1;
   private finalScore: number = 0;
   private earnedGold: number = 0;
   private isGameComplete: boolean = false;
   private isStageCleared: boolean = true; // ステージクリア成功かどうか
+  private targetScore: number = 500; // ステージの目標スコア
 
   constructor() {
     super({ key: 'ResultScene' });
-    this.gameStateManager = GameStateManager.getInstance();
-    this.stageManager = new StageManager();
+    this.stageManager = StageManager.getInstance();
   }
 
   init(data: any): void {
@@ -29,6 +27,30 @@ export class ResultScene extends Phaser.Scene {
     this.earnedGold = data.earnedGold || 0;
     this.isGameComplete = data.isGameComplete || false;
     this.isStageCleared = data.isStageCleared !== false; // デフォルトはtrue（クリア成功）
+    
+    // StageManagerからステージ設定を取得
+    const stageConfig = this.stageManager.getStageConfig(this.clearedStage);
+    this.targetScore = stageConfig?.targetScore || 500;
+    
+    // ステージクリア処理を実行（クリア成功時のみ）
+    if (this.isStageCleared) {
+      this.processStageCompletion();
+    }
+  }
+
+  /**
+   * ステージクリア処理
+   */
+  private processStageCompletion(): void {
+    // StageManagerでステージクリア処理
+    const success = this.stageManager.clearStage(this.clearedStage, this.finalScore);
+    
+    if (success) {
+      console.log(`ステージ ${this.clearedStage} クリア処理完了`);
+      console.log(`獲得スコア: ${this.finalScore}`);
+      console.log(`獲得ゴールド: ${this.finalScore}`);
+      console.log(`総ゴールド: ${this.stageManager.getCurrentGold()}`);
+    }
   }
 
   create(): void {
@@ -76,13 +98,13 @@ export class ResultScene extends Phaser.Scene {
 
     // 目標スコア表示
     if (this.isStageCleared) {
-      this.add.text(width / 2, currentY, `目標: ${GameConfig.TARGET_SCORE} ✓`, {
+      this.add.text(width / 2, currentY, `目標: ${this.targetScore} ✓`, {
         fontSize: '18px',
         color: '#00FF00',
         fontFamily: 'Arial'
       }).setOrigin(0.5);
     } else {
-      this.add.text(width / 2, currentY, `目標: ${GameConfig.TARGET_SCORE} ✗`, {
+      this.add.text(width / 2, currentY, `目標: ${this.targetScore} ✗`, {
         fontSize: '18px',
         color: '#FF0000',
         fontFamily: 'Arial'
@@ -92,12 +114,20 @@ export class ResultScene extends Phaser.Scene {
 
     // 獲得ゴールド表示（クリア時のみ）
     if (this.isStageCleared) {
-      this.add.text(width / 2, currentY, `獲得ゴールド: ${this.earnedGold}`, {
+      this.add.text(width / 2, currentY, `獲得ゴールド: ${this.finalScore}`, {
         fontSize: '18px',
         color: '#FFD700',
         fontFamily: 'Arial'
       }).setOrigin(0.5);
-      currentY += lineHeight * 2;
+      currentY += lineHeight;
+      
+      // 現在の総ゴールド表示
+      this.add.text(width / 2, currentY, `総ゴールド: ${this.stageManager.getCurrentGold().toLocaleString()}`, {
+        fontSize: '16px',
+        color: '#CCCCCC',
+        fontFamily: 'Arial'
+      }).setOrigin(0.5);
+      currentY += lineHeight;
     } else {
       this.add.text(width / 2, currentY, '獲得ゴールド: 0', {
         fontSize: '18px',
@@ -132,8 +162,8 @@ export class ResultScene extends Phaser.Scene {
       titleButton.on('pointerdown', () => {
         // ゲームクリア画面に遷移
         this.scene.start('GameClearScene', {
-          totalScore: this.gameStateManager.getGold(), // 総獲得ゴールドを総スコアとして使用
-          totalGold: this.gameStateManager.getGold()
+          totalScore: this.stageManager.getTotalScore(),
+          totalGold: this.stageManager.getTotalGold()
         });
       });
 
@@ -294,20 +324,29 @@ export class ResultScene extends Phaser.Scene {
    * 次のステージに進む処理
    */
   private goToNextStage(): void {
-    // StageManagerで次のステージに進む
-    const success = this.stageManager.advanceToNextStage();
-    
-    if (success) {
-      // アイテム選択画面に遷移（次のステージ番号を渡す）
-      this.scene.start('ItemSelectionScene', { 
-        stage: this.stageManager.getCurrentStage() 
-      });
-    } else {
+    // 現在のステージが最終ステージかチェック
+    if (this.stageManager.isCurrentStageFinal()) {
       // 最終ステージの場合はゲームクリア画面に遷移
-      this.scene.start('GameCompleteScene', {
+      this.scene.start('GameClearScene', {
         totalScore: this.stageManager.getTotalScore(),
         totalGold: this.stageManager.getTotalGold()
       });
+    } else {
+      // StageManagerで次のステージに進む
+      const success = this.stageManager.advanceToNextStage();
+      
+      if (success) {
+        // アイテム選択画面に遷移（次のステージ番号を渡す）
+        this.scene.start('ItemSelectionScene', { 
+          stage: this.stageManager.getCurrentStage() 
+        });
+      } else {
+        // 念のため：進行に失敗した場合もゲームクリア画面に遷移
+        this.scene.start('GameClearScene', {
+          totalScore: this.stageManager.getTotalScore(),
+          totalGold: this.stageManager.getTotalGold()
+        });
+      }
     }
   }
 }

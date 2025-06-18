@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
-import { GameStateManager } from '../utils/GameStateManager';
 import { StageManager } from '../managers/StageManager';
 
 /**
@@ -9,13 +8,11 @@ import { StageManager } from '../managers/StageManager';
  */
 export class MainScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
-  private gameStateManager: GameStateManager;
   private stageManager: StageManager;
 
   constructor() {
     super({ key: 'MainScene' });
-    this.gameStateManager = GameStateManager.getInstance();
-    this.stageManager = new StageManager();
+    this.stageManager = StageManager.getInstance();
   }
 
   create(): void {
@@ -24,8 +21,10 @@ export class MainScene extends Phaser.Scene {
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
     
-    // テスト用：ゴールドを追加（ガチャテスト用）
-    this.gameStateManager.addGold(5000);
+    // テスト用：初期ゴールドを追加（開発・テスト用）
+    if (GameConfig.DEBUG_MODE) {
+      this.stageManager.addGold(5000);
+    }
     
     // StageManagerから現在の状態を取得
     const currentStage = this.stageManager.getCurrentStage();
@@ -33,7 +32,7 @@ export class MainScene extends Phaser.Scene {
     const stageConfig = this.stageManager.getCurrentStageConfig();
     
     // ヘッダー（ゴールド表示）
-    const goldText = this.add.text(width - 10, 30, `ゴールド: ${gold}`, {
+    const goldText = this.add.text(width - 10, 30, `ゴールド: ${gold.toLocaleString()}`, {
       fontSize: '18px',
       color: '#FFFFFF',
       stroke: '#000000',
@@ -67,6 +66,31 @@ export class MainScene extends Phaser.Scene {
           strokeThickness: 1
         }).setOrigin(0.5);
       }
+      
+      // 妨害ブロック情報（存在する場合）
+      if (stageConfig.obstacles.length > 0) {
+        const obstacleTypes = [...new Set(stageConfig.obstacles.map(obs => obs.type))];
+        const obstacleText = `妨害ブロック: ${obstacleTypes.join(', ')}`;
+        this.add.text(width / 2, height / 4 + 100, obstacleText, {
+          fontSize: '12px',
+          color: '#FFAA00',
+          stroke: '#000000',
+          strokeThickness: 1
+        }).setOrigin(0.5);
+      }
+    }
+    
+    // クリア状況表示
+    const isCleared = this.stageManager.isStageCleared(currentStage);
+    const bestScore = this.stageManager.getBestScore(currentStage);
+    
+    if (isCleared) {
+      this.add.text(width / 2, height / 4 + 125, `✓ クリア済み (最高: ${bestScore}点)`, {
+        fontSize: '14px',
+        color: '#00FF00',
+        stroke: '#000000',
+        strokeThickness: 1
+      }).setOrigin(0.5);
     }
     
     // プレイボタン
@@ -99,7 +123,9 @@ export class MainScene extends Phaser.Scene {
     // ボタンクリックイベント
     playButton.on('pointerdown', () => {
       // アイテム選択画面に遷移
-      this.scene.start('ItemSelectionScene', { stage: currentStage });
+      this.scene.start('ItemSelectionScene', { 
+        stage: currentStage
+      });
     });
     
     itemButton.on('pointerdown', () => {
@@ -189,8 +215,8 @@ export class MainScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
-    // GameStateManagerから現在の状態を取得
-    const currentStage = this.gameStateManager.getCurrentStage();
+    // StageManagerから現在の状態を取得
+    const currentStage = this.stageManager.getCurrentStage();
     
     // タイトルエリア（ゴールド表示）
     const titleHeight = 60;

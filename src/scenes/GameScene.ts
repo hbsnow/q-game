@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
+import { AdvancedDebugHelper } from '../utils/AdvancedDebugHelper';
+import { ErrorHandler } from '../utils/ErrorHandler';
+import { LoadingManager } from '../utils/LoadingManager';
+import { AudioManager } from '../utils/AudioManager';
 import { Block, BlockType } from '../types/Block';
 import { BlockLogic } from '../utils/BlockLogic';
 import { GameStateManager } from '../utils/GameStateManager';
@@ -10,6 +14,7 @@ import { StageManager } from '../managers/StageManager';
 import { StageConfig } from '../types/StageConfig';
 import { ItemManager } from '../managers/ItemManager';
 import { ItemEffectManager } from '../managers/ItemEffectManager';
+import { ItemEffectVisualizer } from '../utils/ItemEffectVisualizer';
 import { ITEM_DATA } from '../data/ItemData';
 
 /**
@@ -30,6 +35,11 @@ export class GameScene extends Phaser.Scene {
   private blockLogic: BlockLogic;
   private stageManager: StageManager;
   private itemManager: ItemManager;
+  private itemEffectVisualizer!: ItemEffectVisualizer;
+  private advancedDebugHelper!: AdvancedDebugHelper;
+  private errorHandler!: ErrorHandler;
+  private loadingManager!: LoadingManager;
+  private audioManager!: AudioManager;
   private currentStageConfig: StageConfig | null = null;
   
   // アイテム使用状態
@@ -41,7 +51,7 @@ export class GameScene extends Phaser.Scene {
     super({ key: 'GameScene' });
     this.gameStateManager = GameStateManager.getInstance();
     this.blockLogic = new BlockLogic();
-    this.stageManager = new StageManager();
+    this.stageManager = StageManager.getInstance();
     this.itemManager = new ItemManager();
   }
 
@@ -83,6 +93,24 @@ export class GameScene extends Phaser.Scene {
     
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
+    
+    // 高度なデバッグヘルパーを初期化
+    this.advancedDebugHelper = new AdvancedDebugHelper(this);
+    
+    // エラーハンドラーを初期化
+    this.errorHandler = new ErrorHandler(this);
+    
+    // ローディングマネージャーを初期化
+    this.loadingManager = new LoadingManager(this);
+    
+    // オーディオマネージャーを初期化
+    this.audioManager = new AudioManager(this);
+    
+    // アイテム効果ビジュアライザーを初期化
+    this.itemEffectVisualizer = new ItemEffectVisualizer(this);
+    
+    // BGMを開始
+    this.audioManager.playBGM('gameBGM');
     
     // 岩ブロック用のテクスチャを生成
     if (!this.textures.exists('rockBlockTexture')) {
@@ -654,19 +682,52 @@ export class GameScene extends Phaser.Scene {
       case 'changeOne':
         // 色変更（とりあえず赤色に変更）
         result = ItemEffectManager.applyChangeOne(this.blocks, {x, y}, '#FF0000');
+        if (result && result.success) {
+          // 色変更エフェクトを表示
+          this.itemEffectVisualizer.showColorChangeEffect(
+            [{x, y}], 
+            this.boardX, 
+            this.boardY, 
+            GameConfig.BLOCK_SIZE, 
+            0xFF0000
+          );
+        }
         break;
         
       case 'miniBomb':
         result = ItemEffectManager.applyMiniBomb(this.blocks, {x, y});
+        if (result && result.success) {
+          // 小さな爆発エフェクトを表示
+          const centerX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          const centerY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          this.itemEffectVisualizer.showBombEffect(centerX, centerY);
+        }
         break;
         
       case 'changeArea':
         // エリア色変更（とりあえず青色に変更）
+        const connectedBlocks = this.getConnectedBlocksForPreview(x, y);
         result = ItemEffectManager.applyChangeArea(this.blocks, {x, y}, '#0000FF');
+        if (result && result.success && connectedBlocks.length > 0) {
+          // 色変更エフェクトを表示
+          this.itemEffectVisualizer.showColorChangeEffect(
+            connectedBlocks, 
+            this.boardX, 
+            this.boardY, 
+            GameConfig.BLOCK_SIZE, 
+            0x0000FF
+          );
+        }
         break;
         
       case 'meltingAgent':
         result = ItemEffectManager.applyMeltingAgent(this.blocks, {x, y});
+        if (result && result.success) {
+          // 溶解エフェクトを表示
+          const targetX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          const targetY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          this.itemEffectVisualizer.showMeltingEffect(targetX, targetY);
+        }
         break;
         
       case 'counterReset':
@@ -679,18 +740,42 @@ export class GameScene extends Phaser.Scene {
         
       case 'bomb':
         result = ItemEffectManager.applyBomb(this.blocks, {x, y});
+        if (result && result.success) {
+          // 爆弾エフェクトを表示
+          const centerX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          const centerY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          this.itemEffectVisualizer.showBombEffect(centerX, centerY);
+        }
         break;
         
       case 'hammer':
         result = ItemEffectManager.applyHammer(this.blocks, {x, y});
+        if (result && result.success) {
+          // ハンマーエフェクトを表示
+          const targetX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          const targetY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          this.itemEffectVisualizer.showHammerEffect(targetX, targetY);
+        }
         break;
         
       case 'steelHammer':
         result = ItemEffectManager.applySteelHammer(this.blocks, {x, y});
+        if (result && result.success) {
+          // ハンマーエフェクトを表示
+          const targetX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          const targetY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          this.itemEffectVisualizer.showHammerEffect(targetX, targetY);
+        }
         break;
         
       case 'specialHammer':
         result = ItemEffectManager.applySpecialHammer(this.blocks, {x, y});
+        if (result && result.success) {
+          // ハンマーエフェクトを表示
+          const targetX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          const targetY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+          this.itemEffectVisualizer.showHammerEffect(targetX, targetY);
+        }
         break;
         
       default:
@@ -756,43 +841,47 @@ export class GameScene extends Phaser.Scene {
    * 通常のブロッククリック処理
    */
   private handleNormalBlockClick(x: number, y: number): void {
-    // クリックされたブロックが氷結ブロックまたはカウンターブロックかチェック
-    const clickedBlock = this.blocks[y][x];
-    if (!clickedBlock) return;
-    
-    if (clickedBlock.type === BlockType.ICE_LV1 || 
-        clickedBlock.type === BlockType.ICE_LV2 || 
-        clickedBlock.type === BlockType.COUNTER_PLUS || 
-        clickedBlock.type === BlockType.COUNTER_MINUS ||
-        clickedBlock.type === BlockType.ICE_COUNTER_PLUS ||
-        clickedBlock.type === BlockType.ICE_COUNTER_MINUS ||
-        clickedBlock.type === BlockType.ROCK) {
-      // 妨害ブロックは直接クリックできない
-      console.log('妨害ブロックは直接クリックできません');
-      return;
-    }
-    
-    this.isProcessing = true;
-    
-    // デバッグヘルパーにクリック位置を設定
-    this.debugHelper.setLastClickPosition({x, y});
-    
-    // デバッグ用：クリック前の状態を記録
-    const beforeBlocks = JSON.parse(JSON.stringify(this.blocks));
-    
-    // 通常ブロックの処理
-    // 隣接する同色ブロックを検索
-    const connectedBlocks = this.blockLogic.findConnectedBlocks(this.blocks, x, y);
-    
-    // 2つ以上のブロックが隣接している場合のみ消去（自分自身を含めて2つ以上）
-    if (connectedBlocks.length >= 2) {
-      // 条件を満たさないカウンターブロックを特定
-      const nonRemovableCounterBlocks = connectedBlocks.filter(block => {
-        if (block.type === BlockType.COUNTER_PLUS || 
-            block.type === BlockType.COUNTER_MINUS ||
-            block.type === BlockType.ICE_COUNTER_PLUS ||
-            block.type === BlockType.ICE_COUNTER_MINUS) {
-          return !this.blockLogic.checkCounterCondition(this.blocks, block);
+    try {
+      // クリックされたブロックが氷結ブロックまたはカウンターブロックかチェック
+      const clickedBlock = this.blocks[y][x];
+      if (!clickedBlock) return;
+      
+      if (clickedBlock.type === BlockType.ICE_LV1 || 
+          clickedBlock.type === BlockType.ICE_LV2 || 
+          clickedBlock.type === BlockType.COUNTER_PLUS || 
+          clickedBlock.type === BlockType.COUNTER_MINUS ||
+          clickedBlock.type === BlockType.ICE_COUNTER_PLUS ||
+          clickedBlock.type === BlockType.ICE_COUNTER_MINUS ||
+          clickedBlock.type === BlockType.ROCK) {
+        // 妨害ブロックは直接クリックできない
+        this.errorHandler.handleItemUseError('ブロック', '妨害ブロックは直接クリックできません');
+        return;
+      }
+      
+      this.isProcessing = true;
+      
+      // 効果音を再生
+      this.audioManager.playBlockClick();
+      
+      // デバッグヘルパーにクリック位置を設定
+      this.debugHelper.setLastClickPosition({x, y});
+      
+      // デバッグ用：クリック前の状態を記録
+      const beforeBlocks = JSON.parse(JSON.stringify(this.blocks));
+      
+      // 通常ブロックの処理
+      // 隣接する同色ブロックを検索
+      const connectedBlocks = this.blockLogic.findConnectedBlocks(this.blocks, x, y);
+      
+      // 2つ以上のブロックが隣接している場合のみ消去（自分自身を含めて2つ以上）
+      if (connectedBlocks.length >= 2) {
+        // 条件を満たさないカウンターブロックを特定
+        const nonRemovableCounterBlocks = connectedBlocks.filter(block => {
+          if (block.type === BlockType.COUNTER_PLUS || 
+              block.type === BlockType.COUNTER_MINUS ||
+              block.type === BlockType.ICE_COUNTER_PLUS ||
+              block.type === BlockType.ICE_COUNTER_MINUS) {
+            return !this.blockLogic.checkCounterCondition(this.blocks, block);
         }
         return false;
       });
@@ -883,6 +972,9 @@ export class GameScene extends Phaser.Scene {
         
         // 全消し判定
         if (this.blockLogic.isAllCleared(this.blocks)) {
+          // 全消し音を再生
+          this.audioManager.playAllClear();
+          
           // 全消しボーナス（1.5倍）
           let bonusScore = Math.floor(this.score * 0.5); // 0.5倍分がボーナス
           
@@ -900,6 +992,8 @@ export class GameScene extends Phaser.Scene {
         
         // 行き詰まり判定
         if (!this.blockLogic.hasRemovableBlocks(this.blocks)) {
+          // エラーハンドラーで行き詰まり状態を通知
+          this.errorHandler.handleNoRemovableBlocksError();
           // 行き詰まり演出
           this.showNoMovesEffect();
         }
@@ -913,6 +1007,11 @@ export class GameScene extends Phaser.Scene {
         this.isProcessing = false;
       });
     } else {
+      this.isProcessing = false;
+    }
+    } catch (error) {
+      // システムエラーの処理
+      this.errorHandler.handleSystemError(error as Error);
       this.isProcessing = false;
     }
   }
@@ -940,6 +1039,9 @@ export class GameScene extends Phaser.Scene {
    * ブロックを消去する
    */
   private removeBlocks(blocks: Block[]): void {
+    // ブロック消去音を再生
+    this.audioManager.playBlockRemove(blocks.length);
+    
     blocks.forEach(block => {
       // ブロックの論理状態を更新
       if (block && block.y >= 0 && block.y < this.blocks.length && 
@@ -1273,17 +1375,20 @@ export class GameScene extends Phaser.Scene {
     
     const result = ItemEffectManager.applyScoreBooster();
     if (result.success) {
-      // スコアブースターフラグを設定
-      this.scoreBoosterActive = true;
-      
-      // アイテムを使用済みに設定
-      this.itemManager.useItem(slot);
-      
-      // アイテムボタンの表示を更新
-      this.updateItemButtons();
-      
-      // メッセージ表示
-      console.log(result.message);
+      // スコアブースターエフェクトを表示
+      this.itemEffectVisualizer.showScoreBoosterEffect(() => {
+        // スコアブースターフラグを設定
+        this.scoreBoosterActive = true;
+        
+        // アイテムを使用済みに設定
+        this.itemManager.useItem(slot);
+        
+        // アイテムボタンの表示を更新
+        this.updateItemButtons();
+        
+        // メッセージ表示
+        console.log(result.message);
+      });
     }
   }
 
@@ -1297,19 +1402,22 @@ export class GameScene extends Phaser.Scene {
     if (result.success && result.newBlocks) {
       this.isProcessing = true;
       
-      // アイテムを使用済みに設定
-      this.itemManager.useItem(slot);
-      
-      // ブロック配列を更新
-      this.blocks = result.newBlocks;
-      
-      // 視覚表現を更新
-      this.updateBlockSprites();
-      
-      // アイテムボタンの表示を更新
-      this.updateItemButtons();
-      
-      this.isProcessing = false;
+      // シャッフルエフェクトを表示
+      this.itemEffectVisualizer.showShuffleEffect(() => {
+        // アイテムを使用済みに設定
+        this.itemManager.useItem(slot);
+        
+        // ブロック配列を更新
+        this.blocks = result.newBlocks!;
+        
+        // 視覚表現を更新
+        this.updateBlockSprites();
+        
+        // アイテムボタンの表示を更新
+        this.updateItemButtons();
+        
+        this.isProcessing = false;
+      });
     }
   }
 
@@ -1465,5 +1573,53 @@ export class GameScene extends Phaser.Scene {
         });
       }
     });
+  }
+
+  /**
+   * 隣接する同色ブロックを取得（プレビュー用）
+   */
+  private getConnectedBlocksForPreview(startX: number, startY: number): {x: number, y: number}[] {
+    const startBlock = this.blocks[startY]?.[startX];
+    if (!startBlock) return [];
+    
+    const visited = new Set<string>();
+    const connected: {x: number, y: number}[] = [];
+    const queue: {x: number, y: number}[] = [{x: startX, y: startY}];
+    
+    const boardHeight = this.blocks.length;
+    const boardWidth = this.blocks[0]?.length || 0;
+    
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      const key = `${current.x},${current.y}`;
+      
+      if (visited.has(key)) continue;
+      visited.add(key);
+      
+      const currentBlock = this.blocks[current.y][current.x];
+      if (!currentBlock || currentBlock.color !== startBlock.color) continue;
+      
+      connected.push(current);
+      
+      // 上下左右の隣接ブロックをチェック
+      const directions = [
+        {x: 0, y: -1}, // 上
+        {x: 0, y: 1},  // 下
+        {x: -1, y: 0}, // 左
+        {x: 1, y: 0}   // 右
+      ];
+      
+      directions.forEach(dir => {
+        const nextX = current.x + dir.x;
+        const nextY = current.y + dir.y;
+        const nextKey = `${nextX},${nextY}`;
+        
+        if (nextX >= 0 && nextX < boardWidth && nextY >= 0 && nextY < boardHeight && !visited.has(nextKey)) {
+          queue.push({x: nextX, y: nextY});
+        }
+      });
+    }
+    
+    return connected;
   }
 }

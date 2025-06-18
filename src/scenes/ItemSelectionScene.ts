@@ -1,26 +1,39 @@
 import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
-import { GameStateManager } from '../utils/GameStateManager';
+import { StageManager } from '../managers/StageManager';
+import { ItemManager } from '../managers/ItemManager';
+import { ITEM_DATA } from '../data/ItemData';
+import { Item, ItemRarity } from '../types/Item';
 
 /**
- * アイテム選択画面（モック版）
+ * アイテム選択画面
  */
 export class ItemSelectionScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
-  private gameStateManager: GameStateManager;
+  private stageManager: StageManager;
+  private itemManager: ItemManager;
   private currentStage: number = 1;
-  private mockItems: any[] = [];
-  private selectedSpecialItem: any = null;
-  private selectedNormalItem: any = null;
+  private availableItems: Item[] = [];
+  private selectedSpecialItem: Item | null = null;
+  private selectedNormalItem: Item | null = null;
 
   constructor() {
     super({ key: 'ItemSelectionScene' });
-    this.gameStateManager = GameStateManager.getInstance();
+    this.stageManager = StageManager.getInstance();
+    this.itemManager = new ItemManager();
   }
 
   init(data: any): void {
-    this.currentStage = data.stage || this.gameStateManager.getCurrentStage();
+    this.currentStage = data.stage || this.stageManager.getCurrentStage();
+    
+    // テスト用：基本アイテムを追加（開発・テスト用）
+    if (GameConfig.DEBUG_MODE) {
+      this.addTestItems();
+    }
+    
+    // 利用可能なアイテムを取得
+    this.loadAvailableItems();
   }
 
   create(): void {
@@ -32,32 +45,44 @@ export class ItemSelectionScene extends Phaser.Scene {
     // 背景色を設定
     this.cameras.main.setBackgroundColor('#1E5799');
     
-    // テスト用：基本アイテムを追加
-    this.addTestItems();
-    
     this.createUI();
     this.addDebugLines();
   }
 
   /**
-   * テスト用アイテムを追加
+   * テスト用アイテムを追加（開発・テスト用）
    */
   private addTestItems(): void {
-    // 基本アイテムを追加（テスト用）
-    this.mockItems = [
-      { id: 'swap', name: 'スワップ', count: 3, rarity: 'E' },
-      { id: 'changeOne', name: 'チェンジワン', count: 2, rarity: 'D' },
-      { id: 'miniBomb', name: 'ミニ爆弾', count: 5, rarity: 'F' },
-      { id: 'shuffle', name: 'シャッフル', count: 4, rarity: 'E' },
-      { id: 'bomb', name: '爆弾', count: 1, rarity: 'S' },
-      { id: 'hammer', name: 'ハンマー', count: 2, rarity: 'C' },
-      { id: 'scoreBooster', name: 'スコアブースター', count: 1, rarity: 'A' },
-      { id: 'meltingAgent', name: '溶解剤', count: 3, rarity: 'E' },
-      { id: 'counterReset', name: 'カウンター+リセット', count: 2, rarity: 'F' },
-      { id: 'adPlus', name: 'アドプラス', count: 1, rarity: 'B' },
-      { id: 'steelHammer', name: '鋼鉄ハンマー', count: 1, rarity: 'B' },
-      { id: 'specialHammer', name: 'スペシャルハンマー', count: 1, rarity: 'S' }
-    ];
+    // 基本アイテムを追加
+    this.itemManager.addItem('swap', 3);
+    this.itemManager.addItem('changeOne', 2);
+    this.itemManager.addItem('miniBomb', 5);
+    this.itemManager.addItem('shuffle', 4);
+    this.itemManager.addItem('meltingAgent', 1);
+    this.itemManager.addItem('bomb', 1);
+    this.itemManager.addItem('scoreBooster', 1);
+  }
+
+  /**
+   * 利用可能なアイテムを読み込み
+   */
+  private loadAvailableItems(): void {
+    this.availableItems = [];
+    const inventory = this.itemManager.getInventory();
+    
+    // 所持しているアイテムのみを表示
+    for (const itemId in inventory) {
+      const itemData = ITEM_DATA[itemId];
+      if (itemData && inventory[itemId] > 0) {
+        this.availableItems.push(itemData);
+      }
+    }
+    
+    // レア度順でソート（S > A > B > C > D > E > F）
+    this.availableItems.sort((a, b) => {
+      const rarityOrder = { S: 0, A: 1, B: 2, C: 3, D: 4, E: 5, F: 6 };
+      return rarityOrder[a.rarity] - rarityOrder[b.rarity];
+    });
   }
 
   private createUI(): void {
@@ -96,32 +121,21 @@ export class ItemSelectionScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    // 特殊枠のスロット（モック）
+    // 特殊枠のスロット
     const specialSlotY = contentStartY + 40;
-    const slotWidth = 120;
+    const slotWidth = 160;
     const slotHeight = 40;
-    const slotSpacing = 140;
     
-    const leftSlotX = width / 2 - slotSpacing / 2;
-    const rightSlotX = width / 2 + slotSpacing / 2;
-
-    // 左の特殊枠スロット
-    this.add.rectangle(leftSlotX, specialSlotY, slotWidth, slotHeight, 0x333333, 0.8)
-      .setStrokeStyle(2, 0xFFD700);
-    this.add.text(leftSlotX, specialSlotY, '未選択', {
+    const specialSlotRect = this.add.rectangle(width / 2, specialSlotY, slotWidth, slotHeight, 0x333333, 0.8)
+      .setStrokeStyle(2, 0xFFD700)
+      .setInteractive({ useHandCursor: true })
+      .setName('specialSlot');
+    
+    const specialSlotText = this.add.text(width / 2, specialSlotY, '未選択', {
       fontSize: '14px',
       color: '#FFFFFF',
       fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // 右の特殊枠スロット
-    this.add.rectangle(rightSlotX, specialSlotY, slotWidth, slotHeight, 0x333333, 0.8)
-      .setStrokeStyle(2, 0xFFD700);
-    this.add.text(rightSlotX, specialSlotY, '未選択', {
-      fontSize: '14px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setName('specialSlotText');
 
     // 通常枠（B〜Fレア用）
     const normalFrameY = specialSlotY + 80;
@@ -131,28 +145,21 @@ export class ItemSelectionScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    // 通常枠のスロット（モック）
+    // 通常枠のスロット
     const normalSlotY = normalFrameY + 40;
-
-    // 左の通常枠スロット
-    this.add.rectangle(leftSlotX, normalSlotY, slotWidth, slotHeight, 0x333333, 0.8)
-      .setStrokeStyle(2, 0x87CEEB);
-    this.add.text(leftSlotX, normalSlotY, '未選択', {
+    
+    const normalSlotRect = this.add.rectangle(width / 2, normalSlotY, slotWidth, slotHeight, 0x333333, 0.8)
+      .setStrokeStyle(2, 0x87CEEB)
+      .setInteractive({ useHandCursor: true })
+      .setName('normalSlot');
+    
+    const normalSlotText = this.add.text(width / 2, normalSlotY, '未選択', {
       fontSize: '14px',
       color: '#FFFFFF',
       fontFamily: 'Arial'
-    }).setOrigin(0.5);
+    }).setOrigin(0.5).setName('normalSlotText');
 
-    // 右の通常枠スロット
-    this.add.rectangle(rightSlotX, normalSlotY, slotWidth, slotHeight, 0x333333, 0.8)
-      .setStrokeStyle(2, 0x87CEEB);
-    this.add.text(rightSlotX, normalSlotY, '未選択', {
-      fontSize: '14px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-
-    // 所持アイテム一覧（モック）
+    // 所持アイテム一覧
     const itemListY = normalSlotY + 80;
     this.add.text(width / 2, itemListY, '◆所持アイテム一覧', {
       fontSize: '16px',
@@ -160,23 +167,108 @@ export class ItemSelectionScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    // モックアイテムリスト
-    const mockItems = [
-      'スワップ×3 (E)',
-      'チェンジワン×2 (D)',
-      'ミニ爆弾×5 (F)',
-      'シャッフル×1 (E)'
-    ];
+    // アイテムリストの表示
+    this.createItemList(itemListY + 30);
+    
+    // スロットクリックイベント
+    specialSlotRect.on('pointerdown', () => this.showItemSelectionModal('special'));
+    normalSlotRect.on('pointerdown', () => this.showItemSelectionModal('normal'));
+  }
 
-    let itemY = itemListY + 30;
-    mockItems.forEach(item => {
-      this.add.text(width / 2, itemY, item, {
+  /**
+   * アイテムリストを作成
+   */
+  private createItemList(startY: number): void {
+    const { width } = this.cameras.main;
+    const itemHeight = 25;
+    let currentY = startY;
+
+    if (this.availableItems.length === 0) {
+      this.add.text(width / 2, currentY, 'アイテムを所持していません', {
         fontSize: '14px',
-        color: '#CCCCCC',
+        color: '#888888',
         fontFamily: 'Arial'
       }).setOrigin(0.5);
-      itemY += 25;
+      return;
+    }
+
+    this.availableItems.forEach((item, index) => {
+      const count = this.itemManager.getItemCount(item.id);
+      const rarityColor = this.getRarityColor(item.rarity);
+      
+      const itemText = `${item.name} ×${count} (${item.rarity})`;
+      
+      const text = this.add.text(width / 2, currentY, itemText, {
+        fontSize: '14px',
+        color: rarityColor,
+        fontFamily: 'Arial'
+      }).setOrigin(0.5)
+        .setInteractive({ useHandCursor: true })
+        .setName(`item_${item.id}`);
+      
+      // アイテム説明をツールチップとして表示
+      text.on('pointerover', () => {
+        console.log(`${item.name}: ${item.description}`);
+      });
+      
+      currentY += itemHeight;
     });
+  }
+
+  /**
+   * レア度に応じた色を取得
+   */
+  private getRarityColor(rarity: ItemRarity): string {
+    const colors = {
+      S: '#FFD700', // 金色
+      A: '#FF0000', // 赤色
+      B: '#800080', // 紫色
+      C: '#0000FF', // 青色
+      D: '#00FF00', // 緑色
+      E: '#FFFFFF', // 白色
+      F: '#808080'  // 灰色
+    };
+    return colors[rarity] || '#FFFFFF';
+  }
+
+  /**
+   * アイテム選択モーダルを表示
+   */
+  private showItemSelectionModal(slotType: 'special' | 'normal'): void {
+    // 簡易実装：最初のアイテムを自動選択
+    if (this.availableItems.length > 0) {
+      const item = this.availableItems[0];
+      
+      // 装備制限チェック
+      if (slotType === 'normal' && (item.rarity === ItemRarity.S || item.rarity === ItemRarity.A)) {
+        console.log('このアイテムは通常枠に装備できません');
+        return;
+      }
+      
+      // アイテムを装備
+      const success = this.itemManager.equipItem(item, slotType);
+      if (success) {
+        if (slotType === 'special') {
+          this.selectedSpecialItem = item;
+          this.updateSlotDisplay('specialSlotText', item);
+        } else {
+          this.selectedNormalItem = item;
+          this.updateSlotDisplay('normalSlotText', item);
+        }
+      }
+    }
+  }
+
+  /**
+   * スロット表示を更新
+   */
+  private updateSlotDisplay(textName: string, item: Item): void {
+    const text = this.children.getByName(textName) as Phaser.GameObjects.Text;
+    if (text) {
+      const count = this.itemManager.getItemCount(item.id);
+      text.setText(`${item.name} ×${count}`);
+      text.setColor(this.getRarityColor(item.rarity));
+    }
   }
 
   private createButtons(): void {
@@ -213,11 +305,10 @@ export class ItemSelectionScene extends Phaser.Scene {
 
     // イベントハンドラー
     confirmButton.on('pointerdown', () => {
-      // 選択されたアイテムを取得
-      const equippedItems = {
-        specialSlot: this.selectedSpecialItem,
-        normalSlot: this.selectedNormalItem
-      };
+      // 装備されたアイテム情報を取得
+      const equippedItems = this.itemManager.getEquippedItems();
+      
+      console.log('装備アイテム:', equippedItems);
       
       // ゲーム画面に遷移（装備アイテム情報を渡す）
       this.scene.start('GameScene', { 
@@ -232,36 +323,28 @@ export class ItemSelectionScene extends Phaser.Scene {
     });
 
     // ホバーエフェクト
-    confirmButton.on('pointerover', () => {
+    this.addButtonHoverEffect(confirmButton, 'confirmText');
+    this.addButtonHoverEffect(cancelButton, 'cancelText');
+  }
+
+  /**
+   * ボタンホバーエフェクトを追加
+   */
+  private addButtonHoverEffect(button: Phaser.GameObjects.Rectangle, textName: string): void {
+    const text = this.children.getByName(textName);
+    
+    button.on('pointerover', () => {
       this.tweens.add({
-        targets: [confirmButton, this.children.getByName('confirmText')],
+        targets: [button, text],
         scale: 1.05,
         duration: GameConfig.ANIMATION.HOVER_DURATION,
         ease: 'Power2'
       });
     });
 
-    confirmButton.on('pointerout', () => {
+    button.on('pointerout', () => {
       this.tweens.add({
-        targets: [confirmButton, this.children.getByName('confirmText')],
-        scale: 1,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-
-    cancelButton.on('pointerover', () => {
-      this.tweens.add({
-        targets: [cancelButton, this.children.getByName('cancelText')],
-        scale: 1.05,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-
-    cancelButton.on('pointerout', () => {
-      this.tweens.add({
-        targets: [cancelButton, this.children.getByName('cancelText')],
+        targets: [button, text],
         scale: 1,
         duration: GameConfig.ANIMATION.HOVER_DURATION,
         ease: 'Power2'

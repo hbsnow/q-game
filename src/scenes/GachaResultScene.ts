@@ -293,23 +293,26 @@ export class GachaResultScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
-    // タイトルエリア（実際のタイトル位置に合わせる）
-    this.debugHelper.addAreaBorder(0, 0, width, 80, 0xFF0000, 'タイトルエリア');
+    // DebugHelperは中心点座標を期待するため、左上座標から中心点座標に変換
+    
+    // タイトルエリア（0-80px → 中心点: 40px）
+    this.debugHelper.addAreaBorder(width / 2, 40, width, 80, 0xFF0000, 'タイトルエリア');
     
     if (this.isMulti) {
-      // 10連ガチャの場合のメインコンテンツエリア
-      // アイテムグリッド表示エリア（startY=100から約350pxの高さ）
-      this.debugHelper.addAreaBorder(0, 80, width, 350, 0x0000FF, 'アイテムグリッドエリア');
+      // 10連ガチャの場合
+      // アイテムグリッド表示エリア（80-430px → 中心点: 255px）
+      this.debugHelper.addAreaBorder(width / 2, 255, width, 350, 0x0000FF, 'アイテムグリッドエリア');
       
-      // 合計・集計表示エリア（height-150からheight-80まで）
-      this.debugHelper.addAreaBorder(0, height - 150, width, 70, 0xFFFF00, '集計表示エリア');
+      // 合計・集計表示エリア（height-150からheight-80 → 中心点: height-115px）
+      this.debugHelper.addAreaBorder(width / 2, height - 115, width, 70, 0xFFFF00, '集計表示エリア');
     } else {
-      // 1回ガチャの場合のメインコンテンツエリア
-      // アイテム表示エリア（中央部分）
-      this.debugHelper.addAreaBorder(0, 80, width, height - 160, 0x0000FF, 'アイテム表示エリア');
+      // 1回ガチャの場合
+      // アイテム表示エリア（80からheight-160 → 中心点: (80 + height-160)/2）
+      const contentHeight = height - 160 - 80;
+      this.debugHelper.addAreaBorder(width / 2, 80 + contentHeight / 2, width, contentHeight, 0x0000FF, 'アイテム表示エリア');
     }
     
-    // ボタンエリア
-    this.debugHelper.addAreaBorder(0, height - 80, width, 80, 0xFF00FF, 'ボタンエリア');
+    // ボタンエリア（height-80からheight → 中心点: height-40px）
+    this.debugHelper.addAreaBorder(width / 2, height - 40, width, 80, 0xFF00FF, 'ボタンエリア');
   }
 }

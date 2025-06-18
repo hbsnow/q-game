@@ -9,7 +9,9 @@ describe('StageManager', () => {
   let stageManager: StageManager;
 
   beforeEach(() => {
-    stageManager = new StageManager();
+    stageManager = StageManager.getInstance();
+    // 各テスト前に進行状況をリセット
+    stageManager.resetProgress();
   });
 
   describe('初期化', () => {

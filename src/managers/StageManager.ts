@@ -6,13 +6,24 @@ import { StageConfig, StageProgress } from '../types/StageConfig';
 import { getStageConfig, isValidStage, getNextStage, isFinalStage, STAGE_DATA } from '../data/StageData';
 
 /**
- * ステージ管理クラス
+ * ステージ管理クラス（シングルトン）
  */
 export class StageManager {
+  private static instance: StageManager;
   private progress: StageProgress;
 
-  constructor() {
+  private constructor() {
     this.progress = this.initializeProgress();
+  }
+
+  /**
+   * シングルトンインスタンスを取得
+   */
+  public static getInstance(): StageManager {
+    if (!StageManager.instance) {
+      StageManager.instance = new StageManager();
+    }
+    return StageManager.instance;
   }
 
   /**
