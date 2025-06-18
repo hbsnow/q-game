@@ -8,6 +8,7 @@ export interface Block {
   type: string;
   sprite?: Phaser.GameObjects.Sprite | null;
   counterValue?: number; // カウンターブロック用の値
+  count?: number; // カウンターブロック用の値（counterValueのエイリアス）
 }
 
 /**

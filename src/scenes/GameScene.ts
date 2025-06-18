@@ -5,6 +5,7 @@ import { AdvancedDebugHelper } from '../utils/AdvancedDebugHelper';
 import { ErrorHandler } from '../utils/ErrorHandler';
 import { LoadingManager } from '../utils/LoadingManager';
 import { AudioManager } from '../utils/AudioManager';
+import { AssetManager } from '../assets/AssetManager';
 import { Block, BlockType } from '../types/Block';
 import { BlockLogic } from '../utils/BlockLogic';
 import { GameStateManager } from '../utils/GameStateManager';
@@ -40,6 +41,7 @@ export class GameScene extends Phaser.Scene {
   private errorHandler!: ErrorHandler;
   private loadingManager!: LoadingManager;
   private audioManager!: AudioManager;
+  private assetManager!: AssetManager;
   private currentStageConfig: StageConfig | null = null;
   
   // アイテム使用状態
@@ -105,6 +107,9 @@ export class GameScene extends Phaser.Scene {
     
     // オーディオマネージャーを初期化
     this.audioManager = new AudioManager(this);
+    
+    // アセットマネージャーを初期化
+    this.assetManager = AssetManager.getInstance(this);
     
     // アイテム効果ビジュアライザーを初期化
     this.itemEffectVisualizer = new ItemEffectVisualizer(this);
@@ -189,7 +194,7 @@ export class GameScene extends Phaser.Scene {
       GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE,
       0x000033,
       0.3
-    );
+    ).setName('boardBackground'); // 背景識別用の名前を設定
     
     // ボタンエリア
     const buttonHeight = 60;
@@ -1110,37 +1115,100 @@ export class GameScene extends Phaser.Scene {
    * ブロックスプライトを更新する（全て再作成）
    */
   private updateBlockSprites(): void {
-    // 既存のスプライトを全て破棄
-    for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
-      for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
-        if (this.blockSprites[y][x]) {
-          // カウンターテキストがある場合は削除
-          const counterText = this.blockSprites[y][x].getData('counterText') as Phaser.GameObjects.Text;
-          if (counterText) {
-            counterText.destroy();
-          }
-          
-          // 星グラフィックスがある場合は削除
-          const starGraphics = this.blockSprites[y][x].getData('starGraphics') as Phaser.GameObjects.Graphics;
-          if (starGraphics) {
-            starGraphics.destroy();
-          }
-          
-          this.blockSprites[y][x].destroy();
-          this.blockSprites[y][x] = null;
+    console.log('🔄 updateBlockSprites開始');
+    console.log(`📏 blocks配列サイズ: ${this.blocks.length} x ${this.blocks[0]?.length || 0}`);
+    console.log(`📏 blockSprites配列サイズ: ${this.blockSprites.length} x ${this.blockSprites[0]?.length || 0}`);
+    
+    // 🚨 重要：進行中のすべてのTweenを停止
+    console.log('⏹️ 進行中のTweenを停止');
+    this.tweens.killAll();
+    
+    // 🚨 最も根本的な解決：ゲーム盤面エリア内のすべてのオブジェクトを削除
+    console.log('🧹 ゲーム盤面エリア内のすべてのオブジェクトを削除');
+    const boardLeft = this.boardX;
+    const boardRight = this.boardX + GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE;
+    const boardTop = this.boardY;
+    const boardBottom = this.boardY + GameConfig.BOARD_HEIGHT * GameConfig.BLOCK_SIZE;
+    
+    let removedCount = 0;
+    this.children.list.slice().forEach(child => {
+      // 位置プロパティを持つオブジェクトかチェック
+      if ('x' in child && 'y' in child) {
+        const gameObject = child as any;
+        // ゲーム盤面エリア内にあるオブジェクトを削除（背景は除外）
+        if (gameObject.x >= boardLeft && gameObject.x <= boardRight && 
+            gameObject.y >= boardTop && gameObject.y <= boardBottom &&
+            gameObject.name !== 'boardBackground') { // 背景は削除しない
+          console.log(`🗑️ 盤面内オブジェクト削除: (${gameObject.x}, ${gameObject.y}) type: ${gameObject.type}`);
+          child.destroy();
+          removedCount++;
+        }
+      }
+      // スコア表示テキスト（depth=500）も削除
+      if (child instanceof Phaser.GameObjects.Text && (child as any).depth === 500) {
+        console.log(`🗑️ スコア表示テキスト削除: "${(child as Phaser.GameObjects.Text).text}"`);
+        child.destroy();
+        removedCount++;
+      }
+    });
+    console.log(`📊 削除したオブジェクト数: ${removedCount}`);
+    
+    // blockSprites配列をクリア
+    console.log('🧹 blockSprites配列をクリア');
+    for (let y = 0; y < this.blockSprites.length; y++) {
+      for (let x = 0; x < this.blockSprites[y].length; x++) {
+        this.blockSprites[y][x] = null;
+      }
+    }
+    
+    // 🚨 重要：blocks配列内のスプライト参照もクリア
+    console.log('🧹 blocks配列内のスプライト参照をクリア');
+    for (let y = 0; y < this.blocks.length; y++) {
+      for (let x = 0; x < this.blocks[y].length; x++) {
+        if (this.blocks[y][x] && this.blocks[y][x].sprite) {
+          console.log(`🧹 ブロック内スプライト参照クリア: (${x}, ${y})`);
+          this.blocks[y][x].sprite = null;
         }
       }
     }
     
+    // blockSprites配列をblocks配列と同じサイズに再初期化
+    console.log('🔄 blockSprites配列を再初期化');
+    this.blockSprites = Array(this.blocks.length).fill(0).map(() => 
+      Array(this.blocks[0]?.length || GameConfig.BOARD_WIDTH).fill(null)
+    );
+    console.log(`📏 新しいblockSprites配列サイズ: ${this.blockSprites.length} x ${this.blockSprites[0]?.length || 0}`);
+    
+    // 論理状態と視覚状態の同期チェック（再初期化後）
+    console.log('🔍 論理状態と視覚状態の同期チェック:');
+    let syncIssues = 0;
+    for (let y = 0; y < this.blocks.length; y++) {
+      for (let x = 0; x < this.blocks[y].length; x++) {
+        const hasLogic = this.blocks[y][x] !== null;
+        const hasVisual = this.blockSprites[y] && this.blockSprites[y][x] !== null;
+        if (hasLogic !== hasVisual) {
+          console.warn(`⚠️ 不整合検出: (${x}, ${y}) 論理=${hasLogic}, 視覚=${hasVisual}`);
+          syncIssues++;
+        }
+      }
+    }
+    console.log(`📊 同期問題数: ${syncIssues}`);
+    
     // 新しいスプライトを作成
+    let createCount = 0;
     for (let y = 0; y < this.blocks.length; y++) {
       for (let x = 0; x < this.blocks[y].length; x++) {
         const block = this.blocks[y][x];
         if (block) {
+          console.log(`🎨 スプライト作成: (${x}, ${y}) - ${block.type}`);
           this.createBlockSprite(x, y, block);
+          createCount++;
         }
       }
     }
+    console.log(`📊 作成したスプライト数: ${createCount}`);
+    
+    console.log('✅ updateBlockSprites完了');
   }
   
   /**
