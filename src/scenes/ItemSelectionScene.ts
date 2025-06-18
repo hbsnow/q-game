@@ -137,6 +137,16 @@ export class ItemSelectionScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5).setName('specialSlotText');
 
+    // 特殊枠の装備解除ボタン
+    const specialUnequipButton = this.add.text(width / 2 + slotWidth / 2 + 20, specialSlotY, '×', {
+      fontSize: '16px',
+      color: '#FF0000',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .setName('specialUnequipButton')
+      .setVisible(false);
+
     // 通常枠（B〜Fレア用）
     const normalFrameY = specialSlotY + 80;
     this.add.text(width / 2, normalFrameY, '◆通常枠（B〜Fレア用）', {
@@ -159,6 +169,16 @@ export class ItemSelectionScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5).setName('normalSlotText');
 
+    // 通常枠の装備解除ボタン
+    const normalUnequipButton = this.add.text(width / 2 + slotWidth / 2 + 20, normalSlotY, '×', {
+      fontSize: '16px',
+      color: '#FF0000',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .setName('normalUnequipButton')
+      .setVisible(false);
+
     // 所持アイテム一覧
     const itemListY = normalSlotY + 80;
     this.add.text(width / 2, itemListY, '◆所持アイテム一覧', {
@@ -173,6 +193,10 @@ export class ItemSelectionScene extends Phaser.Scene {
     // スロットクリックイベント
     specialSlotRect.on('pointerdown', () => this.showItemSelectionModal('special'));
     normalSlotRect.on('pointerdown', () => this.showItemSelectionModal('normal'));
+    
+    // 装備解除イベント
+    specialUnequipButton.on('pointerdown', () => this.unequipItem('special'));
+    normalUnequipButton.on('pointerdown', () => this.unequipItem('normal'));
   }
 
   /**
@@ -235,40 +259,194 @@ export class ItemSelectionScene extends Phaser.Scene {
    * アイテム選択モーダルを表示
    */
   private showItemSelectionModal(slotType: 'special' | 'normal'): void {
-    // 簡易実装：最初のアイテムを自動選択
-    if (this.availableItems.length > 0) {
-      const item = this.availableItems[0];
-      
-      // 装備制限チェック
-      if (slotType === 'normal' && (item.rarity === ItemRarity.S || item.rarity === ItemRarity.A)) {
-        console.log('このアイテムは通常枠に装備できません');
-        return;
+    const { width, height } = this.cameras.main;
+    
+    // 装備可能なアイテムをフィルタリング
+    const equipableItems = this.availableItems.filter(item => {
+      if (slotType === 'normal') {
+        // 通常枠：B〜Fレアのみ
+        return item.rarity !== ItemRarity.S && item.rarity !== ItemRarity.A;
+      } else {
+        // 特殊枠：全てのアイテム装備可能
+        return true;
       }
+    });
+
+    if (equipableItems.length === 0) {
+      console.log('装備可能なアイテムがありません');
+      return;
+    }
+
+    // モーダル背景
+    const modalBg = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7)
+      .setInteractive()
+      .setName('modalBackground');
+
+    // モーダルウィンドウ
+    const modalWidth = width * 0.8;
+    const modalHeight = height * 0.6;
+    const modal = this.add.rectangle(width / 2, height / 2, modalWidth, modalHeight, 0x333333, 0.95)
+      .setStrokeStyle(2, 0xFFFFFF)
+      .setName('modal');
+
+    // モーダルタイトル
+    const slotTypeName = slotType === 'special' ? '特殊枠' : '通常枠';
+    this.add.text(width / 2, height / 2 - modalHeight / 2 + 30, `${slotTypeName}に装備するアイテムを選択`, {
+      fontSize: '16px',
+      color: '#FFFFFF',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5).setName('modalTitle');
+
+    // アイテムリスト表示
+    const itemStartY = height / 2 - modalHeight / 2 + 80;
+    const itemHeight = 40;
+    
+    equipableItems.forEach((item, index) => {
+      const itemY = itemStartY + index * itemHeight;
+      const count = this.itemManager.getItemCount(item.id);
+      const rarityColor = this.getRarityColor(item.rarity);
       
-      // アイテムを装備
-      const success = this.itemManager.equipItem(item, slotType);
-      if (success) {
-        if (slotType === 'special') {
-          this.selectedSpecialItem = item;
-          this.updateSlotDisplay('specialSlotText', item);
-        } else {
-          this.selectedNormalItem = item;
-          this.updateSlotDisplay('normalSlotText', item);
+      // アイテム背景
+      const itemBg = this.add.rectangle(width / 2, itemY, modalWidth - 40, itemHeight - 5, 0x555555, 0.8)
+        .setInteractive({ useHandCursor: true })
+        .setName(`modalItem_${item.id}`);
+      
+      // アイテムテキスト
+      const itemText = `${item.name} ×${count} (${item.rarity})`;
+      this.add.text(width / 2, itemY, itemText, {
+        fontSize: '14px',
+        color: rarityColor,
+        fontFamily: 'Arial'
+      }).setOrigin(0.5).setName(`modalItemText_${item.id}`);
+
+      // アイテム選択イベント
+      itemBg.on('pointerdown', () => {
+        this.selectItemForSlot(item, slotType);
+        this.closeModal();
+      });
+
+      // ホバーエフェクト
+      itemBg.on('pointerover', () => {
+        itemBg.setFillStyle(0x777777, 0.8);
+      });
+
+      itemBg.on('pointerout', () => {
+        itemBg.setFillStyle(0x555555, 0.8);
+      });
+    });
+
+    // 閉じるボタン
+    const closeButton = this.add.rectangle(width / 2, height / 2 + modalHeight / 2 - 30, 100, 30, 0x9E9E9E)
+      .setInteractive({ useHandCursor: true })
+      .setName('modalCloseButton');
+    
+    this.add.text(width / 2, height / 2 + modalHeight / 2 - 30, '閉じる', {
+      fontSize: '14px',
+      color: '#FFFFFF',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5).setName('modalCloseText');
+
+    closeButton.on('pointerdown', () => {
+      this.closeModal();
+    });
+
+    // モーダル背景クリックで閉じる
+    modalBg.on('pointerdown', () => {
+      this.closeModal();
+    });
+  }
+
+  /**
+   * アイテムをスロットに装備
+   */
+  private selectItemForSlot(item: Item, slotType: 'special' | 'normal'): void {
+    // アイテムを装備
+    const success = this.itemManager.equipItem(item, slotType);
+    if (success) {
+      if (slotType === 'special') {
+        this.selectedSpecialItem = item;
+        this.updateSlotDisplay('specialSlotText', item);
+      } else {
+        this.selectedNormalItem = item;
+        this.updateSlotDisplay('normalSlotText', item);
+      }
+      console.log(`${item.name}を${slotType === 'special' ? '特殊枠' : '通常枠'}に装備しました`);
+    } else {
+      console.log('アイテムの装備に失敗しました');
+    }
+  }
+
+  /**
+   * モーダルを閉じる
+   */
+  private closeModal(): void {
+    // モーダル関連のオブジェクトを削除
+    const modalObjects = [
+      'modalBackground',
+      'modal',
+      'modalTitle',
+      'modalCloseButton',
+      'modalCloseText'
+    ];
+
+    modalObjects.forEach(name => {
+      const obj = this.children.getByName(name);
+      if (obj) {
+        obj.destroy();
+      }
+    });
+
+    // アイテム関連のオブジェクトも削除
+    this.availableItems.forEach(item => {
+      const itemBg = this.children.getByName(`modalItem_${item.id}`);
+      const itemText = this.children.getByName(`modalItemText_${item.id}`);
+      if (itemBg) itemBg.destroy();
+      if (itemText) itemText.destroy();
+    });
+  }
+
+  /**
+   * スロット表示を更新
+   */
+  private updateSlotDisplay(textName: string, item: Item | null): void {
+    const text = this.children.getByName(textName) as Phaser.GameObjects.Text;
+    const slotType = textName.includes('special') ? 'special' : 'normal';
+    const unequipButtonName = `${slotType}UnequipButton`;
+    const unequipButton = this.children.getByName(unequipButtonName) as Phaser.GameObjects.Text;
+    
+    if (text) {
+      if (item) {
+        const count = this.itemManager.getItemCount(item.id);
+        text.setText(`${item.name} ×${count}`);
+        text.setColor(this.getRarityColor(item.rarity));
+        if (unequipButton) {
+          unequipButton.setVisible(true);
+        }
+      } else {
+        text.setText('未選択');
+        text.setColor('#FFFFFF');
+        if (unequipButton) {
+          unequipButton.setVisible(false);
         }
       }
     }
   }
 
   /**
-   * スロット表示を更新
+   * アイテムの装備を解除
    */
-  private updateSlotDisplay(textName: string, item: Item): void {
-    const text = this.children.getByName(textName) as Phaser.GameObjects.Text;
-    if (text) {
-      const count = this.itemManager.getItemCount(item.id);
-      text.setText(`${item.name} ×${count}`);
-      text.setColor(this.getRarityColor(item.rarity));
+  private unequipItem(slotType: 'special' | 'normal'): void {
+    this.itemManager.unequipItem(slotType);
+    
+    if (slotType === 'special') {
+      this.selectedSpecialItem = null;
+      this.updateSlotDisplay('specialSlotText', null);
+    } else {
+      this.selectedNormalItem = null;
+      this.updateSlotDisplay('normalSlotText', null);
     }
+    
+    console.log(`${slotType === 'special' ? '特殊枠' : '通常枠'}のアイテムを解除しました`);
   }
 
   private createButtons(): void {

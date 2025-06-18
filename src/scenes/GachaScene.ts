@@ -37,7 +37,7 @@ export class GachaScene extends Phaser.Scene {
     
     // 現在のステージとゴールドを取得
     this.currentStage = this.stageManager.getCurrentStage();
-    this.currentGold = this.gameStateManager.getGold();
+    this.currentGold = this.stageManager.getCurrentGold();
     
     // 排出確率を取得
     this.dropRates = GachaManager.getDropRates(this.currentStage);
@@ -198,7 +198,7 @@ export class GachaScene extends Phaser.Scene {
     const result = GachaManager.drawSingle(this.currentStage);
     
     // ゴールド消費
-    this.gameStateManager.spendGold(result.totalCost);
+    this.stageManager.spendGold(result.totalCost);
     
     // アイテム追加
     result.items.forEach(item => {
@@ -221,7 +221,7 @@ export class GachaScene extends Phaser.Scene {
     const result = GachaManager.drawMulti(this.currentStage);
     
     // ゴールド消費
-    this.gameStateManager.spendGold(result.totalCost);
+    this.stageManager.spendGold(result.totalCost);
     
     // アイテム追加
     result.items.forEach(item => {
