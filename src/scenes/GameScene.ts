@@ -347,210 +347,87 @@ export class GameScene extends Phaser.Scene {
     const blockX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
     const blockY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
     
-    // 単純な円形のスプライトを作成
-    const blockSprite = this.add.circle(
-      blockX, 
-      blockY, 
-      GameConfig.BLOCK_SIZE / 2 - 2, 
-      parseInt(block.color.replace('#', '0x'))
+    // 海をテーマにした美しいブロックを作成
+    const blockContainer = this.createOceanThemedBlock(blockX, blockY, block.color, block.type, block);
+    
+    // コンテナを対話可能に設定
+    const blockSize = GameConfig.BLOCK_SIZE - 4;
+    blockContainer.setInteractive(
+      new Phaser.Geom.Rectangle(-blockSize/2, -blockSize/2, blockSize, blockSize),
+      Phaser.Geom.Rectangle.Contains
     );
     
-    // 妨害ブロックの場合は特殊な見た目にする
-    if (block.type === BlockType.ICE_LV1) {
-      // 氷結Lv1は輪郭を付ける
-      blockSprite.setStrokeStyle(2, 0xADD8E6);
-    } else if (block.type === BlockType.ICE_LV2) {
-      // 氷結Lv2は太い輪郭を付ける
-      blockSprite.setStrokeStyle(4, 0x87CEFA);
-    } else if (block.type === BlockType.ICE_COUNTER_PLUS || block.type === BlockType.ICE_COUNTER_MINUS) {
-      // 氷結カウンターブロックは氷の輪郭と数字を表示
-      const borderColor = block.type === BlockType.ICE_COUNTER_PLUS ? 0xADD8E6 : 0xADD8E6; // 氷の色
-      blockSprite.setStrokeStyle(4, borderColor);
-      
-      // 内側に星のマークを追加
-      const starGraphics = this.add.graphics();
-      starGraphics.fillStyle(0xFFFFFF, 0.5);
-      const starSize = GameConfig.BLOCK_SIZE / 4;
-      
-      // 星形を描画
-      const starPoints = 5;
-      const starInnerRadius = starSize / 2;
-      const starOuterRadius = starSize;
-      
-      starGraphics.beginPath();
-      for (let i = 0; i < starPoints * 2; i++) {
-        const radius = i % 2 === 0 ? starOuterRadius : starInnerRadius;
-        const angle = (Math.PI * 2 * i) / (starPoints * 2) - Math.PI / 2;
-        const x = blockX + radius * Math.cos(angle);
-        const y = blockY + radius * Math.sin(angle);
-        
-        if (i === 0) {
-          starGraphics.moveTo(x, y);
-        } else {
-          starGraphics.lineTo(x, y);
-        }
-      }
-      starGraphics.closePath();
-      starGraphics.fillPath();
-      
-      // カウンター値のテキスト表示
-      const prefix = block.type === BlockType.ICE_COUNTER_PLUS ? '+' : '-';
-      const counterText = this.add.text(
-        blockX, 
-        blockY, 
-        `${prefix}${block.counterValue}`, 
-        { 
-          fontSize: '16px', 
-          color: '#FFFFFF',
-          stroke: '#000000',
-          strokeThickness: 2
-        }
-      ).setOrigin(0.5);
-      
-      // テキストをスプライトに関連付ける（後で一緒に削除するため）
-      blockSprite.setData('counterText', counterText);
-      blockSprite.setData('starGraphics', starGraphics);
-    } else if (block.type === BlockType.ROCK) {
-      // 岩ブロックはテクスチャを使用
-      blockSprite.destroy(); // 円形スプライトを破棄
-      
-      // 事前生成したテクスチャを使用
-      const rockSprite = this.add.sprite(blockX, blockY, 'rockBlockTexture');
-      
-      // スプライトを対話可能に設定
-      rockSprite.setInteractive({ useHandCursor: true });
-      
-      // ホバーエフェクトを追加
-      this.addBlockHoverEffect(rockSprite as unknown as Phaser.GameObjects.Sprite, block);
-      
-      // スプライト配列に保存（型変換が必要）
-      this.blockSprites[y][x] = rockSprite as unknown as Phaser.GameObjects.Sprite;
-      
-      // ブロックオブジェクトにスプライト参照を追加
-      this.blocks[y][x].sprite = rockSprite as unknown as Phaser.GameObjects.Sprite;
-      
-      // クリックイベント
-      rockSprite.on('pointerdown', () => {
-        if (!this.isProcessing) {
-          this.onBlockClick(x, y);
-        }
-      });
-      
-      return rockSprite as unknown as Phaser.GameObjects.Sprite;
-    } else if (block.type === BlockType.STEEL) {
-      // 鋼鉄ブロックは特別な見た目にする
-      blockSprite.destroy(); // 円形スプライトを破棄
-      
-      // 鋼鉄ブロック用のグラフィックスを作成
-      const steelGraphics = this.add.graphics();
-      
-      // 鋼鉄ブロックの背景
-      steelGraphics.fillStyle(0xC0C0C0, 1); // シルバー
-      steelGraphics.fillRect(
-        blockX - GameConfig.BLOCK_SIZE / 2 + 2, 
-        blockY - GameConfig.BLOCK_SIZE / 2 + 2, 
-        GameConfig.BLOCK_SIZE - 4, 
-        GameConfig.BLOCK_SIZE - 4
-      );
-      
-      // 鋼鉄の質感を表現する線
-      steelGraphics.lineStyle(1, 0x808080, 0.8);
-      
-      // 横線
-      for (let i = 1; i < 4; i++) {
-        const lineY = blockY - GameConfig.BLOCK_SIZE / 2 + 2 + i * (GameConfig.BLOCK_SIZE - 4) / 4;
-        steelGraphics.moveTo(blockX - GameConfig.BLOCK_SIZE / 2 + 2, lineY);
-        steelGraphics.lineTo(blockX + GameConfig.BLOCK_SIZE / 2 - 2, lineY);
-      }
-      
-      // 縦線
-      for (let i = 1; i < 4; i++) {
-        const lineX = blockX - GameConfig.BLOCK_SIZE / 2 + 2 + i * (GameConfig.BLOCK_SIZE - 4) / 4;
-        steelGraphics.moveTo(lineX, blockY - GameConfig.BLOCK_SIZE / 2 + 2);
-        steelGraphics.lineTo(lineX, blockY + GameConfig.BLOCK_SIZE / 2 - 2);
-      }
-      
-      steelGraphics.strokePath();
-      
-      // 輪郭
-      steelGraphics.lineStyle(2, 0x404040, 1);
-      steelGraphics.strokeRect(
-        blockX - GameConfig.BLOCK_SIZE / 2 + 2, 
-        blockY - GameConfig.BLOCK_SIZE / 2 + 2, 
-        GameConfig.BLOCK_SIZE - 4, 
-        GameConfig.BLOCK_SIZE - 4
-      );
-      
-      // スプライトとして扱うためのダミースプライト
-      const steelSprite = this.add.sprite(blockX, blockY, '__WHITE');
-      steelSprite.setScale(0.01); // ほぼ見えないサイズに
-      steelSprite.setAlpha(0.01); // ほぼ透明に
-      
-      // グラフィックスをスプライトに関連付ける
-      steelSprite.setData('steelGraphics', steelGraphics);
-      
-      // スプライト配列に保存
-      this.blockSprites[y][x] = steelSprite;
-      
-      // ブロックオブジェクトにスプライト参照を追加
-      this.blocks[y][x].sprite = steelSprite;
-      
-      // クリックイベント
-      steelSprite.setInteractive({ useHandCursor: true });
-      
-      // ホバーエフェクトを追加
-      this.addBlockHoverEffect(steelSprite, block);
-      
-      steelSprite.on('pointerdown', () => {
-        if (!this.isProcessing) {
-          this.onBlockClick(x, y);
-        }
-      });
-      
-      return steelSprite;
-    } else if (block.type === BlockType.COUNTER_PLUS || block.type === BlockType.COUNTER_MINUS) {
-      // カウンターブロックは輪郭と数字を表示
-      const borderColor = block.type === BlockType.COUNTER_PLUS ? 0xFFD700 : 0xFF4500; // 金色または赤橙色
-      blockSprite.setStrokeStyle(3, borderColor);
-      
-      // カウンター値のテキスト表示
-      const prefix = block.type === BlockType.COUNTER_PLUS ? '+' : '-';
-      const counterText = this.add.text(
-        blockX, 
-        blockY, 
-        `${prefix}${block.counterValue}`, 
-        { 
-          fontSize: '16px', 
-          color: '#FFFFFF',
-          stroke: '#000000',
-          strokeThickness: 2
-        }
-      ).setOrigin(0.5);
-      
-      // テキストをスプライトに関連付ける（後で一緒に削除するため）
-      blockSprite.setData('counterText', counterText);
-    }
-    
-    // スプライトを対話可能に設定
-    blockSprite.setInteractive({ useHandCursor: true });
+    // カーソルを設定
+    blockContainer.input.cursor = 'pointer';
     
     // ホバーエフェクトを追加
-    this.addBlockHoverEffect(blockSprite, block);
+    this.addContainerHoverEffect(blockContainer, block);
     
     // スプライト配列に保存（型変換が必要）
-    this.blockSprites[y][x] = blockSprite as unknown as Phaser.GameObjects.Sprite;
+    this.blockSprites[y][x] = blockContainer as unknown as Phaser.GameObjects.Sprite;
     
     // ブロックオブジェクトにスプライト参照を追加
-    this.blocks[y][x].sprite = blockSprite as unknown as Phaser.GameObjects.Sprite;
+    this.blocks[y][x].sprite = blockContainer as unknown as Phaser.GameObjects.Sprite;
     
     // クリックイベント
-    blockSprite.on('pointerdown', () => {
+    blockContainer.on('pointerdown', () => {
       if (!this.isProcessing) {
         this.onBlockClick(x, y);
       }
     });
     
-    return blockSprite as unknown as Phaser.GameObjects.Sprite;
+    return blockContainer as unknown as Phaser.GameObjects.Sprite;
+  }
+  
+  /**
+   * コンテナにホバーエフェクトを追加
+   */
+  private addContainerHoverEffect(container: Phaser.GameObjects.Container, block: Block): void {
+    // 元のスケールを保存
+    const originalScale = container.scale;
+    const originalAlpha = container.alpha;
+    
+    // ホバー時のエフェクト
+    container.on('pointerover', () => {
+      if (this.isProcessing) return;
+      
+      // 色弱対応：スケールと透明度の変化で視覚的フィードバック
+      this.tweens.add({
+        targets: container,
+        scale: originalScale * 1.1,
+        alpha: 0.8,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+      
+      // 脈動エフェクト（妨害ブロック以外）
+      if (block.type === BlockType.NORMAL || block.type === 'normal') {
+        this.tweens.add({
+          targets: container,
+          scaleX: originalScale * 1.05,
+          scaleY: originalScale * 1.05,
+          duration: GameConfig.ANIMATION.PULSE_DURATION,
+          yoyo: true,
+          repeat: -1,
+          ease: 'Sine.easeInOut'
+        });
+      }
+    });
+    
+    // ホバー終了時のエフェクト
+    container.on('pointerout', () => {
+      // 全てのTweenを停止
+      this.tweens.killTweensOf(container);
+      
+      // 元の状態に戻す
+      this.tweens.add({
+        targets: container,
+        scale: originalScale,
+        alpha: originalAlpha,
+        duration: GameConfig.ANIMATION.HOVER_DURATION,
+        ease: 'Power2'
+      });
+    });
   }
   
   /**
@@ -575,7 +452,7 @@ export class GameScene extends Phaser.Scene {
       });
       
       // 脈動エフェクト（妨害ブロック以外）
-      if (block.type === BlockType.NORMAL) {
+      if (block.type === BlockType.NORMAL || block.type === 'normal') {
         this.tweens.add({
           targets: sprite,
           scaleX: originalScale * 1.05,
@@ -604,6 +481,245 @@ export class GameScene extends Phaser.Scene {
     });
   }
   
+  /**
+   * 海をテーマにした美しいブロックを作成
+   */
+  private createOceanThemedBlock(x: number, y: number, color: string, type: string | BlockType, block?: Block): Phaser.GameObjects.Container {
+    const container = this.add.container(x, y);
+    const blockSize = GameConfig.BLOCK_SIZE - 4;
+    const radius = blockSize / 2;
+    
+    // 基本色を取得
+    const baseColor = parseInt(color.replace('#', '0x'));
+    
+    // 海をテーマにした背景グラデーション
+    const graphics = this.add.graphics();
+    
+    // 外側の輪郭（波のような効果）
+    graphics.lineStyle(2, this.getDarkerColor(baseColor), 0.8);
+    graphics.fillGradientStyle(
+      baseColor, baseColor, 
+      this.getLighterColor(baseColor), this.getLighterColor(baseColor),
+      0.9, 0.9, 0.6, 0.6
+    );
+    
+    // 丸みを帯びた正方形（海の石のイメージ）
+    const cornerRadius = radius * 0.3;
+    graphics.fillRoundedRect(-radius, -radius, blockSize, blockSize, cornerRadius);
+    graphics.strokeRoundedRect(-radius, -radius, blockSize, blockSize, cornerRadius);
+    
+    // 海のテクスチャ効果を追加
+    this.addOceanTexture(graphics, baseColor, radius);
+    
+    container.add(graphics);
+    
+    // 妨害ブロックの特殊効果
+    if (type === BlockType.ICE_LV1 || type === 'iceLv1') {
+      this.addIceEffect(container, radius, 1);
+    } else if (type === BlockType.ICE_LV2 || type === 'iceLv2') {
+      this.addIceEffect(container, radius, 2);
+    } else if (type === BlockType.ICE_COUNTER_PLUS || type === 'iceCounterPlus') {
+      this.addIceEffect(container, radius, 1);
+      const counterValue = block?.counterValue || 3;
+      this.addCounterDisplay(container, '+', counterValue);
+    } else if (type === BlockType.ICE_COUNTER_MINUS || type === 'iceCounterMinus') {
+      this.addIceEffect(container, radius, 1);
+      const counterValue = block?.counterValue || 3;
+      this.addCounterDisplay(container, '-', counterValue);
+    } else if (type === BlockType.COUNTER_PLUS || type === 'counterPlus') {
+      const counterValue = block?.counterValue || 3;
+      this.addCounterDisplay(container, '+', counterValue);
+    } else if (type === BlockType.COUNTER_MINUS || type === 'counterMinus') {
+      const counterValue = block?.counterValue || 3;
+      this.addCounterDisplay(container, '-', counterValue);
+    } else if (type === BlockType.ROCK || type === 'rock') {
+      this.addRockEffect(container, radius);
+    } else if (type === BlockType.STEEL || type === 'steel') {
+      this.addSteelEffect(container, radius);
+    }
+    
+    return container;
+  }
+  
+  /**
+   * 海のテクスチャ効果を追加
+   */
+  private addOceanTexture(graphics: Phaser.GameObjects.Graphics, baseColor: number, radius: number): void {
+    // 波模様の追加
+    graphics.lineStyle(1, this.getLighterColor(baseColor), 0.4);
+    
+    // 水平の波線
+    for (let i = 0; i < 3; i++) {
+      const waveY = -radius + (i + 1) * (radius * 2 / 4);
+      graphics.beginPath();
+      
+      for (let x = -radius; x <= radius; x += 4) {
+        const waveHeight = Math.sin((x / radius) * Math.PI * 2) * 2;
+        if (x === -radius) {
+          graphics.moveTo(x, waveY + waveHeight);
+        } else {
+          graphics.lineTo(x, waveY + waveHeight);
+        }
+      }
+      graphics.strokePath();
+    }
+    
+    // 泡のような小さな円
+    graphics.fillStyle(this.getLighterColor(baseColor), 0.3);
+    for (let i = 0; i < 3; i++) {
+      const bubbleX = (Math.random() - 0.5) * radius;
+      const bubbleY = (Math.random() - 0.5) * radius;
+      const bubbleSize = Math.random() * 3 + 1;
+      graphics.fillCircle(bubbleX, bubbleY, bubbleSize);
+    }
+  }
+  
+  /**
+   * 氷の効果を追加
+   */
+  private addIceEffect(container: Phaser.GameObjects.Container, radius: number, level: number): void {
+    const iceGraphics = this.add.graphics();
+    
+    // 氷の輪郭
+    const iceColor = level === 1 ? 0xADD8E6 : 0x87CEFA;
+    const thickness = level === 1 ? 2 : 4;
+    
+    iceGraphics.lineStyle(thickness, iceColor, 0.8);
+    iceGraphics.strokeRoundedRect(-radius, -radius, radius * 2, radius * 2, radius * 0.3);
+    
+    // 氷の結晶模様
+    iceGraphics.lineStyle(1, 0xFFFFFF, 0.6);
+    
+    // 十字の結晶
+    iceGraphics.moveTo(-radius * 0.6, 0);
+    iceGraphics.lineTo(radius * 0.6, 0);
+    iceGraphics.moveTo(0, -radius * 0.6);
+    iceGraphics.lineTo(0, radius * 0.6);
+    
+    // 斜めの結晶
+    iceGraphics.moveTo(-radius * 0.4, -radius * 0.4);
+    iceGraphics.lineTo(radius * 0.4, radius * 0.4);
+    iceGraphics.moveTo(radius * 0.4, -radius * 0.4);
+    iceGraphics.lineTo(-radius * 0.4, radius * 0.4);
+    
+    iceGraphics.strokePath();
+    container.add(iceGraphics);
+  }
+  
+  /**
+   * カウンター表示を追加
+   */
+  private addCounterDisplay(container: Phaser.GameObjects.Container, prefix: string, value: number): void {
+    // 背景円
+    const counterBg = this.add.graphics();
+    counterBg.fillStyle(0x000000, 0.7);
+    counterBg.fillCircle(0, 0, 12);
+    
+    // カウンターテキスト
+    const counterText = this.add.text(0, 0, `${prefix}${value}`, {
+      fontSize: '12px',
+      color: '#FFFFFF',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+    
+    container.add([counterBg, counterText]);
+  }
+  
+  /**
+   * 岩の効果を追加
+   */
+  private addRockEffect(container: Phaser.GameObjects.Container, radius: number): void {
+    const rockGraphics = this.add.graphics();
+    
+    // 岩の基本形状（不規則な形）
+    rockGraphics.fillStyle(0x8B4513, 1); // 茶色
+    rockGraphics.lineStyle(2, 0x654321, 1); // 濃い茶色の輪郭
+    
+    // 不規則な岩の形を描画
+    const points: number[] = [];
+    const numPoints = 8;
+    for (let i = 0; i < numPoints; i++) {
+      const angle = (i / numPoints) * Math.PI * 2;
+      const variation = 0.7 + Math.random() * 0.3; // 0.7-1.0の範囲
+      const x = Math.cos(angle) * radius * variation;
+      const y = Math.sin(angle) * radius * variation;
+      points.push(x, y);
+    }
+    
+    rockGraphics.fillPoints(points, true);
+    rockGraphics.strokePoints(points, true);
+    
+    // 岩の質感（ひび割れ）
+    rockGraphics.lineStyle(1, 0x654321, 0.6);
+    for (let i = 0; i < 3; i++) {
+      const startX = (Math.random() - 0.5) * radius;
+      const startY = (Math.random() - 0.5) * radius;
+      const endX = startX + (Math.random() - 0.5) * radius * 0.5;
+      const endY = startY + (Math.random() - 0.5) * radius * 0.5;
+      
+      rockGraphics.moveTo(startX, startY);
+      rockGraphics.lineTo(endX, endY);
+    }
+    rockGraphics.strokePath();
+    
+    container.add(rockGraphics);
+  }
+  
+  /**
+   * 鋼鉄の効果を追加
+   */
+  private addSteelEffect(container: Phaser.GameObjects.Container, radius: number): void {
+    const steelGraphics = this.add.graphics();
+    
+    // 鋼鉄の背景
+    steelGraphics.fillGradientStyle(0xC0C0C0, 0xC0C0C0, 0x808080, 0x808080, 1, 1, 1, 1);
+    steelGraphics.fillRoundedRect(-radius, -radius, radius * 2, radius * 2, 4);
+    
+    // 鋼鉄の格子模様
+    steelGraphics.lineStyle(1, 0x404040, 0.8);
+    
+    // 縦線
+    for (let i = 1; i < 4; i++) {
+      const x = -radius + (i * radius * 2 / 4);
+      steelGraphics.moveTo(x, -radius);
+      steelGraphics.lineTo(x, radius);
+    }
+    
+    // 横線
+    for (let i = 1; i < 4; i++) {
+      const y = -radius + (i * radius * 2 / 4);
+      steelGraphics.moveTo(-radius, y);
+      steelGraphics.lineTo(radius, y);
+    }
+    
+    steelGraphics.strokePath();
+    
+    // 外枠
+    steelGraphics.lineStyle(2, 0x404040, 1);
+    steelGraphics.strokeRoundedRect(-radius, -radius, radius * 2, radius * 2, 4);
+    
+    container.add(steelGraphics);
+  }
+  
+  /**
+   * 色を明るくする
+   */
+  private getLighterColor(color: number): number {
+    const r = Math.min(255, ((color >> 16) & 0xFF) + 40);
+    const g = Math.min(255, ((color >> 8) & 0xFF) + 40);
+    const b = Math.min(255, (color & 0xFF) + 40);
+    return (r << 16) | (g << 8) | b;
+  }
+  
+  /**
+   * 色を暗くする
+   */
+  private getDarkerColor(color: number): number {
+    const r = Math.max(0, ((color >> 16) & 0xFF) - 40);
+    const g = Math.max(0, ((color >> 8) & 0xFF) - 40);
+    const b = Math.max(0, (color & 0xFF) - 40);
+    return (r << 16) | (g << 8) | b;
+  }
 
   
   /**
