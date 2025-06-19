@@ -1936,9 +1936,16 @@ export class GameScene extends Phaser.Scene {
   private applyColorChange(x: number, y: number, itemType: 'changeOne' | 'changeArea', color: string, colorHex: number): void {
     let result;
     
+    console.log(`色変更適用: ${itemType}, 座標: (${x}, ${y}), 色: ${color}`);
+    
     if (itemType === 'changeOne') {
       result = ItemEffectManager.applyChangeOne(this.blocks, {x, y}, color);
       if (result && result.success) {
+        console.log('チェンジワン成功');
+        // 結果を盤面に適用
+        if (result.newBlocks) {
+          this.blocks = result.newBlocks;
+        }
         this.itemEffectVisualizer.showColorChangeEffect(
           [{x, y}], 
           this.boardX, 
@@ -1946,22 +1953,36 @@ export class GameScene extends Phaser.Scene {
           GameConfig.BLOCK_SIZE, 
           colorHex
         );
+      } else {
+        console.log('チェンジワン失敗:', result?.message);
       }
     } else if (itemType === 'changeArea') {
       const connectedBlocks = this.getConnectedBlocksForPreview(x, y);
       result = ItemEffectManager.applyChangeArea(this.blocks, {x, y}, color);
-      if (result && result.success && connectedBlocks.length > 0) {
-        this.itemEffectVisualizer.showColorChangeEffect(
-          connectedBlocks, 
-          this.boardX, 
-          this.boardY, 
-          GameConfig.BLOCK_SIZE, 
-          colorHex
-        );
+      if (result && result.success) {
+        console.log('チェンジエリア成功');
+        // 結果を盤面に適用
+        if (result.newBlocks) {
+          this.blocks = result.newBlocks;
+        }
+        if (connectedBlocks.length > 0) {
+          this.itemEffectVisualizer.showColorChangeEffect(
+            connectedBlocks, 
+            this.boardX, 
+            this.boardY, 
+            GameConfig.BLOCK_SIZE, 
+            colorHex
+          );
+        }
+      } else {
+        console.log('チェンジエリア失敗:', result?.message);
       }
     }
 
     if (result && result.success) {
+      // アイテムを使用済みに設定
+      this.itemManager.useItem(this.selectedItemSlot!);
+      
       // ブロック表示を更新
       this.updateBlockSprites();
       
