@@ -292,39 +292,52 @@ export class ItemSelectionScene extends Phaser.Scene {
       .setInteractive()
       .setName('modalBackground');
 
+    // 固定サイズ設定（全13アイテムが表示できるサイズ）
+    const modalWidth = width * 0.85;
+    const titleHeight = 50;
+    const buttonHeight = 40;
+    const padding = 20;
+    
+    // 全アイテム数（13個）を基準にアイテム高さを計算
+    const maxItems = 13; // 実装されている全アイテム数
+    const availableHeight = height * 0.8 - titleHeight - buttonHeight - padding * 2;
+    const itemHeight = Math.floor(availableHeight / maxItems);
+    
+    // 実際のモーダル高さを計算
+    const actualItemAreaHeight = equipableItems.length * itemHeight;
+    const modalHeight = titleHeight + actualItemAreaHeight + buttonHeight + padding * 2;
+
     // モーダルウィンドウ
-    const modalWidth = width * 0.8;
-    const modalHeight = height * 0.6;
     const modal = this.add.rectangle(width / 2, height / 2, modalWidth, modalHeight, 0x333333, 0.95)
       .setStrokeStyle(2, 0xFFFFFF)
       .setName('modal');
 
     // モーダルタイトル
     const slotTypeName = slotType === 'special' ? '特殊枠' : '通常枠';
-    this.add.text(width / 2, height / 2 - modalHeight / 2 + 30, `${slotTypeName}に装備するアイテムを選択`, {
+    this.add.text(width / 2, height / 2 - modalHeight / 2 + titleHeight / 2, `${slotTypeName}に装備するアイテムを選択`, {
       fontSize: '16px',
       color: '#FFFFFF',
       fontFamily: 'Arial'
     }).setOrigin(0.5).setName('modalTitle');
 
     // アイテムリスト表示
-    const itemStartY = height / 2 - modalHeight / 2 + 80;
-    const itemHeight = 40;
+    const itemStartY = height / 2 - modalHeight / 2 + titleHeight + padding;
     
     equipableItems.forEach((item, index) => {
-      const itemY = itemStartY + index * itemHeight;
+      const itemY = itemStartY + index * itemHeight + itemHeight / 2;
       const count = this.itemManager.getItemCount(item.id);
       const rarityColor = this.getRarityColor(item.rarity);
       
       // アイテム背景
-      const itemBg = this.add.rectangle(width / 2, itemY, modalWidth - 40, itemHeight - 5, 0x555555, 0.8)
+      const itemBg = this.add.rectangle(width / 2, itemY, modalWidth - 40, itemHeight - 2, 0x555555, 0.8)
         .setInteractive({ useHandCursor: true })
         .setName(`modalItem_${item.id}`);
       
-      // アイテムテキスト
+      // アイテムテキスト（フォントサイズを調整）
+      const fontSize = itemHeight > 30 ? '14px' : '12px';
       const itemText = `${item.name} ×${count} (${item.rarity})`;
       this.add.text(width / 2, itemY, itemText, {
-        fontSize: '14px',
+        fontSize: fontSize,
         color: rarityColor,
         fontFamily: 'Arial'
       }).setOrigin(0.5).setName(`modalItemText_${item.id}`);
@@ -346,11 +359,12 @@ export class ItemSelectionScene extends Phaser.Scene {
     });
 
     // 閉じるボタン
-    const closeButton = this.add.rectangle(width / 2, height / 2 + modalHeight / 2 - 30, 100, 30, 0x9E9E9E)
+    const closeButtonY = height / 2 + modalHeight / 2 - buttonHeight / 2 - padding / 2;
+    const closeButton = this.add.rectangle(width / 2, closeButtonY, 100, 30, 0x9E9E9E)
       .setInteractive({ useHandCursor: true })
       .setName('modalCloseButton');
     
-    this.add.text(width / 2, height / 2 + modalHeight / 2 - 30, '閉じる', {
+    this.add.text(width / 2, closeButtonY, '閉じる', {
       fontSize: '14px',
       color: '#FFFFFF',
       fontFamily: 'Arial'
