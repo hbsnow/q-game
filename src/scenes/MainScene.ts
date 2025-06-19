@@ -59,8 +59,8 @@ export class MainScene extends Phaser.Scene {
     const gold = this.stageManager.getCurrentGold();
     const stageConfig = this.stageManager.getCurrentStageConfig();
     
-    // ヘッダー（ゴールド表示）
-    const goldText = this.add.text(width - 10, 30, `ゴールド: ${gold.toLocaleString()}`, {
+    // ヘッダー（ゴールド表示）タイトルエリア80px内に配置
+    const goldText = this.add.text(width - 10, 40, `ゴールド: ${gold.toLocaleString()}`, {
       fontSize: '18px',
       color: '#FFD700',
       stroke: '#000000',
@@ -207,9 +207,9 @@ export class MainScene extends Phaser.Scene {
     // StageManagerから現在の状態を取得
     const currentStage = this.stageManager.getCurrentStage();
     
-    // タイトルエリア（ゴールド表示）
-    const titleHeight = 60;
-    const titleCenterY = 30;
+    // タイトルエリア（ゴールド表示）80pxに統一
+    const titleHeight = 80;
+    const titleCenterY = 40;
     this.debugHelper.addAreaBorder(width / 2, titleCenterY, width, titleHeight, 0xFF0000, 'タイトルエリア');
     
     // コンテンツエリア（ステージ情報）

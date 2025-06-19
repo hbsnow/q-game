@@ -3,13 +3,15 @@ import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { GameStateManager } from '../utils/GameStateManager';
 import { Item, ItemRarity } from '../types/Item';
-import { GachaResult } from '../managers/GachaManager';
+import { GachaResult, GachaManager } from '../managers/GachaManager';
 import { ITEM_DATA, getRarityColor } from '../data/ItemData';
 import { ParticleManager } from '../utils/ParticleManager';
 import { SoundManager } from '../utils/SoundManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
 import { BackgroundManager } from '../utils/BackgroundManager';
 import { SimpleOceanButton } from '../components/SimpleOceanButton';
+import { StageManager } from '../managers/StageManager';
+import { ItemManager } from '../managers/ItemManager';
 
 /**
  * ガチャ結果画面
@@ -17,6 +19,9 @@ import { SimpleOceanButton } from '../components/SimpleOceanButton';
 export class GachaResultScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
   private gameStateManager: GameStateManager;
+  private stageManager: StageManager;
+  private itemManager: ItemManager;
+  private gachaManager: GachaManager;
   private particleManager!: ParticleManager;
   private soundManager!: SoundManager;
   private animationManager!: AnimationManager;
@@ -28,6 +33,9 @@ export class GachaResultScene extends Phaser.Scene {
   constructor() {
     super({ key: 'GachaResultScene' });
     this.gameStateManager = GameStateManager.getInstance();
+    this.stageManager = StageManager.getInstance();
+    this.itemManager = new ItemManager();
+    this.gachaManager = GachaManager.getInstance(this.itemManager, this.stageManager);
   }
 
   init(data: any): void {
@@ -72,13 +80,16 @@ export class GachaResultScene extends Phaser.Scene {
   private createUI(): void {
     const { width, height } = this.cameras.main;
     
-    // タイトルエリア
-    const titleY = 40;
+    // タイトルエリア（ゲーム画面と同じ高さ80pxに統一）
+    const titleY = 40; // 80pxエリアの中心位置
     this.add.text(width / 2, titleY, 'ガチャ結果', {
       fontSize: '24px',
       color: '#FFFFFF',
       fontFamily: 'Arial'
     }).setOrigin(0.5);
+
+    // ゴールド表示
+    this.createGoldDisplay();
 
     // メインコンテンツエリア
     this.createResultContent();
@@ -87,8 +98,31 @@ export class GachaResultScene extends Phaser.Scene {
     this.createButtons();
   }
 
-  private createResultContent(): void {
+  private createGoldDisplay(): void {
     const { width, height } = this.cameras.main;
+    
+    // 現在のゴールドを取得
+    const currentGold = this.stageManager.getCurrentGold();
+    
+    // ゴールド表示の背景（タイトルエリア内に配置）
+    const goldBg = this.add.rectangle(width - 70, 40, 120, 30, 0x000000, 0.4);
+    goldBg.setStrokeStyle(1, 0x333333);
+    
+    // ゴールドアイコン（コイン）
+    this.add.text(width - 115, 40, '💰', {
+      fontSize: '14px'
+    }).setOrigin(0.5);
+    
+    // ゴールド数値
+    this.add.text(width - 95, 40, `${currentGold.toLocaleString()}G`, {
+      fontSize: '14px',
+      color: '#FFD700',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
+  }
+
+  private createResultContent(): void {
     
     if (this.isMulti) {
       this.createMultiResult();
@@ -119,8 +153,8 @@ export class GachaResultScene extends Phaser.Scene {
       });
     }
     
-    // アイテム表示エリア
-    const itemY = height / 2 - 50;
+    // アイテム表示エリア（タイトルエリア80px直下から開始）
+    const itemY = height / 2 - 10; // 少し上に調整
     
     // レア度に応じた背景色
     const rarityColor = this.getRarityColorHex(item.rarity);
@@ -169,7 +203,7 @@ export class GachaResultScene extends Phaser.Scene {
 
   private createMultiResult(): void {
     const { width, height } = this.cameras.main;
-    const startY = 100;
+    const startY = 100; // タイトルエリア80px直下から開始
     const itemsPerRow = 2;
     const itemWidth = 160;
     const itemHeight = 70;
@@ -301,6 +335,14 @@ export class GachaResultScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     const buttonY = height - 60;
     
+    // 現在のゴールドと必要コストを取得
+    const currentGold = this.stageManager.getCurrentGold();
+    const requiredCost = this.isMulti ? this.gachaManager.getTenGachaPrice() : this.gachaManager.getGachaPrice();
+    const canAfford = currentGold >= requiredCost;
+    
+    // もう一度引くボタンのテキストを動的に設定
+    const againButtonText = this.isMulti ? 'もう一度10連' : 'もう一度1回';
+    
     // もう一度引くボタン
     const againButton = new SimpleOceanButton(
       this,
@@ -308,13 +350,23 @@ export class GachaResultScene extends Phaser.Scene {
       buttonY,
       140,
       45,
-      'もう一度',
-      'primary',
+      againButtonText,
+      canAfford ? 'primary' : 'secondary',
       () => {
-        this.soundManager.playButtonTap();
-        this.onAgain();
+        if (canAfford) {
+          this.soundManager.playButtonTap();
+          this.onAgain();
+        } else {
+          // ゴールド不足の場合は通常のタップ音を再生
+          this.soundManager.playButtonTap();
+        }
       }
     );
+    
+    // ゴールド不足の場合はボタンを無効化
+    if (!canAfford) {
+      againButton.setEnabled(false);
+    }
     
     // 戻るボタン
     const backButton = new SimpleOceanButton(
@@ -333,8 +385,71 @@ export class GachaResultScene extends Phaser.Scene {
   }
 
   private onAgain(): void {
-    this.soundManager.playScreenTransition();
-    this.scene.start('GachaScene');
+    this.soundManager.playButtonTap();
+    
+    // 現在のゴールドを取得
+    const currentGold = this.stageManager.getCurrentGold();
+    
+    // 必要なコストを計算
+    const requiredCost = this.isMulti ? this.gachaManager.getTenGachaPrice() : this.gachaManager.getGachaPrice();
+    
+    // ゴールド不足の場合はガチャ画面に戻る
+    if (currentGold < requiredCost) {
+      this.soundManager.playScreenTransition();
+      this.scene.start('GachaScene');
+      return;
+    }
+    
+    // 直接ガチャを実行
+    if (this.isMulti) {
+      this.executeMultiGacha();
+    } else {
+      this.executeSingleGacha();
+    }
+  }
+  
+  private executeSingleGacha(): void {
+    const cost = this.gachaManager.getGachaPrice();
+    
+    // ガチャ実行
+    const result = this.gachaManager.drawSingle();
+    if (!result) return;
+    
+    // ゴールド消費
+    this.stageManager.spendGold(cost);
+    
+    // アイテム追加
+    this.itemManager.addItem(result.itemId, result.count);
+    
+    // 新しい結果で画面を再初期化
+    this.scene.restart({
+      items: [result],
+      cost: cost,
+      isMulti: false
+    });
+  }
+  
+  private executeMultiGacha(): void {
+    const cost = this.gachaManager.getTenGachaPrice();
+    
+    // ガチャ実行
+    const results = this.gachaManager.drawTen();
+    if (results.length === 0) return;
+    
+    // ゴールド消費
+    this.stageManager.spendGold(cost);
+    
+    // アイテム追加
+    results.forEach(result => {
+      this.itemManager.addItem(result.itemId, result.count);
+    });
+    
+    // 新しい結果で画面を再初期化
+    this.scene.restart({
+      items: results,
+      cost: cost,
+      isMulti: true
+    });
   }
 
   private onBack(): void {
@@ -385,8 +500,8 @@ export class GachaResultScene extends Phaser.Scene {
     
     // DebugHelperは中心点座標を期待するため、左上座標から中心点座標に変換
     
-    // タイトルエリア（0-80px → 中心点: 40px）
-    this.debugHelper.addAreaBorder(width / 2, 40, width, 80, 0xFF0000, 'タイトルエリア');
+    // タイトル・ゴールドエリア（0-80px → 中心点: 40px）ゲーム画面と同じ高さ
+    this.debugHelper.addAreaBorder(width / 2, 40, width, 80, 0xFF0000, 'タイトル・ゴールドエリア');
     
     if (this.isMulti) {
       // 10連ガチャの場合

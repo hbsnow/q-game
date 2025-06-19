@@ -43,8 +43,8 @@ export class GameClearScene extends Phaser.Scene {
   private createUI(): void {
     const { width, height } = this.cameras.main;
     
-    // タイトルエリア
-    const titleY = 60;
+    // タイトルエリア（80pxに統一）
+    const titleY = 40; // 80pxエリアの中心位置
     this.add.text(width / 2, titleY, 'ゲームクリア！', {
       fontSize: '28px',
       color: '#FFD700',
@@ -149,14 +149,14 @@ export class GameClearScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
-    // タイトルエリア
-    const titleHeight = 120;
-    const titleCenterY = 60;
+    // タイトルエリア（80pxに統一）
+    const titleHeight = 80;
+    const titleCenterY = 40;
     this.debugHelper.addAreaBorder(width / 2, titleCenterY, width, titleHeight, 0xFF0000, 'タイトルエリア');
     
     // メインコンテンツエリア
-    const contentHeight = 400;
-    const contentCenterY = 320;
+    const contentHeight = 440; // タイトルエリア縮小分を追加
+    const contentCenterY = 300; // タイトルエリア80px直下から開始
     this.debugHelper.addAreaBorder(width / 2, contentCenterY, width, contentHeight, 0x0000FF, 'メインコンテンツエリア');
     
     // ボタンエリア

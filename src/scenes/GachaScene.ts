@@ -68,8 +68,8 @@ export class GachaScene extends Phaser.Scene {
   private createUI(): void {
     const { width, height } = this.cameras.main;
     
-    // タイトルエリア
-    const titleY = 30;
+    // タイトルエリア（80pxに統一）
+    const titleY = 40; // 80pxエリアの中心位置
     this.add.text(width / 2, titleY, 'ガチャ', {
       fontSize: '24px',
       color: '#FFFFFF',
@@ -92,7 +92,7 @@ export class GachaScene extends Phaser.Scene {
 
   private createGachaContent(): void {
     const { width, height } = this.cameras.main;
-    const contentY = 100;
+    const contentY = 110; // タイトルエリア80px直下から開始
     
     // ガチャ名
     this.add.text(width / 2, contentY, 'オーシャンガチャ', {
@@ -417,11 +417,11 @@ export class GachaScene extends Phaser.Scene {
     
     // DebugHelperは中心点座標を期待するため、左上座標から中心点座標に変換
     
-    // タイトルエリア（0-70px → 中心点: 35px）
-    this.debugHelper.addAreaBorder(width / 2, 35, width, 70, 0xFF0000, 'タイトルエリア');
+    // タイトルエリア（0-80px → 中心点: 40px）80pxに統一
+    this.debugHelper.addAreaBorder(width / 2, 40, width, 80, 0xFF0000, 'タイトルエリア');
     
-    // ガチャ名・価格エリア（70-170px → 中心点: 120px）
-    this.debugHelper.addAreaBorder(width / 2, 120, width, 100, 0x0000FF, 'ガチャ名・価格エリア');
+    // ガチャ名・価格エリア（80-180px → 中心点: 130px）
+    this.debugHelper.addAreaBorder(width / 2, 130, width, 100, 0x0000FF, 'ガチャ名・価格エリア');
     
     // ガチャボタンエリア（170-250px → 中心点: 210px）
     this.debugHelper.addAreaBorder(width / 2, 210, width, 80, 0x00FF00, 'ガチャボタンエリア');

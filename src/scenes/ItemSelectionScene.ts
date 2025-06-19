@@ -623,13 +623,13 @@ export class ItemSelectionScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
-    // タイトルエリア（ステージ情報含む）
-    const titleHeight = 100;
-    const titleCenterY = 50;
+    // タイトルエリア（ステージ情報含む）80pxに統一
+    const titleHeight = 80;
+    const titleCenterY = 40;
     this.debugHelper.addAreaBorder(width / 2, titleCenterY, width, titleHeight, 0xFF0000, 'タイトルエリア');
     
     // 装備枠エリア（特殊枠 + 通常枠）
-    const equipmentStartY = 120;
+    const equipmentStartY = 100; // タイトルエリア80px直下から開始
     const equipmentHeight = 200; // 特殊枠(60px) + 通常枠(60px) + 間隔(80px)
     const equipmentCenterY = equipmentStartY + equipmentHeight / 2;
     this.debugHelper.addAreaBorder(width / 2, equipmentCenterY, width, equipmentHeight, 0x00FF00, '装備枠エリア');

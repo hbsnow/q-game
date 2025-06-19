@@ -74,18 +74,18 @@ export class TitleScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     
     // 上部空白エリア
-    const topSpaceHeight = height / 4 - 100 / 2;
+    const topSpaceHeight = height / 4 - 80 / 2;
     if (topSpaceHeight > 0) {
       this.debugHelper.addAreaBorder(width / 2, topSpaceHeight / 2, width, topSpaceHeight, 0x0000FF, '上部空白エリア');
     }
     
-    // タイトルエリア
-    this.debugHelper.addAreaBorder(width / 2, height / 4, width, 100, 0xFF0000, 'タイトルエリア');
+    // タイトルエリア（80pxに統一）
+    this.debugHelper.addAreaBorder(width / 2, height / 4, width, 80, 0xFF0000, 'タイトルエリア');
     
     // 中上部空白エリア
-    const middleTopSpaceHeight = height / 2 - height / 4 - 100 / 2 - 60 / 2;
+    const middleTopSpaceHeight = height / 2 - height / 4 - 80 / 2 - 60 / 2;
     if (middleTopSpaceHeight > 0) {
-      this.debugHelper.addAreaBorder(width / 2, height / 4 + 100 / 2 + middleTopSpaceHeight / 2, width, middleTopSpaceHeight, 0x0000FF, '中上部空白エリア');
+      this.debugHelper.addAreaBorder(width / 2, height / 4 + 80 / 2 + middleTopSpaceHeight / 2, width, middleTopSpaceHeight, 0x0000FF, '中上部空白エリア');
     }
     
     // ボタン/アクションエリア
