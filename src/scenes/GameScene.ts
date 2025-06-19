@@ -923,6 +923,9 @@ export class GameScene extends Phaser.Scene {
       // 視覚表現を更新
       this.updateBlockSprites();
       
+      // 重力を適用（ブロックが破壊された場合の落下処理）
+      this.applyGravity();
+      
       // アイテムボタンの表示を更新
       this.updateItemButtons();
       
