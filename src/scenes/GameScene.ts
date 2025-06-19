@@ -17,6 +17,7 @@ import { ItemManager } from '../managers/ItemManager';
 import { ItemEffectManager } from '../managers/ItemEffectManager';
 import { ItemEffectVisualizer } from '../utils/ItemEffectVisualizer';
 import { ITEM_DATA } from '../data/ItemData';
+import { ParticleManager } from '../utils/ParticleManager';
 
 /**
  * ゲーム画面
@@ -37,6 +38,7 @@ export class GameScene extends Phaser.Scene {
   private stageManager: StageManager;
   private itemManager: ItemManager;
   private itemEffectVisualizer!: ItemEffectVisualizer;
+  private particleManager!: ParticleManager;
   private advancedDebugHelper!: AdvancedDebugHelper;
   private errorHandler!: ErrorHandler;
   private loadingManager!: LoadingManager;
@@ -134,6 +136,9 @@ export class GameScene extends Phaser.Scene {
     
     // アイテム効果ビジュアライザーを初期化
     this.itemEffectVisualizer = new ItemEffectVisualizer(this);
+    
+    // パーティクルマネージャーを初期化
+    this.particleManager = new ParticleManager(this);
     
     // BGMを開始
     this.audioManager.playBGM('gameBGM');
@@ -839,6 +844,9 @@ export class GameScene extends Phaser.Scene {
           const centerX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
           const centerY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
           this.itemEffectVisualizer.showBombEffect(centerX, centerY);
+          
+          // パーティクルエフェクトを追加
+          this.particleManager.createItemUseEffect(centerX, centerY, 'miniBomb');
         }
         break;
         
@@ -872,6 +880,9 @@ export class GameScene extends Phaser.Scene {
           const centerX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
           const centerY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
           this.itemEffectVisualizer.showBombEffect(centerX, centerY);
+          
+          // パーティクルエフェクトを追加
+          this.particleManager.createItemUseEffect(centerX, centerY, 'bomb');
         }
         break;
         
@@ -882,6 +893,9 @@ export class GameScene extends Phaser.Scene {
           const targetX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
           const targetY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
           this.itemEffectVisualizer.showHammerEffect(targetX, targetY);
+          
+          // パーティクルエフェクトを追加
+          this.particleManager.createItemUseEffect(targetX, targetY, 'hammer');
         }
         break;
         
@@ -1182,6 +1196,18 @@ export class GameScene extends Phaser.Scene {
       // スプライトのアニメーション
       if (block && block.sprite) {
         const sprite = block.sprite;
+        
+        // パーティクルエフェクトを追加
+        const worldX = this.boardX + block.x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+        const worldY = this.boardY + block.y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+        this.particleManager.createBubbleEffect({
+          x: worldX,
+          y: worldY,
+          count: 3,
+          duration: 600,
+          alpha: 0.7
+        });
+        
         // スプライト参照を先にnullに設定（メモリリーク防止）
         block.sprite = null;
         
@@ -1357,6 +1383,9 @@ export class GameScene extends Phaser.Scene {
    */
   private showAllClearedEffect(): void {
     const { width, height } = this.cameras.main;
+    
+    // 全消しパーティクルエフェクト
+    this.particleManager.createAllClearEffect(width / 2, height / 2);
     
     // 全消しテキスト
     const allClearedText = this.add.text(width / 2, height / 2, '全消しボーナス！', {
@@ -1769,6 +1798,10 @@ export class GameScene extends Phaser.Scene {
     const screenX = this.boardX + blockX * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
     const screenY = this.boardY + blockY * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
     
+    // パーティクルエフェクトを追加
+    const isGreat = score >= 100;
+    this.particleManager.createScoreEffect(screenX, screenY, score, isGreat);
+    
     // スコアテキストを作成
     const scoreText = this.add.text(screenX, screenY, `+${score}`, {
       fontSize: score >= 100 ? '24px' : '18px',
@@ -2171,6 +2204,16 @@ export class GameScene extends Phaser.Scene {
     const messageText = this.children.getByName('itemModeMessage') as Phaser.GameObjects.Text;
     if (messageText) {
       messageText.setText(message);
+    }
+  }
+
+  /**
+   * シーン終了時のクリーンアップ
+   */
+  shutdown(): void {
+    // パーティクルマネージャーをクリーンアップ
+    if (this.particleManager) {
+      this.particleManager.destroy();
     }
   }
 }

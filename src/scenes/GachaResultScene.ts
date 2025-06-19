@@ -4,6 +4,7 @@ import { DebugHelper } from '../utils/DebugHelper';
 import { GameStateManager } from '../utils/GameStateManager';
 import { Item, ItemRarity } from '../types/Item';
 import { getRarityColor } from '../data/ItemData';
+import { ParticleManager } from '../utils/ParticleManager';
 
 /**
  * ガチャ結果画面
@@ -11,6 +12,7 @@ import { getRarityColor } from '../data/ItemData';
 export class GachaResultScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
   private gameStateManager: GameStateManager;
+  private particleManager!: ParticleManager;
   private resultItems: Item[] = [];
   private totalCost: number = 0;
   private isMulti: boolean = false;
@@ -31,6 +33,9 @@ export class GachaResultScene extends Phaser.Scene {
     
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
+    
+    // パーティクルマネージャーを初期化
+    this.particleManager = new ParticleManager(this);
     
     // 背景色を設定
     this.cameras.main.setBackgroundColor('#1E5799');
@@ -79,6 +84,17 @@ export class GachaResultScene extends Phaser.Scene {
     // レア度に応じた背景色
     const rarityColor = this.getRarityColorHex(item.rarity);
     const itemBg = this.add.rectangle(width / 2, itemY, 200, 100, rarityColor, 0.3);
+    
+    // レアアイテム（S・A・B）の場合はパーティクルエフェクト
+    if (item.rarity === ItemRarity.S || item.rarity === ItemRarity.A || item.rarity === ItemRarity.B) {
+      this.particleManager.createRareItemEffect({
+        x: width / 2,
+        y: itemY,
+        color: rarityColor,
+        count: item.rarity === ItemRarity.S ? 20 : (item.rarity === ItemRarity.A ? 15 : 10),
+        duration: 1500
+      });
+    }
     
     // アイテム名
     this.add.text(width / 2, itemY - 20, item.name, {
@@ -314,5 +330,15 @@ export class GachaResultScene extends Phaser.Scene {
     
     // ボタンエリア（height-80からheight → 中心点: height-40px）
     this.debugHelper.addAreaBorder(width / 2, height - 40, width, 80, 0xFF00FF, 'ボタンエリア');
+  }
+
+  /**
+   * シーン終了時のクリーンアップ
+   */
+  shutdown(): void {
+    // パーティクルマネージャーをクリーンアップ
+    if (this.particleManager) {
+      this.particleManager.destroy();
+    }
   }
 }
