@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { StageManager } from '../managers/StageManager';
+import { BackgroundManager } from '../utils/BackgroundManager';
 import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
@@ -9,6 +10,7 @@ import { SimpleOceanButton } from '../components/SimpleOceanButton';
  */
 export class ResultScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
+  private backgroundManager!: BackgroundManager;
   private stageManager: StageManager;
   private clearedStage: number = 1;
   private finalScore: number = 0;
@@ -60,8 +62,11 @@ export class ResultScene extends Phaser.Scene {
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
     
-    // 背景色を設定
-    this.cameras.main.setBackgroundColor('#1E5799');
+    // 背景マネージャーを初期化
+    this.backgroundManager = new BackgroundManager(this);
+    
+    // 美しい海の背景を作成（リザルトは華やかに）
+    this.backgroundManager.createOceanBackground('normal');
     
     this.createUI();
     this.addDebugLines();

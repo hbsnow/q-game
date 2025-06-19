@@ -4,6 +4,7 @@ import { DebugHelper } from '../utils/DebugHelper';
 import { GameStateManager } from '../utils/GameStateManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
 import { SoundManager } from '../utils/SoundManager';
+import { BackgroundManager } from '../utils/BackgroundManager';
 import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
@@ -13,6 +14,7 @@ export class ItemListScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
   private animationManager!: AnimationManager;
   private soundManager!: SoundManager;
+  private backgroundManager!: BackgroundManager;
   private gameStateManager: GameStateManager;
 
   constructor() {
@@ -32,6 +34,12 @@ export class ItemListScene extends Phaser.Scene {
     // サウンドマネージャーを初期化
     this.soundManager = new SoundManager(this);
     this.soundManager.preloadSounds();
+    
+    // 背景マネージャーを初期化
+    this.backgroundManager = new BackgroundManager(this);
+    
+    // 美しい海の背景を作成
+    this.backgroundManager.createOceanBackground('light');
     this.debugHelper = new DebugHelper(this);
     
     // 背景色を設定
@@ -143,7 +151,9 @@ export class ItemListScene extends Phaser.Scene {
         this.soundManager.playButtonTap();
         this.soundManager.playScreenTransition();
         
-        this.scene.start('MainScene');
+        this.animationManager.screenTransition('ItemListScene', 'MainScene', TransitionType.BUBBLE).then(() => {
+          this.scene.start('MainScene');
+        });
       }
     );
   }
@@ -165,5 +175,15 @@ export class ItemListScene extends Phaser.Scene {
     const buttonHeight = 80;
     const buttonCenterY = height - 40;
     this.debugHelper.addAreaBorder(width / 2, buttonCenterY, width, buttonHeight, 0xFF00FF, 'ボタンエリア');
+  }
+
+  /**
+   * シーン終了時のクリーンアップ
+   */
+  shutdown(): void {
+    // 背景マネージャーをクリーンアップ
+    if (this.backgroundManager) {
+      this.backgroundManager.destroy();
+    }
   }
 }

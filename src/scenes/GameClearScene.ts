@@ -2,12 +2,14 @@ import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { GameStateManager } from '../utils/GameStateManager';
+import { BackgroundManager } from '../utils/BackgroundManager';
 
 /**
  * ゲームクリア画面
  */
 export class GameClearScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
+  private backgroundManager!: BackgroundManager;
   private gameStateManager: GameStateManager;
   private totalScore: number = 0;
   private totalGold: number = 0;
@@ -28,8 +30,11 @@ export class GameClearScene extends Phaser.Scene {
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
     
-    // 背景色を設定（特別感を演出するため少し違う色）
-    this.cameras.main.setBackgroundColor('#2E8B57');
+    // 背景マネージャーを初期化
+    this.backgroundManager = new BackgroundManager(this);
+    
+    // 美しい海の背景を作成（ゲームクリアは最も華やかに）
+    this.backgroundManager.createOceanBackground('heavy');
     
     this.createUI();
     this.addDebugLines();

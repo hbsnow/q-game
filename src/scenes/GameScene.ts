@@ -6,6 +6,7 @@ import { ErrorHandler } from '../utils/ErrorHandler';
 import { LoadingManager } from '../utils/LoadingManager';
 import { AudioManager } from '../utils/AudioManager';
 import { AssetManager } from '../assets/AssetManager';
+import { BackgroundManager } from '../utils/BackgroundManager';
 import { Block, BlockType } from '../types/Block';
 import { BlockLogic } from '../utils/BlockLogic';
 import { GameStateManager } from '../utils/GameStateManager';
@@ -29,6 +30,7 @@ import { AnimationManager, TransitionType, AppearType } from '../utils/Animation
  */
 export class GameScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
+  private backgroundManager!: BackgroundManager;
   private currentStage: number = 1;
   private score: number = 0;
   private targetScore: number = GameConfig.TARGET_SCORE;
@@ -127,6 +129,12 @@ export class GameScene extends Phaser.Scene {
     
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
+    
+    // 背景マネージャーを初期化
+    this.backgroundManager = new BackgroundManager(this);
+    
+    // 美しい海の背景を作成（ゲーム中は控えめに）
+    this.backgroundManager.createOceanBackground('light');
     
     // 高度なデバッグヘルパーを初期化
     this.advancedDebugHelper = new AdvancedDebugHelper(this);

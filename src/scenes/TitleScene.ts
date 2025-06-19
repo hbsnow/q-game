@@ -1,12 +1,14 @@
 import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
+import { BackgroundManager } from '../utils/BackgroundManager';
 
 /**
  * タイトル画面
  */
 export class TitleScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
+  private backgroundManager!: BackgroundManager;
 
   constructor() {
     super({ key: 'TitleScene' });
@@ -17,6 +19,12 @@ export class TitleScene extends Phaser.Scene {
     
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
+    
+    // 背景マネージャーを初期化
+    this.backgroundManager = new BackgroundManager(this);
+    
+    // 美しい海の背景を作成（タイトルは華やかに）
+    this.backgroundManager.createOceanBackground('heavy');
     
     // タイトルテキスト
     const titleText = this.add.text(width / 2, height / 4, '🌊 さめがめ\nオーシャン 🌊', {

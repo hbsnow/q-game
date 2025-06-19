@@ -5,6 +5,7 @@ import { StageManager } from '../managers/StageManager';
 import { SoundManager } from '../utils/SoundManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
 import { TooltipManager } from '../utils/TooltipManager';
+import { BackgroundManager } from '../utils/BackgroundManager';
 import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
@@ -16,6 +17,7 @@ export class MainScene extends Phaser.Scene {
   private soundManager!: SoundManager;
   private animationManager!: AnimationManager;
   private tooltipManager!: TooltipManager;
+  private backgroundManager!: BackgroundManager;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -38,11 +40,14 @@ export class MainScene extends Phaser.Scene {
     // ツールチップマネージャーを初期化
     this.tooltipManager = new TooltipManager(this);
     
+    // 背景マネージャーを初期化
+    this.backgroundManager = new BackgroundManager(this);
+    
     // タイトルBGMを開始
     this.soundManager.playTitleBgm();
     
-    // 背景演出を追加
-    this.createBackgroundEffects();
+    // 美しい海の背景を作成
+    this.backgroundManager.createOceanBackground('light');
     
     // テスト用：初期ゴールドを追加（開発・テスト用）
     if (GameConfig.DEBUG_MODE) {
@@ -139,8 +144,10 @@ export class MainScene extends Phaser.Scene {
         this.soundManager.playButtonTap();
         this.soundManager.playScreenTransition();
         
-        this.scene.start('ItemSelectionScene', { 
-          stage: currentStage
+        this.animationManager.screenTransition('MainScene', 'ItemSelectionScene', TransitionType.WAVE).then(() => {
+          this.scene.start('ItemSelectionScene', { 
+            stage: currentStage
+          });
         });
       }
     );
@@ -158,7 +165,9 @@ export class MainScene extends Phaser.Scene {
         this.soundManager.playButtonTap();
         this.soundManager.playScreenTransition();
         
-        this.scene.start('ItemListScene');
+        this.animationManager.screenTransition('MainScene', 'ItemListScene', TransitionType.BUBBLE).then(() => {
+          this.scene.start('ItemListScene');
+        });
       }
     );
     
@@ -175,7 +184,9 @@ export class MainScene extends Phaser.Scene {
         this.soundManager.playButtonTap();
         this.soundManager.playScreenTransition();
         
-        this.scene.start('GachaScene');
+        this.animationManager.screenTransition('MainScene', 'GachaScene', TransitionType.BUBBLE).then(() => {
+          this.scene.start('GachaScene');
+        });
       }
     );
     
@@ -188,56 +199,6 @@ export class MainScene extends Phaser.Scene {
     if (GameConfig.DEBUG_MODE) {
       this.addDebugLines();
     }
-  }
-  
-  /**
-   * 背景演出を作成
-   */
-  private createBackgroundEffects(): void {
-    const { width, height } = this.cameras.main;
-    
-    // 控えめな泡のパーティクルエフェクトのみ
-    this.createBubbleParticles();
-  }
-  
-  /**
-   * 泡のパーティクルエフェクトを作成（控えめ版）
-   */
-  private createBubbleParticles(): void {
-    const { width, height } = this.cameras.main;
-    
-    // 定期的に泡を生成（頻度を下げる）
-    this.time.addEvent({
-      delay: 4000, // 4秒に1回に変更
-      callback: () => {
-        // 泡の数を減らす
-        for (let i = 0; i < 2; i++) {
-          const bubble = this.add.circle(
-            Phaser.Math.Between(50, width - 50),
-            height + 20,
-            Phaser.Math.Between(2, 5), // サイズを小さく
-            0x87CEEB,
-            0.4 // 透明度を下げる
-          );
-          
-          bubble.setStrokeStyle(1, 0xFFFFFF, 0.6);
-          
-          // 泡の上昇アニメーション（ゆっくり）
-          this.tweens.add({
-            targets: bubble,
-            y: -20,
-            x: bubble.x + Phaser.Math.Between(-20, 20),
-            alpha: 0,
-            duration: Phaser.Math.Between(6000, 8000), // より長く
-            ease: 'Sine.easeOut',
-            onComplete: () => {
-              bubble.destroy();
-            }
-          });
-        }
-      },
-      loop: true
-    });
   }
   
   private addDebugLines(): void {
@@ -339,6 +300,11 @@ export class MainScene extends Phaser.Scene {
     // ツールチップマネージャーをクリーンアップ
     if (this.tooltipManager) {
       this.tooltipManager.destroy();
+    }
+    
+    // 背景マネージャーをクリーンアップ
+    if (this.backgroundManager) {
+      this.backgroundManager.destroy();
     }
   }
 }

@@ -7,6 +7,7 @@ import { getRarityColor } from '../data/ItemData';
 import { ParticleManager } from '../utils/ParticleManager';
 import { SoundManager } from '../utils/SoundManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
+import { BackgroundManager } from '../utils/BackgroundManager';
 import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
@@ -18,6 +19,7 @@ export class GachaResultScene extends Phaser.Scene {
   private particleManager!: ParticleManager;
   private soundManager!: SoundManager;
   private animationManager!: AnimationManager;
+  private backgroundManager!: BackgroundManager;
   private resultItems: Item[] = [];
   private totalCost: number = 0;
   private isMulti: boolean = false;
@@ -49,6 +51,12 @@ export class GachaResultScene extends Phaser.Scene {
     // アニメーションマネージャーを初期化
     this.animationManager = new AnimationManager(this);
     this.soundManager.preloadSounds();
+    
+    // 背景マネージャーを初期化
+    this.backgroundManager = new BackgroundManager(this);
+    
+    // 美しい海の背景を作成（ガチャ結果は華やかに）
+    this.backgroundManager.createOceanBackground('heavy');
     
     // ガチャBGMを開始
     this.soundManager.playGachaBgm();

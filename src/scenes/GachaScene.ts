@@ -7,6 +7,7 @@ import { StageManager } from '../managers/StageManager';
 import { ItemManager } from '../managers/ItemManager';
 import { SoundManager } from '../utils/SoundManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
+import { BackgroundManager } from '../utils/BackgroundManager';
 import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
@@ -19,6 +20,7 @@ export class GachaScene extends Phaser.Scene {
   private itemManager: ItemManager;
   private soundManager!: SoundManager;
   private animationManager!: AnimationManager;
+  private backgroundManager!: BackgroundManager;
   private currentStage: number = 1;
   private currentGold: number = 0;
   private dropRates: ItemDropRate[] = [];
@@ -44,8 +46,11 @@ export class GachaScene extends Phaser.Scene {
     // アニメーションマネージャーを初期化
     this.animationManager = new AnimationManager(this);
     
-    // 背景色を設定
-    this.cameras.main.setBackgroundColor('#1E5799');
+    // 背景マネージャーを初期化
+    this.backgroundManager = new BackgroundManager(this);
+    
+    // 美しい海の背景を作成
+    this.backgroundManager.createOceanBackground('normal');
     
     // 現在のステージとゴールドを取得
     this.currentStage = this.stageManager.getCurrentStage();

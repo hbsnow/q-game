@@ -6,6 +6,8 @@ import { ItemManager } from '../managers/ItemManager';
 import { ITEM_DATA } from '../data/ItemData';
 import { Item, ItemRarity } from '../types/Item';
 import { SoundManager } from '../utils/SoundManager';
+import { AnimationManager, TransitionType } from '../utils/AnimationManager';
+import { BackgroundManager } from '../utils/BackgroundManager';
 import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
@@ -16,6 +18,8 @@ export class ItemSelectionScene extends Phaser.Scene {
   private stageManager: StageManager;
   private itemManager: ItemManager;
   private soundManager!: SoundManager;
+  private animationManager!: AnimationManager;
+  private backgroundManager!: BackgroundManager;
   private currentStage: number = 1;
   private availableItems: Item[] = [];
   private selectedSpecialItem: Item | null = null;
@@ -53,6 +57,15 @@ export class ItemSelectionScene extends Phaser.Scene {
     // サウンドマネージャーを初期化
     this.soundManager = new SoundManager(this);
     this.soundManager.preloadSounds();
+    
+    // アニメーションマネージャーを初期化
+    this.animationManager = new AnimationManager(this);
+    
+    // 背景マネージャーを初期化
+    this.backgroundManager = new BackgroundManager(this);
+    
+    // 美しい海の背景を作成
+    this.backgroundManager.createOceanBackground('light');
     
     // タイトルBGMを開始（メイン画面と同じBGM）
     this.soundManager.playTitleBgm();
@@ -577,9 +590,11 @@ export class ItemSelectionScene extends Phaser.Scene {
         console.log('装備アイテム:', equippedItems);
         
         // ゲーム画面に遷移（装備アイテム情報を渡す）
-        this.scene.start('GameScene', { 
-          stage: this.currentStage,
-          equippedItems: equippedItems
+        this.animationManager.screenTransition('ItemSelectionScene', 'GameScene', TransitionType.WAVE).then(() => {
+          this.scene.start('GameScene', { 
+            stage: this.currentStage,
+            equippedItems: equippedItems
+          });
         });
       }
     );
@@ -598,7 +613,9 @@ export class ItemSelectionScene extends Phaser.Scene {
         this.soundManager.playScreenTransition();
         
         // メイン画面に戻る
-        this.scene.start('MainScene');
+        this.animationManager.screenTransition('ItemSelectionScene', 'MainScene', TransitionType.BUBBLE).then(() => {
+          this.scene.start('MainScene');
+        });
       }
     );
   }
