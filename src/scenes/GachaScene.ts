@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { GameStateManager } from '../utils/GameStateManager';
-import { GachaManager, ItemDropRate } from '../managers/GachaManager';
+import { GachaManager, GachaResult } from '../managers/GachaManager';
 import { StageManager } from '../managers/StageManager';
 import { ItemManager } from '../managers/ItemManager';
 import { SoundManager } from '../utils/SoundManager';
@@ -18,12 +18,13 @@ export class GachaScene extends Phaser.Scene {
   private gameStateManager: GameStateManager;
   private stageManager: StageManager;
   private itemManager: ItemManager;
+  private gachaManager: GachaManager;
   private soundManager!: SoundManager;
   private animationManager!: AnimationManager;
   private backgroundManager!: BackgroundManager;
   private currentStage: number = 1;
   private currentGold: number = 0;
-  private dropRates: ItemDropRate[] = [];
+  private dropRates: { rarity: string; rate: number; items: string[] }[] = [];
   private showingRates: boolean = false;
 
   constructor() {
@@ -31,6 +32,7 @@ export class GachaScene extends Phaser.Scene {
     this.gameStateManager = GameStateManager.getInstance();
     this.stageManager = StageManager.getInstance();
     this.itemManager = new ItemManager();
+    this.gachaManager = GachaManager.getInstance(this.itemManager, this.stageManager);
   }
 
   create(): void {
@@ -57,7 +59,7 @@ export class GachaScene extends Phaser.Scene {
     this.currentGold = this.stageManager.getCurrentGold();
     
     // 排出確率を取得
-    this.dropRates = GachaManager.getDropRates(this.currentStage);
+    this.dropRates = this.gachaManager.getCurrentRates();
     
     this.createUI();
     this.addDebugLines();
@@ -100,8 +102,8 @@ export class GachaScene extends Phaser.Scene {
     }).setOrigin(0.5);
     
     // ガチャ価格
-    const costs = GachaManager.getCosts();
-    this.add.text(width / 2, contentY + 30, `(${costs.single}G)`, {
+    const singleCost = this.gachaManager.getGachaPrice();
+    this.add.text(width / 2, contentY + 30, `(${singleCost}G)`, {
       fontSize: '16px',
       color: '#FFFF00',
       fontFamily: 'Arial'
@@ -117,7 +119,8 @@ export class GachaScene extends Phaser.Scene {
   private createGachaButtons(): void {
     const { width, height } = this.cameras.main;
     const buttonY = 200;
-    const costs = GachaManager.getCosts();
+    const singleCost = this.gachaManager.getGachaPrice();
+    const tenCost = this.gachaManager.getTenGachaPrice();
     
     // ガチャボタンの配置
     const leftButtonX = width / 2 - 90;
@@ -130,13 +133,13 @@ export class GachaScene extends Phaser.Scene {
       buttonY,
       160,
       50,
-      '1回引く',
+      `1回引く (${singleCost}G)`,
       'primary',
       () => this.onSingleGacha()
     );
     
     // ゴールド不足時は無効化
-    if (this.currentGold < costs.single) {
+    if (this.currentGold < singleCost) {
       singleButton.setEnabled(false);
     }
     
@@ -147,13 +150,13 @@ export class GachaScene extends Phaser.Scene {
       buttonY,
       160,
       50,
-      '10回引く',
+      `10回引く (${tenCost}G)`,
       'primary',
       () => this.onMultiGacha()
     );
     
     // ゴールド不足時は無効化
-    if (this.currentGold < costs.multi) {
+    if (this.currentGold < tenCost) {
       multiButton.setEnabled(false);
     }
   }
@@ -170,10 +173,15 @@ export class GachaScene extends Phaser.Scene {
     }).setOrigin(0.5);
     
     // アイテムリスト（最初の6個まで表示）
-    const displayItems = this.dropRates.slice(0, 6);
-    displayItems.forEach((item, index) => {
+    const allItems: string[] = [];
+    this.dropRates.forEach(rarityData => {
+      allItems.push(...rarityData.items);
+    });
+    
+    const displayItems = allItems.slice(0, 6);
+    displayItems.forEach((itemName, index) => {
       const itemY = listY + 40 + (index * 25);
-      this.add.text(width / 2, itemY, `• ${item.item.name}`, {
+      this.add.text(width / 2, itemY, `• ${itemName}`, {
         fontSize: '14px',
         color: '#CCCCCC',
         fontFamily: 'Arial'
@@ -210,47 +218,47 @@ export class GachaScene extends Phaser.Scene {
   }
 
   private onSingleGacha(): void {
-    const costs = GachaManager.getCosts();
-    if (this.currentGold < costs.single) return;
+    const cost = this.gachaManager.getGachaPrice();
+    if (this.currentGold < cost) return;
     
     // ガチャ実行
-    const result = GachaManager.drawSingle(this.currentStage);
+    const result = this.gachaManager.drawSingle();
+    if (!result) return;
     
     // ゴールド消費
-    this.stageManager.spendGold(result.totalCost);
+    this.stageManager.spendGold(cost);
     
     // アイテム追加
-    result.items.forEach(item => {
-      this.itemManager.addItem(item.id, 1);
-    });
+    this.itemManager.addItem(result.itemId, result.count);
     
     // ガチャ結果画面に遷移
     this.scene.start('GachaResultScene', {
-      items: result.items,
-      cost: result.totalCost,
+      items: [result],
+      cost: cost,
       isMulti: false
     });
   }
 
   private onMultiGacha(): void {
-    const costs = GachaManager.getCosts();
-    if (this.currentGold < costs.multi) return;
+    const cost = this.gachaManager.getTenGachaPrice();
+    if (this.currentGold < cost) return;
     
     // ガチャ実行
-    const result = GachaManager.drawMulti(this.currentStage);
+    const results = this.gachaManager.drawTen();
+    if (results.length === 0) return;
     
     // ゴールド消費
-    this.stageManager.spendGold(result.totalCost);
+    this.stageManager.spendGold(cost);
     
     // アイテム追加
-    result.items.forEach(item => {
-      this.itemManager.addItem(item.id, 1);
+    results.forEach(result => {
+      this.itemManager.addItem(result.itemId, result.count);
     });
     
     // ガチャ結果画面に遷移
     this.scene.start('GachaResultScene', {
-      items: result.items,
-      cost: result.totalCost,
+      items: results,
+      cost: cost,
       isMulti: true
     });
   }
@@ -285,21 +293,28 @@ export class GachaScene extends Phaser.Scene {
     }).setOrigin(0.5).setName('rateTitle');
     
     // 確率リスト
-    this.dropRates.forEach((item, index) => {
-      const itemY = 120 + (index * 30);
-      if (itemY < height - 100) {
-        this.add.text(50, itemY, `${item.item.name} (${item.item.rarity})`, {
-          fontSize: '14px',
-          color: '#FFFFFF',
-          fontFamily: 'Arial'
-        }).setName('rateItem');
-        
-        this.add.text(width - 50, itemY, `${item.rate.toFixed(2)}%`, {
-          fontSize: '14px',
-          color: '#FFFF00',
-          fontFamily: 'Arial'
-        }).setOrigin(1, 0).setName('rateItem');
-      }
+    let yOffset = 120;
+    this.dropRates.forEach((rarityData) => {
+      // レア度ヘッダー
+      this.add.text(50, yOffset, `${rarityData.rarity}レア (${rarityData.rate.toFixed(2)}%)`, {
+        fontSize: '16px',
+        color: '#FFFF00',
+        fontFamily: 'Arial'
+      }).setName('rateItem');
+      yOffset += 25;
+      
+      // そのレア度のアイテム一覧
+      rarityData.items.forEach((itemName) => {
+        if (yOffset < height - 100) {
+          this.add.text(70, yOffset, `• ${itemName}`, {
+            fontSize: '14px',
+            color: '#FFFFFF',
+            fontFamily: 'Arial'
+          }).setName('rateItem');
+          yOffset += 20;
+        }
+      });
+      yOffset += 10; // レア度間のスペース
     });
     
     // 閉じるボタン

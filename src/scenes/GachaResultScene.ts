@@ -3,7 +3,8 @@ import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { GameStateManager } from '../utils/GameStateManager';
 import { Item, ItemRarity } from '../types/Item';
-import { getRarityColor } from '../data/ItemData';
+import { GachaResult } from '../managers/GachaManager';
+import { ITEM_DATA, getRarityColor } from '../data/ItemData';
 import { ParticleManager } from '../utils/ParticleManager';
 import { SoundManager } from '../utils/SoundManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
@@ -20,7 +21,7 @@ export class GachaResultScene extends Phaser.Scene {
   private soundManager!: SoundManager;
   private animationManager!: AnimationManager;
   private backgroundManager!: BackgroundManager;
-  private resultItems: Item[] = [];
+  private resultItems: GachaResult[] = [];
   private totalCost: number = 0;
   private isMulti: boolean = false;
 
@@ -106,7 +107,7 @@ export class GachaResultScene extends Phaser.Scene {
     this.soundManager.playGachaOpen();
     
     // レアアイテムの場合は特別音を再生
-    if (item.rarity === ItemRarity.S || item.rarity === ItemRarity.A || item.rarity === ItemRarity.B) {
+    if (item.rarity === 'S' || item.rarity === 'A' || item.rarity === 'B') {
       // 少し遅らせてレア音を再生
       this.time.delayedCall(500, () => {
         this.soundManager.playRareItem();
@@ -126,18 +127,18 @@ export class GachaResultScene extends Phaser.Scene {
     const itemBg = this.add.rectangle(width / 2, itemY, 200, 100, rarityColor, 0.3);
     
     // レアアイテム（S・A・B）の場合はパーティクルエフェクト
-    if (item.rarity === ItemRarity.S || item.rarity === ItemRarity.A || item.rarity === ItemRarity.B) {
+    if (item.rarity === 'S' || item.rarity === 'A' || item.rarity === 'B') {
       this.particleManager.createRareItemEffect({
         x: width / 2,
         y: itemY,
         color: rarityColor,
-        count: item.rarity === ItemRarity.S ? 20 : (item.rarity === ItemRarity.A ? 15 : 10),
+        count: item.rarity === 'S' ? 20 : (item.rarity === 'A' ? 15 : 10),
         duration: 1500
       });
     }
     
     // アイテム名
-    this.add.text(width / 2, itemY - 20, item.name, {
+    this.add.text(width / 2, itemY - 20, item.itemName, {
       fontSize: '20px',
       color: '#FFFFFF',
       fontFamily: 'Arial',
@@ -156,7 +157,9 @@ export class GachaResultScene extends Phaser.Scene {
     this.createStarDisplay(width / 2, itemY + 35, item.rarity);
     
     // アイテム説明
-    this.add.text(width / 2, itemY + 70, item.description, {
+    const itemData = ITEM_DATA[item.itemId];
+    const description = itemData ? itemData.description : 'アイテムの説明';
+    this.add.text(width / 2, itemY + 70, description, {
       fontSize: '12px',
       color: '#CCCCCC',
       fontFamily: 'Arial',
@@ -178,7 +181,7 @@ export class GachaResultScene extends Phaser.Scene {
     
     // レアアイテムがあるかチェック
     const hasRareItem = this.resultItems.some(item => 
-      item.rarity === ItemRarity.S || item.rarity === ItemRarity.A || item.rarity === ItemRarity.B
+      item.rarity === 'S' || item.rarity === 'A' || item.rarity === 'B'
     );
     
     if (hasRareItem) {
@@ -210,7 +213,7 @@ export class GachaResultScene extends Phaser.Scene {
       const itemBg = this.add.rectangle(x, y, itemWidth, itemHeight, rarityColor, 0.3);
       
       // アイテム名（長い名前は省略）
-      const displayName = item.name.length > 8 ? item.name.substring(0, 7) + '...' : item.name;
+      const displayName = item.itemName.length > 8 ? item.itemName.substring(0, 7) + '...' : item.itemName;
       this.add.text(x, y - 15, displayName, {
         fontSize: '12px',
         color: '#FFFFFF',
@@ -245,14 +248,14 @@ export class GachaResultScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     
     // レア度別にカウント
-    const rarityCounts: Record<ItemRarity, number> = {
-      [ItemRarity.S]: 0,
-      [ItemRarity.A]: 0,
-      [ItemRarity.B]: 0,
-      [ItemRarity.C]: 0,
-      [ItemRarity.D]: 0,
-      [ItemRarity.E]: 0,
-      [ItemRarity.F]: 0,
+    const rarityCounts: { [key: string]: number } = {
+      'S': 0,
+      'A': 0,
+      'B': 0,
+      'C': 0,
+      'D': 0,
+      'E': 0,
+      'F': 0,
     };
     
     this.resultItems.forEach(item => {
@@ -264,10 +267,9 @@ export class GachaResultScene extends Phaser.Scene {
     let summaryText = '内訳: ';
     
     Object.keys(rarityCounts).forEach(rarityKey => {
-      const rarity = rarityKey as ItemRarity;
-      const count = rarityCounts[rarity];
+      const count = rarityCounts[rarityKey];
       if (count > 0) {
-        summaryText += `${rarity}×${count} `;
+        summaryText += `${rarityKey}×${count} `;
       }
     });
     
@@ -278,8 +280,9 @@ export class GachaResultScene extends Phaser.Scene {
     }).setOrigin(0.5);
   }
 
-  private createStarDisplay(x: number, y: number, rarity: ItemRarity, scale: number = 1): void {
-    const starCount = this.getStarCount(rarity);
+  private createStarDisplay(x: number, y: number, rarity: string, scale: number = 1): void {
+    const rarityEnum = rarity as ItemRarity;
+    const starCount = this.getStarCount(rarityEnum);
     const starSize = 12 * scale;
     const starSpacing = 15 * scale;
     const startX = x - (starCount - 1) * starSpacing / 2;
@@ -342,8 +345,10 @@ export class GachaResultScene extends Phaser.Scene {
     });
   }
 
-  private getRarityColorHex(rarity: ItemRarity): number {
-    const colorString = getRarityColor(rarity);
+  private getRarityColorHex(rarity: string): number {
+    // 文字列のレア度をItemRarityに変換
+    const rarityEnum = rarity as ItemRarity;
+    const colorString = getRarityColor(rarityEnum);
     return parseInt(colorString.replace('#', '0x'));
   }
 

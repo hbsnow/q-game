@@ -185,7 +185,7 @@ export class AdvancedDebugHelper {
   private logCompleteGameState(): void {
     const stageManager = StageManager.getInstance();
     const itemManager = new ItemManager();
-    const gachaManager = new GachaManager();
+    const gachaManager = GachaManager.getInstance(itemManager, stageManager);
     
     console.group('🎮 Complete Game State Debug Log');
     
