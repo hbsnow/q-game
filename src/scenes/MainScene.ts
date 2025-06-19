@@ -59,13 +59,8 @@ export class MainScene extends Phaser.Scene {
     const gold = this.stageManager.getCurrentGold();
     const stageConfig = this.stageManager.getCurrentStageConfig();
     
-    // ヘッダー（ゴールド表示）タイトルエリア80px内に配置
-    const goldText = this.add.text(width - 10, 40, `ゴールド: ${gold.toLocaleString()}`, {
-      fontSize: '18px',
-      color: '#FFD700',
-      stroke: '#000000',
-      strokeThickness: 2
-    }).setOrigin(1, 0.5);
+    // ヘッダー（ゴールド表示）統一されたデザインに変更
+    this.createGoldDisplay(width, gold);
     
     // ステージ情報
     const stageTitle = stageConfig?.name || `ステージ ${currentStage}`;
@@ -199,6 +194,28 @@ export class MainScene extends Phaser.Scene {
     if (GameConfig.DEBUG_MODE) {
       this.addDebugLines();
     }
+  }
+
+  /**
+   * 統一されたゴールド表示を作成
+   */
+  private createGoldDisplay(width: number, gold: number): void {
+    // ゴールド表示の背景（半透明背景）
+    const goldBg = this.add.rectangle(width - 70, 40, 120, 30, 0x000000, 0.4);
+    goldBg.setStrokeStyle(1, 0x333333);
+    
+    // ゴールドアイコン（コイン）
+    this.add.text(width - 115, 40, '💰', {
+      fontSize: '14px'
+    }).setOrigin(0.5);
+    
+    // ゴールド数値
+    this.add.text(width - 95, 40, `${gold.toLocaleString()}G`, {
+      fontSize: '14px',
+      color: '#FFD700',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
   }
   
   private addDebugLines(): void {

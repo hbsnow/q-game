@@ -76,12 +76,8 @@ export class GachaScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
 
-    // ゴールド表示
-    this.add.text(width - 10, titleY, `ゴールド: ${this.currentGold}`, {
-      fontSize: '16px',
-      color: '#FFD700',
-      fontFamily: 'Arial'
-    }).setOrigin(1, 0.5);
+    // ゴールド表示（統一されたデザイン）
+    this.createGoldDisplay();
 
     // メインコンテンツエリア
     this.createGachaContent();
@@ -410,6 +406,30 @@ export class GachaScene extends Phaser.Scene {
         console.warn('Error in hover effect:', error);
       }
     });
+  }
+
+  /**
+   * 統一されたゴールド表示を作成
+   */
+  private createGoldDisplay(): void {
+    const { width } = this.cameras.main;
+    
+    // ゴールド表示の背景（半透明背景）
+    const goldBg = this.add.rectangle(width - 70, 40, 120, 30, 0x000000, 0.4);
+    goldBg.setStrokeStyle(1, 0x333333);
+    
+    // ゴールドアイコン（コイン）
+    this.add.text(width - 115, 40, '💰', {
+      fontSize: '14px'
+    }).setOrigin(0.5);
+    
+    // ゴールド数値
+    this.add.text(width - 95, 40, `${this.currentGold.toLocaleString()}G`, {
+      fontSize: '14px',
+      color: '#FFD700',
+      fontFamily: 'Arial',
+      fontStyle: 'bold'
+    }).setOrigin(0, 0.5);
   }
 
   private addDebugLines(): void {

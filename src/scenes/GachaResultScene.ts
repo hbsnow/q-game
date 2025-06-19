@@ -203,12 +203,17 @@ export class GachaResultScene extends Phaser.Scene {
 
   private createMultiResult(): void {
     const { width, height } = this.cameras.main;
-    const startY = 100; // タイトルエリア80px直下から開始
+    
+    // アイテムグリッドエリアの定義（デバッグラインと一致させる）
+    const gridAreaTop = 80;  // タイトルエリア直下
+    const gridAreaBottom = 430; // 集計表示エリアの上
+    const gridAreaHeight = gridAreaBottom - gridAreaTop; // 350px
+    
     const itemsPerRow = 2;
-    const itemWidth = 160;
-    const itemHeight = 70;
+    const itemWidth = 140; // 少し小さくして余裕を持たせる
+    const itemHeight = 60; // 少し小さくして余裕を持たせる
     const spacingX = 20;
-    const spacingY = 15;
+    const spacingY = 10;
     
     // ガチャ開封音を再生
     this.soundManager.playGachaOpen();
@@ -230,17 +235,22 @@ export class GachaResultScene extends Phaser.Scene {
       });
     }
     
+    // グリッドの総サイズを計算
+    const totalRows = Math.ceil(this.resultItems.length / itemsPerRow);
+    const totalGridHeight = totalRows * itemHeight + (totalRows - 1) * spacingY;
+    const totalGridWidth = itemsPerRow * itemWidth + (itemsPerRow - 1) * spacingX;
+    
+    // グリッドをエリア内で中央配置
+    const gridStartX = (width - totalGridWidth) / 2;
+    const gridStartY = gridAreaTop + (gridAreaHeight - totalGridHeight) / 2;
+    
     // 10連結果をグリッド表示
     this.resultItems.forEach((item, index) => {
       const row = Math.floor(index / itemsPerRow);
       const col = index % itemsPerRow;
       
-      // 中央揃えの計算を修正
-      const totalWidth = itemsPerRow * itemWidth + (itemsPerRow - 1) * spacingX;
-      const startX = (width - totalWidth) / 2 + itemWidth / 2;
-      
-      const x = startX + col * (itemWidth + spacingX);
-      const y = startY + row * (itemHeight + spacingY);
+      const x = gridStartX + col * (itemWidth + spacingX) + itemWidth / 2;
+      const y = gridStartY + row * (itemHeight + spacingY) + itemHeight / 2;
       
       // レア度に応じた背景色
       const rarityColor = this.getRarityColorHex(item.rarity);
@@ -249,7 +259,7 @@ export class GachaResultScene extends Phaser.Scene {
       // アイテム名（長い名前は省略）
       const displayName = item.itemName.length > 8 ? item.itemName.substring(0, 7) + '...' : item.itemName;
       this.add.text(x, y - 15, displayName, {
-        fontSize: '12px',
+        fontSize: '11px',
         color: '#FFFFFF',
         fontFamily: 'Arial',
         stroke: '#000000',
@@ -258,16 +268,16 @@ export class GachaResultScene extends Phaser.Scene {
       
       // レア度表示
       this.add.text(x, y + 5, `${item.rarity}`, {
-        fontSize: '12px',
+        fontSize: '11px',
         color: `#${rarityColor.toString(16).padStart(6, '0')}`,
         fontFamily: 'Arial'
       }).setOrigin(0.5);
       
       // 星表示（小さく）
-      this.createStarDisplay(x, y + 22, item.rarity, 0.5);
+      this.createStarDisplay(x, y + 20, item.rarity, 0.4);
     });
     
-    // 合計表示
+    // 合計表示（集計表示エリア内に配置）
     this.add.text(width / 2, height - 150, `合計: ${this.resultItems.length}個`, {
       fontSize: '16px',
       color: '#FFFFFF',
