@@ -5,6 +5,7 @@ import { StageManager } from '../managers/StageManager';
 import { ItemManager } from '../managers/ItemManager';
 import { ITEM_DATA } from '../data/ItemData';
 import { Item, ItemRarity } from '../types/Item';
+import { SoundManager } from '../utils/SoundManager';
 
 /**
  * アイテム選択画面
@@ -13,6 +14,7 @@ export class ItemSelectionScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
   private stageManager: StageManager;
   private itemManager: ItemManager;
+  private soundManager!: SoundManager;
   private currentStage: number = 1;
   private availableItems: Item[] = [];
   private selectedSpecialItem: Item | null = null;
@@ -46,6 +48,13 @@ export class ItemSelectionScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#1E5799');
     
     console.log('ItemSelectionScene create開始');
+    
+    // サウンドマネージャーを初期化
+    this.soundManager = new SoundManager(this);
+    this.soundManager.preloadSounds();
+    
+    // タイトルBGMを開始（メイン画面と同じBGM）
+    this.soundManager.playTitleBgm();
     
     this.createUI();
     this.addDebugLines();
@@ -220,12 +229,24 @@ export class ItemSelectionScene extends Phaser.Scene {
     this.createItemList(itemListY + 30);
     
     // スロットクリックイベント
-    specialSlotRect.on('pointerdown', () => this.showItemSelectionModal('special'));
-    normalSlotRect.on('pointerdown', () => this.showItemSelectionModal('normal'));
+    specialSlotRect.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.showItemSelectionModal('special');
+    });
+    normalSlotRect.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.showItemSelectionModal('normal');
+    });
     
     // 装備解除イベント
-    specialUnequipButton.on('pointerdown', () => this.unequipItem('special'));
-    normalUnequipButton.on('pointerdown', () => this.unequipItem('normal'));
+    specialUnequipButton.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.unequipItem('special');
+    });
+    normalUnequipButton.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.unequipItem('normal');
+    });
   }
 
   /**
@@ -398,6 +419,7 @@ export class ItemSelectionScene extends Phaser.Scene {
 
       // アイテム選択イベント
       itemBg.on('pointerdown', () => {
+        this.soundManager.playButtonTap();
         this.selectItemForSlot(item, slotType);
         this.closeModal();
       });
@@ -561,6 +583,9 @@ export class ItemSelectionScene extends Phaser.Scene {
 
     // イベントハンドラー
     confirmButton.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.soundManager.playScreenTransition();
+      
       // 装備されたアイテム情報を取得
       const equippedItems = this.itemManager.getEquippedItems();
       
@@ -574,6 +599,9 @@ export class ItemSelectionScene extends Phaser.Scene {
     });
 
     cancelButton.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.soundManager.playScreenTransition();
+      
       // メイン画面に戻る
       this.scene.start('MainScene');
     });
@@ -701,5 +729,15 @@ export class ItemSelectionScene extends Phaser.Scene {
     // 最終的な装備状況を確認
     const finalEquipped = this.itemManager.getEquippedItems();
     console.log('最終装備状況:', finalEquipped);
+  }
+
+  /**
+   * シーン終了時のクリーンアップ
+   */
+  shutdown(): void {
+    // サウンドマネージャーをクリーンアップ
+    if (this.soundManager) {
+      this.soundManager.destroy();
+    }
   }
 }

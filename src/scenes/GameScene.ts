@@ -18,6 +18,7 @@ import { ItemEffectManager } from '../managers/ItemEffectManager';
 import { ItemEffectVisualizer } from '../utils/ItemEffectVisualizer';
 import { ITEM_DATA } from '../data/ItemData';
 import { ParticleManager } from '../utils/ParticleManager';
+import { SoundManager } from '../utils/SoundManager';
 
 /**
  * ゲーム画面
@@ -39,6 +40,7 @@ export class GameScene extends Phaser.Scene {
   private itemManager: ItemManager;
   private itemEffectVisualizer!: ItemEffectVisualizer;
   private particleManager!: ParticleManager;
+  private soundManager!: SoundManager;
   private advancedDebugHelper!: AdvancedDebugHelper;
   private errorHandler!: ErrorHandler;
   private loadingManager!: LoadingManager;
@@ -140,8 +142,12 @@ export class GameScene extends Phaser.Scene {
     // パーティクルマネージャーを初期化
     this.particleManager = new ParticleManager(this);
     
-    // BGMを開始
-    this.audioManager.playBGM('gameBGM');
+    // サウンドマネージャーを初期化
+    this.soundManager = new SoundManager(this);
+    this.soundManager.preloadSounds();
+    
+    // ゲームBGMを開始
+    this.soundManager.playGameBgm();
     
     // 岩ブロック用のテクスチャを生成
     if (!this.textures.exists('rockBlockTexture')) {
@@ -250,6 +256,9 @@ export class GameScene extends Phaser.Scene {
     
     // ボタンクリックイベント
     retireButton.on('pointerdown', () => {
+      // ボタンタップ音を再生
+      this.soundManager.playButtonTap();
+      
       // リタイア時の処理
       this.onRetire();
     });
@@ -802,6 +811,9 @@ export class GameScene extends Phaser.Scene {
   private onBlockClick(x: number, y: number): void {
     if (this.isProcessing) return;
     
+    // ブロック選択音を再生
+    this.soundManager.playBlockSelect();
+    
     // アイテムモード時の処理
     if (this.isItemMode && this.selectedItemSlot) {
       this.handleItemModeClick(x, y);
@@ -840,6 +852,9 @@ export class GameScene extends Phaser.Scene {
       case 'miniBomb':
         result = ItemEffectManager.applyMiniBomb(this.blocks, {x, y});
         if (result && result.success) {
+          // ミニ爆弾音を再生
+          this.soundManager.playItemUse();
+          
           // 小さな爆発エフェクトを表示
           const centerX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
           const centerY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
@@ -876,6 +891,9 @@ export class GameScene extends Phaser.Scene {
       case 'bomb':
         result = ItemEffectManager.applyBomb(this.blocks, {x, y});
         if (result && result.success) {
+          // 爆弾音を再生
+          this.soundManager.playBombExplode();
+          
           // 爆弾エフェクトを表示
           const centerX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
           const centerY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
@@ -889,6 +907,9 @@ export class GameScene extends Phaser.Scene {
       case 'hammer':
         result = ItemEffectManager.applyHammer(this.blocks, {x, y});
         if (result && result.success) {
+          // ハンマー音を再生
+          this.soundManager.playHammerHit();
+          
           // ハンマーエフェクトを表示
           const targetX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
           const targetY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
@@ -1183,8 +1204,8 @@ export class GameScene extends Phaser.Scene {
    * ブロックを消去する
    */
   private removeBlocks(blocks: Block[]): void {
-    // ブロック消去音を再生
-    this.audioManager.playBlockRemove(blocks.length);
+    // ブロック消去音を再生（ブロック数に応じて音量調整）
+    this.soundManager.playBlockRemove(blocks.length);
     
     blocks.forEach(block => {
       // ブロックの論理状態を更新
@@ -1384,6 +1405,9 @@ export class GameScene extends Phaser.Scene {
   private showAllClearedEffect(): void {
     const { width, height } = this.cameras.main;
     
+    // 全消し音を再生
+    this.soundManager.playAllClear();
+    
     // 全消しパーティクルエフェクト
     this.particleManager.createAllClearEffect(width / 2, height / 2);
     
@@ -1452,6 +1476,9 @@ export class GameScene extends Phaser.Scene {
       // クリックイベントを更新
       retireButton.off('pointerdown');
       retireButton.on('pointerdown', () => {
+        // ボタンタップ音を再生
+        this.soundManager.playButtonTap();
+        
         // ステージクリア処理
         this.onStageClear();
       });
@@ -1462,6 +1489,9 @@ export class GameScene extends Phaser.Scene {
    * ステージクリア時の処理
    */
   private onStageClear(): void {
+    // ステージクリア音を再生
+    this.soundManager.playStageComplete();
+    
     // StageManager でステージクリア処理
     this.stageManager.clearStage(this.currentStage, this.score);
     
@@ -1574,6 +1604,9 @@ export class GameScene extends Phaser.Scene {
    * アイテムボタンクリック時の処理
    */
   private onItemButtonClick(slot: 'special' | 'normal'): void {
+    // ボタンタップ音を再生
+    this.soundManager.playButtonTap();
+    
     const equippedItems = this.itemManager.getEquippedItems();
     const item = slot === 'special' ? equippedItems.specialSlot : equippedItems.normalSlot;
     
@@ -1616,6 +1649,9 @@ export class GameScene extends Phaser.Scene {
     
     const result = ItemEffectManager.applyScoreBooster();
     if (result.success) {
+      // アイテム使用音を再生
+      this.soundManager.playItemUse();
+      
       // スコアブースターエフェクトを表示
       this.itemEffectVisualizer.showScoreBoosterEffect(() => {
         // スコアブースターフラグを設定
@@ -1642,6 +1678,9 @@ export class GameScene extends Phaser.Scene {
     const result = ItemEffectManager.applyShuffle(this.blocks);
     if (result.success && result.newBlocks) {
       this.isProcessing = true;
+      
+      // シャッフル音を再生
+      this.soundManager.playShuffle();
       
       // シャッフルエフェクトを表示
       this.itemEffectVisualizer.showShuffleEffect(() => {
@@ -1798,8 +1837,11 @@ export class GameScene extends Phaser.Scene {
     const screenX = this.boardX + blockX * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
     const screenY = this.boardY + blockY * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
     
-    // パーティクルエフェクトを追加
+    // スコア獲得音を再生
     const isGreat = score >= 100;
+    this.soundManager.playScoreGain(isGreat);
+    
+    // パーティクルエフェクトを追加
     this.particleManager.createScoreEffect(screenX, screenY, score, isGreat);
     
     // スコアテキストを作成
@@ -2214,6 +2256,11 @@ export class GameScene extends Phaser.Scene {
     // パーティクルマネージャーをクリーンアップ
     if (this.particleManager) {
       this.particleManager.destroy();
+    }
+    
+    // サウンドマネージャーをクリーンアップ
+    if (this.soundManager) {
+      this.soundManager.destroy();
     }
   }
 }

@@ -5,6 +5,7 @@ import { GameStateManager } from '../utils/GameStateManager';
 import { Item, ItemRarity } from '../types/Item';
 import { getRarityColor } from '../data/ItemData';
 import { ParticleManager } from '../utils/ParticleManager';
+import { SoundManager } from '../utils/SoundManager';
 
 /**
  * ガチャ結果画面
@@ -13,6 +14,7 @@ export class GachaResultScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
   private gameStateManager: GameStateManager;
   private particleManager!: ParticleManager;
+  private soundManager!: SoundManager;
   private resultItems: Item[] = [];
   private totalCost: number = 0;
   private isMulti: boolean = false;
@@ -36,6 +38,13 @@ export class GachaResultScene extends Phaser.Scene {
     
     // パーティクルマネージャーを初期化
     this.particleManager = new ParticleManager(this);
+    
+    // サウンドマネージャーを初期化
+    this.soundManager = new SoundManager(this);
+    this.soundManager.preloadSounds();
+    
+    // ガチャBGMを開始
+    this.soundManager.playGachaBgm();
     
     // 背景色を設定
     this.cameras.main.setBackgroundColor('#1E5799');
@@ -77,6 +86,22 @@ export class GachaResultScene extends Phaser.Scene {
     const item = this.resultItems[0];
     
     if (!item) return;
+    
+    // ガチャ開封音を再生
+    this.soundManager.playGachaOpen();
+    
+    // レアアイテムの場合は特別音を再生
+    if (item.rarity === ItemRarity.S || item.rarity === ItemRarity.A || item.rarity === ItemRarity.B) {
+      // 少し遅らせてレア音を再生
+      this.time.delayedCall(500, () => {
+        this.soundManager.playRareItem();
+      });
+    } else {
+      // 通常アイテム音を再生
+      this.time.delayedCall(300, () => {
+        this.soundManager.playCommonItem();
+      });
+    }
     
     // アイテム表示エリア
     const itemY = height / 2 - 50;
@@ -132,6 +157,26 @@ export class GachaResultScene extends Phaser.Scene {
     const itemHeight = 70;
     const spacingX = 20;
     const spacingY = 15;
+    
+    // ガチャ開封音を再生
+    this.soundManager.playGachaOpen();
+    
+    // レアアイテムがあるかチェック
+    const hasRareItem = this.resultItems.some(item => 
+      item.rarity === ItemRarity.S || item.rarity === ItemRarity.A || item.rarity === ItemRarity.B
+    );
+    
+    if (hasRareItem) {
+      // レア音を遅らせて再生
+      this.time.delayedCall(800, () => {
+        this.soundManager.playRareItem();
+      });
+    } else {
+      // 通常音を再生
+      this.time.delayedCall(500, () => {
+        this.soundManager.playCommonItem();
+      });
+    }
     
     // 10連結果をグリッド表示
     this.resultItems.forEach((item, index) => {
@@ -248,7 +293,10 @@ export class GachaResultScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
     
-    againButton.on('pointerdown', () => this.onAgain());
+    againButton.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.onAgain();
+    });
     this.addButtonHoverEffect(againButton, againText);
     
     // 戻るボタン
@@ -261,15 +309,20 @@ export class GachaResultScene extends Phaser.Scene {
       fontFamily: 'Arial'
     }).setOrigin(0.5);
     
-    backButton.on('pointerdown', () => this.onBack());
+    backButton.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.onBack();
+    });
     this.addButtonHoverEffect(backButton, backText);
   }
 
   private onAgain(): void {
+    this.soundManager.playScreenTransition();
     this.scene.start('GachaScene');
   }
 
   private onBack(): void {
+    this.soundManager.playScreenTransition();
     this.scene.start('GachaScene');
   }
 
@@ -339,6 +392,11 @@ export class GachaResultScene extends Phaser.Scene {
     // パーティクルマネージャーをクリーンアップ
     if (this.particleManager) {
       this.particleManager.destroy();
+    }
+    
+    // サウンドマネージャーをクリーンアップ
+    if (this.soundManager) {
+      this.soundManager.destroy();
     }
   }
 }

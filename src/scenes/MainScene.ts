@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { StageManager } from '../managers/StageManager';
+import { SoundManager } from '../utils/SoundManager';
 
 /**
  * メイン画面（ステージ選択画面）
@@ -9,6 +10,7 @@ import { StageManager } from '../managers/StageManager';
 export class MainScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
   private stageManager: StageManager;
+  private soundManager!: SoundManager;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -20,6 +22,13 @@ export class MainScene extends Phaser.Scene {
     
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
+    
+    // サウンドマネージャーを初期化
+    this.soundManager = new SoundManager(this);
+    this.soundManager.preloadSounds();
+    
+    // タイトルBGMを開始
+    this.soundManager.playTitleBgm();
     
     // テスト用：初期ゴールドを追加（開発・テスト用）
     if (GameConfig.DEBUG_MODE) {
@@ -122,6 +131,9 @@ export class MainScene extends Phaser.Scene {
     
     // ボタンクリックイベント
     playButton.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.soundManager.playScreenTransition();
+      
       // アイテム選択画面に遷移
       this.scene.start('ItemSelectionScene', { 
         stage: currentStage
@@ -129,11 +141,17 @@ export class MainScene extends Phaser.Scene {
     });
     
     itemButton.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.soundManager.playScreenTransition();
+      
       // アイテム一覧画面に遷移
       this.scene.start('ItemListScene');
     });
     
     gachaButton.on('pointerdown', () => {
+      this.soundManager.playButtonTap();
+      this.soundManager.playScreenTransition();
+      
       // ガチャ画面に遷移
       this.scene.start('GachaScene');
     });
@@ -291,6 +309,16 @@ export class MainScene extends Phaser.Scene {
     const bottomSpaceHeight = height - navBottomY;
     if (bottomSpaceHeight > 0) {
       this.debugHelper.addAreaBorder(width / 2, navBottomY + bottomSpaceHeight / 2, width, bottomSpaceHeight, 0x0000FF, '下部空白エリア');
+    }
+  }
+
+  /**
+   * シーン終了時のクリーンアップ
+   */
+  shutdown(): void {
+    // サウンドマネージャーをクリーンアップ
+    if (this.soundManager) {
+      this.soundManager.destroy();
     }
   }
 }
