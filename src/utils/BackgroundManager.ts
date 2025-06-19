@@ -101,23 +101,73 @@ export class BackgroundManager {
       const wave = this.scene.add.graphics();
       wave.lineStyle(2, 0x2E8B57, opacity);
       
-      // 波の形を描画
-      wave.beginPath();
-      for (let x = 0; x <= width; x += 10) {
-        const y = height - 50 - (i * 30) + Math.sin((x / 50) + (i * 0.5)) * 10;
-        if (x === 0) {
-          wave.moveTo(x, y);
-        } else {
-          wave.lineTo(x, y);
-        }
-      }
-      wave.strokePath();
+      // 波の初期状態を描画
+      this.drawWave(wave, width, height, i, 0);
       
       this.backgroundLayer.add(wave);
       this.waves.push(wave);
     }
   }
 
+  /**
+   * 波の形を描画
+   */
+  private drawWave(wave: Phaser.GameObjects.Graphics, width: number, height: number, layerIndex: number, time: number): void {
+    wave.clear();
+    
+    // 波の色と透明度を設定（レイヤーごとに異なる色合い）
+    const colors = [0x2E8B57, 0x20B2AA, 0x48D1CC]; // 海緑、ライトシーグリーン、ミディアムターコイズ
+    const color = colors[layerIndex % colors.length];
+    const opacity = 0.6 - (layerIndex * 0.15);
+    const lineWidth = 3 - layerIndex * 0.4;
+    
+    wave.lineStyle(lineWidth, color, opacity);
+    
+    // 波の形を描画
+    wave.beginPath();
+    
+    const baseY = height - 40 - (layerIndex * 25);
+    const amplitude = 12 + (layerIndex * 3); // 波の高さを少し大きく
+    const frequency = 0.015 + (layerIndex * 0.003); // 波の周波数
+    const phase = time + (layerIndex * 0.8); // 位相差を大きく
+    const secondaryPhase = time * 0.7 + (layerIndex * 1.2); // 二次波
+    
+    for (let x = 0; x <= width + 10; x += 4) {
+      // 複数の波を重ね合わせてより自然な波形を作成
+      const primaryWave = Math.sin(x * frequency + phase) * amplitude;
+      const secondaryWave = Math.sin(x * frequency * 1.7 + secondaryPhase) * (amplitude * 0.3);
+      const tertiaryWave = Math.sin(x * frequency * 0.5 + time * 0.5) * (amplitude * 0.2);
+      
+      const y = baseY + primaryWave + secondaryWave + tertiaryWave;
+      
+      if (x === 0) {
+        wave.moveTo(x, y);
+      } else {
+        wave.lineTo(x, y);
+      }
+    }
+    
+    wave.strokePath();
+    
+    // 波の下に薄い塗りつぶしを追加（海の深さを表現）
+    if (layerIndex === 0) {
+      wave.fillStyle(color, opacity * 0.1);
+      wave.beginPath();
+      wave.moveTo(0, height);
+      
+      for (let x = 0; x <= width + 10; x += 4) {
+        const primaryWave = Math.sin(x * frequency + phase) * amplitude;
+        const secondaryWave = Math.sin(x * frequency * 1.7 + secondaryPhase) * (amplitude * 0.3);
+        const tertiaryWave = Math.sin(x * frequency * 0.5 + time * 0.5) * (amplitude * 0.2);
+        const y = baseY + primaryWave + secondaryWave + tertiaryWave;
+        wave.lineTo(x, y);
+      }
+      
+      wave.lineTo(width, height);
+      wave.closePath();
+      wave.fillPath();
+    }
+  }
   /**
    * アニメーションを開始
    */
@@ -144,15 +194,28 @@ export class BackgroundManager {
       });
     });
     
-    // 波の揺らめきアニメーション
+    // 波の動的アニメーション
+    this.startWaveAnimations(speed);
+  }
+
+  /**
+   * 波の動的アニメーションを開始
+   */
+  private startWaveAnimations(speed: number): void {
+    const { width, height } = this.scene.cameras.main;
+    
+    // 各波レイヤーに対してアニメーションを設定
     this.waves.forEach((wave, index) => {
-      this.scene.tweens.add({
-        targets: wave,
-        x: -20,
-        duration: (4000 + (index * 500)) / speed,
-        ease: 'Sine.easeInOut',
-        yoyo: true,
-        repeat: -1
+      let time = 0;
+      
+      // 波の形を継続的に更新するタイマー
+      this.scene.time.addEvent({
+        delay: 50, // 20FPS で更新
+        callback: () => {
+          time += 0.1 * speed;
+          this.drawWave(wave, width, height, index, time);
+        },
+        loop: true
       });
     });
   }
