@@ -7,7 +7,7 @@ import { getRarityColor } from '../data/ItemData';
 import { ParticleManager } from '../utils/ParticleManager';
 import { SoundManager } from '../utils/SoundManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
-import { ButtonFactory, BUTTON_SPACING } from '../utils/ButtonStyles';
+import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
  * ガチャ結果画面
@@ -290,26 +290,30 @@ export class GachaResultScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     const buttonY = height - 60;
     
-    // もう一度引くボタン（プライマリ・Mサイズ）
-    const { button: againButton } = ButtonFactory.createPrimaryButton(
+    // もう一度引くボタン
+    const againButton = new SimpleOceanButton(
       this,
-      width / 2 - BUTTON_SPACING.COMPACT / 2,
+      width / 2 - 80,
       buttonY,
+      140,
+      45,
       'もう一度',
-      'M',
+      'primary',
       () => {
         this.soundManager.playButtonTap();
         this.onAgain();
       }
     );
     
-    // 戻るボタン（ニュートラル・Sサイズ）
-    const { button: backButton } = ButtonFactory.createNeutralButton(
+    // 戻るボタン
+    const backButton = new SimpleOceanButton(
       this,
-      width / 2 + BUTTON_SPACING.COMPACT / 2,
+      width / 2 + 80,
       buttonY,
+      120,
+      45,
       '戻る',
-      'S',
+      'secondary',
       () => {
         this.soundManager.playButtonTap();
         this.onBack();

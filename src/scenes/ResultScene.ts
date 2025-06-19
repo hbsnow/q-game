@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { StageManager } from '../managers/StageManager';
-import { ButtonFactory } from '../utils/ButtonStyles';
+import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
  * リザルト画面
@@ -147,13 +147,15 @@ export class ResultScene extends Phaser.Scene {
     const buttonY = height - 60;
 
     if (this.isGameComplete) {
-      // ゲーム完了時はタイトルへ戻るボタンのみ（プライマリ・Lサイズ）
-      const { button: titleButton } = ButtonFactory.createPrimaryButton(
+      // ゲーム完了時はタイトルへ戻るボタンのみ
+      const titleButton = new SimpleOceanButton(
         this,
         width / 2,
         buttonY,
+        200,
+        50,
         'タイトルへ戻る',
-        'L',
+        'primary',
         () => {
           // ゲームクリア画面に遷移
           this.scene.start('GameClearScene', {
@@ -164,28 +166,31 @@ export class ResultScene extends Phaser.Scene {
       );
     } else {
       // 通常のステージクリア時またはステージ失敗時
-      const buttonSpacing = 160; // 統一デザインに合わせて間隔を調整
-      const leftButtonX = width / 2 - buttonSpacing / 2;
-      const rightButtonX = width / 2 + buttonSpacing / 2;
+      const leftButtonX = width / 2 - 80;
+      const rightButtonX = width / 2 + 80;
 
       if (this.isStageCleared) {
-        // ステージクリア成功時：次へボタン（プライマリ・Mサイズ）
-        const { button: nextButton } = ButtonFactory.createPrimaryButton(
+        // ステージクリア成功時：次へボタン
+        const nextButton = new SimpleOceanButton(
           this,
           leftButtonX,
           buttonY,
+          140,
+          45,
           '次へ',
-          'M',
+          'primary',
           () => this.goToNextStage()
         );
       } else {
-        // ステージ失敗時：リトライボタン（セカンダリ・Mサイズ）
-        const { button: retryButton } = ButtonFactory.createSecondaryButton(
+        // ステージ失敗時：リトライボタン
+        const retryButton = new SimpleOceanButton(
           this,
           leftButtonX,
           buttonY,
+          140,
+          45,
           'リトライ',
-          'M',
+          'secondary',
           () => {
             // 同じステージをリトライ（アイテム選択画面を経由）
             this.scene.start('ItemSelectionScene', { 
@@ -195,13 +200,15 @@ export class ResultScene extends Phaser.Scene {
         );
       }
 
-      // メイン画面ボタン（ニュートラル・Mサイズ）
-      const { button: mainButton } = ButtonFactory.createNeutralButton(
+      // メイン画面ボタン
+      const mainButton = new SimpleOceanButton(
         this,
         rightButtonX,
         buttonY,
+        140,
+        45,
         'メイン画面',
-        'M',
+        'secondary',
         () => this.scene.start('MainScene')
       );
     }

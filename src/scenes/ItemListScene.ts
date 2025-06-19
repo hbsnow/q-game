@@ -4,7 +4,7 @@ import { DebugHelper } from '../utils/DebugHelper';
 import { GameStateManager } from '../utils/GameStateManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
 import { SoundManager } from '../utils/SoundManager';
-import { ButtonFactory } from '../utils/ButtonStyles';
+import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
  * アイテム一覧画面（モック版）
@@ -130,23 +130,20 @@ export class ItemListScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     const buttonY = height - 60;
 
-    // 戻るボタン（ニュートラル・Sサイズ）
-    const { button: backButton } = ButtonFactory.createNeutralButton(
+    // 戻るボタン
+    const backButton = new SimpleOceanButton(
       this,
       width / 2,
       buttonY,
+      120,
+      40,
       '戻る',
-      'S',
+      'secondary',
       () => {
         this.soundManager.playButtonTap();
+        this.soundManager.playScreenTransition();
         
-        this.animationManager.buttonClick(backButton, () => {
-          this.soundManager.playScreenTransition();
-          
-          this.animationManager.screenTransition('ItemListScene', 'MainScene', TransitionType.BUBBLE).then(() => {
-            this.scene.start('MainScene');
-          });
-        });
+        this.scene.start('MainScene');
       }
     );
   }

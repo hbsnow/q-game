@@ -7,7 +7,7 @@ import { StageManager } from '../managers/StageManager';
 import { ItemManager } from '../managers/ItemManager';
 import { SoundManager } from '../utils/SoundManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
-import { ButtonFactory, BUTTON_SPACING } from '../utils/ButtonStyles';
+import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
  * ガチャ画面
@@ -114,50 +114,42 @@ export class GachaScene extends Phaser.Scene {
     const buttonY = 200;
     const costs = GachaManager.getCosts();
     
-    // ガチャボタンは標準の間隔を使用（間隔を広げる）
-    const leftButtonX = width / 2 - BUTTON_SPACING.DUAL_BUTTONS / 2;
-    const rightButtonX = width / 2 + BUTTON_SPACING.DUAL_BUTTONS / 2;
+    // ガチャボタンの配置
+    const leftButtonX = width / 2 - 90;
+    const rightButtonX = width / 2 + 90;
     
-    // 1回引くボタン（プライマリ・Mサイズ）
-    if (this.currentGold >= costs.single) {
-      const { button: singleButton } = ButtonFactory.createPrimaryButton(
-        this,
-        leftButtonX,
-        buttonY,
-        '1回引く',
-        'M',
-        () => this.onSingleGacha()
-      );
-    } else {
-      // ゴールド不足時は無効化されたボタン（Mサイズ）
-      ButtonFactory.createDisabledButton(
-        this,
-        leftButtonX,
-        buttonY,
-        '1回引く',
-        'M'
-      );
+    // 1回引くボタン
+    const singleButton = new SimpleOceanButton(
+      this,
+      leftButtonX,
+      buttonY,
+      160,
+      50,
+      '1回引く',
+      'primary',
+      () => this.onSingleGacha()
+    );
+    
+    // ゴールド不足時は無効化
+    if (this.currentGold < costs.single) {
+      singleButton.setEnabled(false);
     }
     
-    // 10回引くボタン（プライマリ・Mサイズ）
-    if (this.currentGold >= costs.multi) {
-      const { button: multiButton } = ButtonFactory.createPrimaryButton(
-        this,
-        rightButtonX,
-        buttonY,
-        '10回引く',
-        'M',
-        () => this.onMultiGacha()
-      );
-    } else {
-      // ゴールド不足時は無効化されたボタン（Mサイズ）
-      ButtonFactory.createDisabledButton(
-        this,
-        rightButtonX,
-        buttonY,
-        '10回引く',
-        'M'
-      );
+    // 10回引くボタン
+    const multiButton = new SimpleOceanButton(
+      this,
+      rightButtonX,
+      buttonY,
+      160,
+      50,
+      '10回引く',
+      'primary',
+      () => this.onMultiGacha()
+    );
+    
+    // ゴールド不足時は無効化
+    if (this.currentGold < costs.multi) {
+      multiButton.setEnabled(false);
     }
   }
 
@@ -183,13 +175,15 @@ export class GachaScene extends Phaser.Scene {
       }).setOrigin(0.5);
     });
     
-    // 確率表示ボタン（情報・XSサイズ）
-    const { button: rateButton } = ButtonFactory.createInfoButton(
+    // 確率表示ボタン
+    const rateButton = new SimpleOceanButton(
       this,
       width / 2,
       height - 120,
+      120,
+      35,
       '確率表示',
-      'XS',
+      'secondary',
       () => this.toggleRateDisplay()
     );
   }
@@ -197,18 +191,17 @@ export class GachaScene extends Phaser.Scene {
   private createButtons(): void {
     const { width, height } = this.cameras.main;
     
-    // 戻るボタン（ニュートラル・Sサイズ）
-    const { button: backButton } = ButtonFactory.createNeutralButton(
+    // 戻るボタン
+    const backButton = new SimpleOceanButton(
       this,
       width / 2,
       height - 60,
+      120,
+      40,
       '戻る',
-      'S'
-      // onClickは後でonBackメソッドで処理
+      'secondary',
+      () => this.onBack()
     );
-    
-    // 戻るボタンのクリックイベントを手動で追加（onBackメソッドを使用するため）
-    backButton.on('pointerdown', () => this.onBack());
   }
 
   private onSingleGacha(): void {
@@ -304,19 +297,20 @@ export class GachaScene extends Phaser.Scene {
       }
     });
     
-    // 閉じるボタン（ニュートラル・XSサイズ）
-    const { button: closeButton, text: closeText } = ButtonFactory.createNeutralButton(
+    // 閉じるボタン
+    const closeButton = new SimpleOceanButton(
       this,
       width / 2,
       height - 50,
+      100,
+      35,
       '閉じる',
-      'XS',
+      'secondary',
       () => this.hideRateDisplay()
     );
     
     // ダイアログ用の名前を設定
     closeButton.setName('rateClose');
-    closeText.setName('rateClose');
   }
 
   private hideRateDisplay(): void {
