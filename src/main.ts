@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { GameConfig } from './config/GameConfig';
+import { LoadingScene } from './scenes/LoadingScene';
 import { TitleScene } from './scenes/TitleScene';
 import { MainScene } from './scenes/MainScene';
 import { ItemSelectionScene } from './scenes/ItemSelectionScene';
@@ -19,6 +20,7 @@ const config: Phaser.Types.Core.GameConfig = {
   backgroundColor: GameConfig.BACKGROUND_COLOR,
   parent: 'game',
   scene: [
+    LoadingScene,  // 最初にローディング画面を表示
     TitleScene, 
     MainScene, 
     ItemSelectionScene, 

@@ -6,6 +6,8 @@ import { Item, ItemRarity } from '../types/Item';
 import { getRarityColor } from '../data/ItemData';
 import { ParticleManager } from '../utils/ParticleManager';
 import { SoundManager } from '../utils/SoundManager';
+import { AnimationManager, TransitionType } from '../utils/AnimationManager';
+import { ButtonFactory, BUTTON_SPACING } from '../utils/ButtonStyles';
 
 /**
  * ガチャ結果画面
@@ -15,6 +17,7 @@ export class GachaResultScene extends Phaser.Scene {
   private gameStateManager: GameStateManager;
   private particleManager!: ParticleManager;
   private soundManager!: SoundManager;
+  private animationManager!: AnimationManager;
   private resultItems: Item[] = [];
   private totalCost: number = 0;
   private isMulti: boolean = false;
@@ -41,6 +44,10 @@ export class GachaResultScene extends Phaser.Scene {
     
     // サウンドマネージャーを初期化
     this.soundManager = new SoundManager(this);
+    this.soundManager.preloadSounds();
+    
+    // アニメーションマネージャーを初期化
+    this.animationManager = new AnimationManager(this);
     this.soundManager.preloadSounds();
     
     // ガチャBGMを開始
@@ -283,37 +290,31 @@ export class GachaResultScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     const buttonY = height - 60;
     
-    // もう一度引くボタン
-    const againButton = this.add.rectangle(width / 2 - 80, buttonY, 140, 40, 0x0066CC)
-      .setInteractive({ useHandCursor: true });
+    // もう一度引くボタン（プライマリ・Mサイズ）
+    const { button: againButton } = ButtonFactory.createPrimaryButton(
+      this,
+      width / 2 - BUTTON_SPACING.COMPACT / 2,
+      buttonY,
+      'もう一度',
+      'M',
+      () => {
+        this.soundManager.playButtonTap();
+        this.onAgain();
+      }
+    );
     
-    const againText = this.add.text(width / 2 - 80, buttonY, 'もう一度', {
-      fontSize: '16px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    
-    againButton.on('pointerdown', () => {
-      this.soundManager.playButtonTap();
-      this.onAgain();
-    });
-    this.addButtonHoverEffect(againButton, againText);
-    
-    // 戻るボタン
-    const backButton = this.add.rectangle(width / 2 + 80, buttonY, 140, 40, 0x666666)
-      .setInteractive({ useHandCursor: true });
-    
-    const backText = this.add.text(width / 2 + 80, buttonY, '戻る', {
-      fontSize: '16px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    
-    backButton.on('pointerdown', () => {
-      this.soundManager.playButtonTap();
-      this.onBack();
-    });
-    this.addButtonHoverEffect(backButton, backText);
+    // 戻るボタン（ニュートラル・Sサイズ）
+    const { button: backButton } = ButtonFactory.createNeutralButton(
+      this,
+      width / 2 + BUTTON_SPACING.COMPACT / 2,
+      buttonY,
+      '戻る',
+      'S',
+      () => {
+        this.soundManager.playButtonTap();
+        this.onBack();
+      }
+    );
   }
 
   private onAgain(): void {
@@ -323,7 +324,10 @@ export class GachaResultScene extends Phaser.Scene {
 
   private onBack(): void {
     this.soundManager.playScreenTransition();
-    this.scene.start('GachaScene');
+    
+    this.animationManager.screenTransition('GachaResultScene', 'GachaScene', TransitionType.BUBBLE).then(() => {
+      this.scene.start('GachaScene');
+    });
   }
 
   private getRarityColorHex(rarity: ItemRarity): number {

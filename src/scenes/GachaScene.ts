@@ -5,6 +5,9 @@ import { GameStateManager } from '../utils/GameStateManager';
 import { GachaManager, ItemDropRate } from '../managers/GachaManager';
 import { StageManager } from '../managers/StageManager';
 import { ItemManager } from '../managers/ItemManager';
+import { SoundManager } from '../utils/SoundManager';
+import { AnimationManager, TransitionType } from '../utils/AnimationManager';
+import { ButtonFactory, BUTTON_SPACING } from '../utils/ButtonStyles';
 
 /**
  * ガチャ画面
@@ -14,6 +17,8 @@ export class GachaScene extends Phaser.Scene {
   private gameStateManager: GameStateManager;
   private stageManager: StageManager;
   private itemManager: ItemManager;
+  private soundManager!: SoundManager;
+  private animationManager!: AnimationManager;
   private currentStage: number = 1;
   private currentGold: number = 0;
   private dropRates: ItemDropRate[] = [];
@@ -31,6 +36,13 @@ export class GachaScene extends Phaser.Scene {
     
     // デバッグヘルパーを初期化
     this.debugHelper = new DebugHelper(this);
+    
+    // サウンドマネージャーを初期化
+    this.soundManager = new SoundManager(this);
+    this.soundManager.preloadSounds();
+    
+    // アニメーションマネージャーを初期化
+    this.animationManager = new AnimationManager(this);
     
     // 背景色を設定
     this.cameras.main.setBackgroundColor('#1E5799');
@@ -102,38 +114,50 @@ export class GachaScene extends Phaser.Scene {
     const buttonY = 200;
     const costs = GachaManager.getCosts();
     
-    // 1回引くボタン
-    const singleButton = this.add.rectangle(width / 2 - 80, buttonY, 140, 50, 0x0066CC)
-      .setInteractive({ useHandCursor: this.currentGold >= costs.single });
+    // ガチャボタンは標準の間隔を使用（間隔を広げる）
+    const leftButtonX = width / 2 - BUTTON_SPACING.DUAL_BUTTONS / 2;
+    const rightButtonX = width / 2 + BUTTON_SPACING.DUAL_BUTTONS / 2;
     
-    const singleText = this.add.text(width / 2 - 80, buttonY, '1回引く', {
-      fontSize: '16px',
-      color: this.currentGold >= costs.single ? '#FFFFFF' : '#AAAAAA',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    
+    // 1回引くボタン（プライマリ・Mサイズ）
     if (this.currentGold >= costs.single) {
-      singleButton.on('pointerdown', () => this.onSingleGacha());
-      this.addButtonHoverEffect(singleButton, singleText);
+      const { button: singleButton } = ButtonFactory.createPrimaryButton(
+        this,
+        leftButtonX,
+        buttonY,
+        '1回引く',
+        'M',
+        () => this.onSingleGacha()
+      );
     } else {
-      singleButton.setFillStyle(0x666666);
+      // ゴールド不足時は無効化されたボタン（Mサイズ）
+      ButtonFactory.createDisabledButton(
+        this,
+        leftButtonX,
+        buttonY,
+        '1回引く',
+        'M'
+      );
     }
     
-    // 10回引くボタン
-    const multiButton = this.add.rectangle(width / 2 + 80, buttonY, 140, 50, 0x0066CC)
-      .setInteractive({ useHandCursor: this.currentGold >= costs.multi });
-    
-    const multiText = this.add.text(width / 2 + 80, buttonY, '10回引く', {
-      fontSize: '16px',
-      color: this.currentGold >= costs.multi ? '#FFFFFF' : '#AAAAAA',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    
+    // 10回引くボタン（プライマリ・Mサイズ）
     if (this.currentGold >= costs.multi) {
-      multiButton.on('pointerdown', () => this.onMultiGacha());
-      this.addButtonHoverEffect(multiButton, multiText);
+      const { button: multiButton } = ButtonFactory.createPrimaryButton(
+        this,
+        rightButtonX,
+        buttonY,
+        '10回引く',
+        'M',
+        () => this.onMultiGacha()
+      );
     } else {
-      multiButton.setFillStyle(0x666666);
+      // ゴールド不足時は無効化されたボタン（Mサイズ）
+      ButtonFactory.createDisabledButton(
+        this,
+        rightButtonX,
+        buttonY,
+        '10回引く',
+        'M'
+      );
     }
   }
 
@@ -159,35 +183,32 @@ export class GachaScene extends Phaser.Scene {
       }).setOrigin(0.5);
     });
     
-    // 確率表示ボタン
-    const rateButton = this.add.rectangle(width / 2, height - 120, 120, 30, 0x444444)
-      .setInteractive({ useHandCursor: true });
-    
-    const rateText = this.add.text(width / 2, height - 120, '確率表示', {
-      fontSize: '14px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    
-    rateButton.on('pointerdown', () => this.toggleRateDisplay());
-    this.addButtonHoverEffect(rateButton, rateText);
+    // 確率表示ボタン（情報・XSサイズ）
+    const { button: rateButton } = ButtonFactory.createInfoButton(
+      this,
+      width / 2,
+      height - 120,
+      '確率表示',
+      'XS',
+      () => this.toggleRateDisplay()
+    );
   }
 
   private createButtons(): void {
     const { width, height } = this.cameras.main;
     
-    // 戻るボタン
-    const backButton = this.add.rectangle(width / 2, height - 60, 120, 40, 0x666666)
-      .setInteractive({ useHandCursor: true });
+    // 戻るボタン（ニュートラル・Sサイズ）
+    const { button: backButton } = ButtonFactory.createNeutralButton(
+      this,
+      width / 2,
+      height - 60,
+      '戻る',
+      'S'
+      // onClickは後でonBackメソッドで処理
+    );
     
-    const backText = this.add.text(width / 2, height - 60, '戻る', {
-      fontSize: '16px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    
+    // 戻るボタンのクリックイベントを手動で追加（onBackメソッドを使用するため）
     backButton.on('pointerdown', () => this.onBack());
-    this.addButtonHoverEffect(backButton, backText);
   }
 
   private onSingleGacha(): void {
@@ -283,19 +304,19 @@ export class GachaScene extends Phaser.Scene {
       }
     });
     
-    // 閉じるボタン
-    const closeButton = this.add.rectangle(width / 2, height - 50, 100, 30, 0x666666)
-      .setInteractive({ useHandCursor: true })
-      .setName('rateClose');
+    // 閉じるボタン（ニュートラル・XSサイズ）
+    const { button: closeButton, text: closeText } = ButtonFactory.createNeutralButton(
+      this,
+      width / 2,
+      height - 50,
+      '閉じる',
+      'XS',
+      () => this.hideRateDisplay()
+    );
     
-    const closeText = this.add.text(width / 2, height - 50, '閉じる', {
-      fontSize: '14px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setName('rateClose');
-    
-    // シンプルなクリックイベントのみ（ホバーエフェクトは削除）
-    closeButton.on('pointerdown', () => this.hideRateDisplay());
+    // ダイアログ用の名前を設定
+    closeButton.setName('rateClose');
+    closeText.setName('rateClose');
   }
 
   private hideRateDisplay(): void {
@@ -324,7 +345,30 @@ export class GachaScene extends Phaser.Scene {
   }
 
   private onBack(): void {
-    this.scene.start('MainScene');
+    this.soundManager.playButtonTap();
+    
+    // 戻るボタンのクリックアニメーション（簡易版）
+    const backButton = this.children.list.find(child => 
+      child instanceof Phaser.GameObjects.Rectangle && 
+      child.x === this.cameras.main.width / 2 && 
+      child.y === this.cameras.main.height - 60
+    );
+    
+    if (backButton) {
+      this.animationManager.buttonClick(backButton, () => {
+        this.soundManager.playScreenTransition();
+        
+        this.animationManager.screenTransition('GachaScene', 'MainScene', TransitionType.BUBBLE).then(() => {
+          this.scene.start('MainScene');
+        });
+      });
+    } else {
+      // フォールバック
+      this.soundManager.playScreenTransition();
+      this.animationManager.screenTransition('GachaScene', 'MainScene', TransitionType.BUBBLE).then(() => {
+        this.scene.start('MainScene');
+      });
+    }
   }
 
   private addButtonHoverEffect(button: Phaser.GameObjects.Rectangle, text: Phaser.GameObjects.Text): void {

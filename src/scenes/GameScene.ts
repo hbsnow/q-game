@@ -18,7 +18,11 @@ import { ItemEffectManager } from '../managers/ItemEffectManager';
 import { ItemEffectVisualizer } from '../utils/ItemEffectVisualizer';
 import { ITEM_DATA } from '../data/ItemData';
 import { ParticleManager } from '../utils/ParticleManager';
+import { ButtonFactory } from '../utils/ButtonStyles';
 import { SoundManager } from '../utils/SoundManager';
+import { ErrorManager, ErrorType } from '../utils/ErrorManager';
+import { TooltipManager } from '../utils/TooltipManager';
+import { AnimationManager, TransitionType, AppearType } from '../utils/AnimationManager';
 
 /**
  * ゲーム画面
@@ -41,6 +45,9 @@ export class GameScene extends Phaser.Scene {
   private itemEffectVisualizer!: ItemEffectVisualizer;
   private particleManager!: ParticleManager;
   private soundManager!: SoundManager;
+  private errorManager!: ErrorManager;
+  private tooltipManager!: TooltipManager;
+  private animationManager!: AnimationManager;
   private advancedDebugHelper!: AdvancedDebugHelper;
   private errorHandler!: ErrorHandler;
   private loadingManager!: LoadingManager;
@@ -146,6 +153,15 @@ export class GameScene extends Phaser.Scene {
     this.soundManager = new SoundManager(this);
     this.soundManager.preloadSounds();
     
+    // エラーマネージャーを初期化
+    this.errorManager = new ErrorManager(this);
+    
+    // ツールチップマネージャーを初期化
+    this.tooltipManager = new TooltipManager(this);
+    
+    // アニメーションマネージャーを初期化
+    this.animationManager = new AnimationManager(this);
+    
     // ゲームBGMを開始
     this.soundManager.playGameBgm();
     
@@ -244,27 +260,19 @@ export class GameScene extends Phaser.Scene {
       console.log('アイテムボタン:', button.name, 'x:', (button as any).x, 'y:', (button as any).y);
     });
     
-    // リタイアボタン
-    const retireButton = this.add.rectangle(width - 70, buttonCenterY, 120, 40, 0xAA2222)
-      .setInteractive({ useHandCursor: true })
-      .setName('retireButton');
+    // リタイアボタン（危険・Sサイズ）
+    const { button: retireButton, text: retireText } = ButtonFactory.createDangerButton(
+      this,
+      width - 70,
+      buttonCenterY,
+      'リタイア',
+      'S',
+      () => this.onRetire()
+    );
     
-    const retireText = this.add.text(width - 70, buttonCenterY, 'リタイア', {
-      fontSize: '16px',
-      color: '#FFFFFF'
-    }).setOrigin(0.5).setName('retireText');
-    
-    // ボタンクリックイベント
-    retireButton.on('pointerdown', () => {
-      // ボタンタップ音を再生
-      this.soundManager.playButtonTap();
-      
-      // リタイア時の処理
-      this.onRetire();
-    });
-    
-    // ボタンホバーエフェクト
-    this.addButtonHoverEffect(retireButton, retireText);
+    // ボタンに名前を設定（後で参照するため）
+    retireButton.setName('retireButton');
+    retireText.setName('retireText');
     
     // ブロックの初期配置
     this.createInitialBlocks();
@@ -1465,12 +1473,39 @@ export class GameScene extends Phaser.Scene {
   private showClearButton(): void {
     const { width, height } = this.cameras.main;
     
-    // リタイアボタンをクリアボタンに変更
-    const retireButton = this.children.getByName('retireButton') as Phaser.GameObjects.Rectangle;
+    // ButtonFactoryで作成されたボタンを取得
+    const retireButton = this.children.getByName('retireButton') as Phaser.GameObjects.Graphics;
     const retireText = this.children.getByName('retireText') as Phaser.GameObjects.Text;
     
     if (retireButton && retireText) {
-      retireButton.setFillStyle(0x00AA00);
+      // Graphicsオブジェクトの場合、色を変更するには再描画が必要
+      retireButton.clear(); // 既存の描画をクリア
+      
+      // 成功色（緑）でボタンを再描画
+      const sizeInfo = { width: 120, height: 40 }; // Sサイズの寸法
+      const cornerRadius = 8;
+      const rectX = -sizeInfo.width / 2;
+      const rectY = -sizeInfo.height / 2;
+      
+      retireButton.fillStyle(0x22AA22); // 成功色（緑）
+      retireButton.lineStyle(2, 0x1A7A1A); // 濃い緑のボーダー
+      
+      retireButton.fillRoundedRect(
+        rectX,
+        rectY,
+        sizeInfo.width,
+        sizeInfo.height,
+        cornerRadius
+      );
+      retireButton.strokeRoundedRect(
+        rectX,
+        rectY,
+        sizeInfo.width,
+        sizeInfo.height,
+        cornerRadius
+      );
+      
+      // テキストを変更
       retireText.setText('クリア');
       
       // クリックイベントを更新
@@ -1544,10 +1579,16 @@ export class GameScene extends Phaser.Scene {
     const equippedItems = this.itemManager.getEquippedItems();
     console.log('createItemButtons - 装備アイテム:', equippedItems);
     
+    // シンプルに左寄せで配置（リタイアボタンとは完全に別物として扱う）
+    const leftButtonX = 70;   // 左端から70px
+    const rightButtonX = 200; // 左端から200px
+    
+    console.log(`シンプル配置: 左=${leftButtonX}, 右=${rightButtonX}`);
+    
     // 特殊枠アイテムボタン
     if (equippedItems.specialSlot) {
       console.log('特殊枠ボタン作成:', equippedItems.specialSlot.name);
-      this.createItemButton(equippedItems.specialSlot.name, 'special', 80, buttonY);
+      this.createItemButton(equippedItems.specialSlot.name, 'special', leftButtonX, buttonY);
     } else {
       console.log('特殊枠にアイテムが装備されていません');
     }
@@ -1555,7 +1596,7 @@ export class GameScene extends Phaser.Scene {
     // 通常枠アイテムボタン
     if (equippedItems.normalSlot) {
       console.log('通常枠ボタン作成:', equippedItems.normalSlot.name);
-      this.createItemButton(equippedItems.normalSlot.name, 'normal', 220, buttonY);
+      this.createItemButton(equippedItems.normalSlot.name, 'normal', rightButtonX, buttonY);
     } else {
       console.log('通常枠にアイテムが装備されていません');
     }
@@ -1568,33 +1609,40 @@ export class GameScene extends Phaser.Scene {
     console.log(`createItemButton呼び出し: ${itemName}, slot: ${slot}, x: ${x}, y: ${y}`);
     
     const isUsed = this.itemManager.isItemUsed(slot);
-    // テスト用：より目立つ色とサイズに変更
-    const buttonColor = isUsed ? 0x666666 : 0xFF0000; // 赤色で目立たせる
-    const textColor = isUsed ? '#AAAAAA' : '#FFFFFF';
     
-    console.log(`ボタン作成中: 色=${buttonColor.toString(16)}, 使用済み=${isUsed}`);
+    // ButtonFactoryを使用して統一デザイン + 左端カラーバーのアイテムボタンを作成
+    const { button, text } = ButtonFactory.createItemButton(
+      this,
+      x,
+      y,
+      itemName,
+      isUsed,
+      'S', // Sサイズ（120×40px）でコンパクトに
+      isUsed ? undefined : () => this.onItemButtonClick(slot),
+      slot === 'special' // 特殊枠かどうかを渡す
+    );
     
-    // テスト用：より大きなサイズに変更
-    const button = this.add.rectangle(x, y, 150, 50, buttonColor)
-      .setInteractive({ useHandCursor: !isUsed })
-      .setName(`itemButton_${slot}`);
+    // ボタンに名前を設定（後で参照するため）
+    button.setName(`itemButton_${slot}`);
+    text.setName(`itemText_${slot}`);
     
     console.log(`ボタン作成完了: ${button.name}, 座標: (${button.x}, ${button.y})`);
-    
-    const text = this.add.text(x, y, itemName, {
-      fontSize: '16px', // フォントサイズも大きく
-      color: textColor
-    }).setOrigin(0.5).setName(`itemText_${slot}`);
-    
     console.log(`テキスト作成完了: ${text.name}, テキスト: "${itemName}", 座標: (${text.x}, ${text.y})`);
     
     if (!isUsed) {
-      button.on('pointerdown', () => {
-        this.onItemButtonClick(slot);
-      });
-      
-      // ホバーエフェクト
-      this.addButtonHoverEffect(button, text);
+      // ツールチップを追加
+      const itemData = this.itemManager.getItemData(itemName);
+      if (itemData) {
+        this.tooltipManager.addItemTooltip(
+          button, 
+          itemData.name, 
+          itemData.description, 
+          itemData.rarity
+        );
+      }
+    } else {
+      // 使用済みアイテムにはエラーツールチップを追加
+      this.tooltipManager.addErrorTooltip(button, 'このアイテムはすでに使用済みです');
     }
     
     console.log(`アイテムボタン作成完了: ${slot}枠`);
@@ -1607,10 +1655,19 @@ export class GameScene extends Phaser.Scene {
     // ボタンタップ音を再生
     this.soundManager.playButtonTap();
     
+    // 使用済みチェック
+    if (this.itemManager.isItemUsed(slot)) {
+      this.errorManager.showError(ErrorType.INVALID_OPERATION, 'このアイテムはすでに使用済みです。');
+      return;
+    }
+    
     const equippedItems = this.itemManager.getEquippedItems();
     const item = slot === 'special' ? equippedItems.specialSlot : equippedItems.normalSlot;
     
-    if (!item) return;
+    if (!item) {
+      this.errorManager.showError(ErrorType.INVALID_OPERATION, 'アイテムが装備されていません。');
+      return;
+    }
     
     // アイテムの種類に応じて処理を分岐
     switch (item.effectType) {
@@ -2261,6 +2318,21 @@ export class GameScene extends Phaser.Scene {
     // サウンドマネージャーをクリーンアップ
     if (this.soundManager) {
       this.soundManager.destroy();
+    }
+    
+    // エラーマネージャーをクリーンアップ
+    if (this.errorManager) {
+      this.errorManager.destroy();
+    }
+    
+    // ツールチップマネージャーをクリーンアップ
+    if (this.tooltipManager) {
+      this.tooltipManager.destroy();
+    }
+    
+    // アニメーションマネージャーをクリーンアップ
+    if (this.animationManager) {
+      this.animationManager.destroy();
     }
   }
 }

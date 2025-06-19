@@ -2,12 +2,17 @@ import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { GameStateManager } from '../utils/GameStateManager';
+import { AnimationManager, TransitionType } from '../utils/AnimationManager';
+import { SoundManager } from '../utils/SoundManager';
+import { ButtonFactory } from '../utils/ButtonStyles';
 
 /**
  * アイテム一覧画面（モック版）
  */
 export class ItemListScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
+  private animationManager!: AnimationManager;
+  private soundManager!: SoundManager;
   private gameStateManager: GameStateManager;
 
   constructor() {
@@ -19,6 +24,14 @@ export class ItemListScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     
     // デバッグヘルパーを初期化
+    this.debugHelper = new DebugHelper(this);
+    
+    // アニメーションマネージャーを初期化
+    this.animationManager = new AnimationManager(this);
+    
+    // サウンドマネージャーを初期化
+    this.soundManager = new SoundManager(this);
+    this.soundManager.preloadSounds();
     this.debugHelper = new DebugHelper(this);
     
     // 背景色を設定
@@ -116,55 +129,26 @@ export class ItemListScene extends Phaser.Scene {
   private createButtons(): void {
     const { width, height } = this.cameras.main;
     const buttonY = height - 60;
-    const buttonWidth = 100;
-    const buttonHeight = 40;
 
-    // 戻るボタン
-    const backButton = this.add.rectangle(width / 2, buttonY, buttonWidth, buttonHeight, 0x9E9E9E)
-      .setInteractive()
-      .setName('backButton');
-
-    this.add.text(width / 2, buttonY, '戻る', {
-      fontSize: '16px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setName('backText');
-
-    // イベントハンドラー
-    backButton.on('pointerdown', () => {
-      // メイン画面に戻る
-      this.scene.start('MainScene');
-    });
-
-    // ホバーエフェクト
-    backButton.on('pointerover', () => {
-      this.tweens.add({
-        targets: [backButton, this.children.getByName('backText')],
-        scale: 1.05,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-
-    backButton.on('pointerout', () => {
-      this.tweens.add({
-        targets: [backButton, this.children.getByName('backText')],
-        scale: 1,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-
-    // クリック時の押し込みエフェクト
-    backButton.on('pointerdown', () => {
-      this.tweens.add({
-        targets: [backButton, this.children.getByName('backText')],
-        scale: 0.95,
-        duration: 100,
-        yoyo: true,
-        ease: 'Power2'
-      });
-    });
+    // 戻るボタン（ニュートラル・Sサイズ）
+    const { button: backButton } = ButtonFactory.createNeutralButton(
+      this,
+      width / 2,
+      buttonY,
+      '戻る',
+      'S',
+      () => {
+        this.soundManager.playButtonTap();
+        
+        this.animationManager.buttonClick(backButton, () => {
+          this.soundManager.playScreenTransition();
+          
+          this.animationManager.screenTransition('ItemListScene', 'MainScene', TransitionType.BUBBLE).then(() => {
+            this.scene.start('MainScene');
+          });
+        });
+      }
+    );
   }
 
   private addDebugLines(): void {

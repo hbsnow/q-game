@@ -3,6 +3,7 @@
  */
 
 import { Item, ItemRarity } from '../types/Item';
+import { ITEM_DATA } from '../data/ItemData';
 
 /**
  * アイテムの所持状況
@@ -256,5 +257,12 @@ export class ItemManager {
     const normalUsed = this.usageState.normalSlotUsed ? '(使用済み)' : '';
     
     return `特殊枠: ${special}${specialUsed}, 通常枠: ${normal}${normalUsed}`;
+  }
+
+  /**
+   * アイテムデータを取得
+   */
+  getItemData(itemId: string): any {
+    return ITEM_DATA[itemId] || null;
   }
 }

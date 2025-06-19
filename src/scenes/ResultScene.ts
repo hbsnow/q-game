@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { StageManager } from '../managers/StageManager';
+import { ButtonFactory } from '../utils/ButtonStyles';
 
 /**
  * リザルト画面
@@ -144,160 +145,65 @@ export class ResultScene extends Phaser.Scene {
   private createButtons(): void {
     const { width, height } = this.cameras.main;
     const buttonY = height - 60;
-    const buttonWidth = 120;
-    const buttonHeight = 40;
 
     if (this.isGameComplete) {
-      // ゲーム完了時はタイトルへ戻るボタンのみ
-      const titleButton = this.add.rectangle(width / 2, buttonY, buttonWidth * 1.5, buttonHeight, 0x4CAF50)
-        .setInteractive()
-        .setName('titleButton');
-
-      this.add.text(width / 2, buttonY, 'タイトルへ戻る', {
-        fontSize: '16px',
-        color: '#FFFFFF',
-        fontFamily: 'Arial'
-      }).setOrigin(0.5).setName('titleText');
-
-      titleButton.on('pointerdown', () => {
-        // ゲームクリア画面に遷移
-        this.scene.start('GameClearScene', {
-          totalScore: this.stageManager.getTotalScore(),
-          totalGold: this.stageManager.getTotalGold()
-        });
-      });
-
-      // ホバーエフェクト
-      titleButton.on('pointerover', () => {
-        this.tweens.add({
-          targets: [titleButton, this.children.getByName('titleText')],
-          scale: 1.05,
-          duration: GameConfig.ANIMATION.HOVER_DURATION,
-          ease: 'Power2'
-        });
-      });
-
-      titleButton.on('pointerout', () => {
-        this.tweens.add({
-          targets: [titleButton, this.children.getByName('titleText')],
-          scale: 1,
-          duration: GameConfig.ANIMATION.HOVER_DURATION,
-          ease: 'Power2'
-        });
-      });
+      // ゲーム完了時はタイトルへ戻るボタンのみ（プライマリ・Lサイズ）
+      const { button: titleButton } = ButtonFactory.createPrimaryButton(
+        this,
+        width / 2,
+        buttonY,
+        'タイトルへ戻る',
+        'L',
+        () => {
+          // ゲームクリア画面に遷移
+          this.scene.start('GameClearScene', {
+            totalScore: this.stageManager.getTotalScore(),
+            totalGold: this.stageManager.getTotalGold()
+          });
+        }
+      );
     } else {
       // 通常のステージクリア時またはステージ失敗時
-      const buttonSpacing = 140;
+      const buttonSpacing = 160; // 統一デザインに合わせて間隔を調整
       const leftButtonX = width / 2 - buttonSpacing / 2;
       const rightButtonX = width / 2 + buttonSpacing / 2;
 
       if (this.isStageCleared) {
-        // ステージクリア成功時：次へボタン
-        const nextButton = this.add.rectangle(leftButtonX, buttonY, buttonWidth, buttonHeight, 0x2196F3)
-          .setInteractive()
-          .setName('nextButton');
-
-        this.add.text(leftButtonX, buttonY, '次へ', {
-          fontSize: '16px',
-          color: '#FFFFFF',
-          fontFamily: 'Arial'
-        }).setOrigin(0.5).setName('nextText');
-
-        nextButton.on('pointerdown', () => {
-          // 次のステージに進む（アイテム選択画面を経由）
-          this.goToNextStage();
-        });
-
-        // ホバーエフェクト
-        nextButton.on('pointerover', () => {
-          this.tweens.add({
-            targets: [nextButton, this.children.getByName('nextText')],
-            scale: 1.05,
-            duration: GameConfig.ANIMATION.HOVER_DURATION,
-            ease: 'Power2'
-          });
-        });
-
-        nextButton.on('pointerout', () => {
-          this.tweens.add({
-            targets: [nextButton, this.children.getByName('nextText')],
-            scale: 1,
-            duration: GameConfig.ANIMATION.HOVER_DURATION,
-            ease: 'Power2'
-          });
-        });
+        // ステージクリア成功時：次へボタン（プライマリ・Mサイズ）
+        const { button: nextButton } = ButtonFactory.createPrimaryButton(
+          this,
+          leftButtonX,
+          buttonY,
+          '次へ',
+          'M',
+          () => this.goToNextStage()
+        );
       } else {
-        // ステージ失敗時：リトライボタン
-        const retryButton = this.add.rectangle(leftButtonX, buttonY, buttonWidth, buttonHeight, 0xFF9800)
-          .setInteractive()
-          .setName('retryButton');
-
-        this.add.text(leftButtonX, buttonY, 'リトライ', {
-          fontSize: '16px',
-          color: '#FFFFFF',
-          fontFamily: 'Arial'
-        }).setOrigin(0.5).setName('retryText');
-
-        retryButton.on('pointerdown', () => {
-          // 同じステージをリトライ（アイテム選択画面を経由）
-          this.scene.start('ItemSelectionScene', { 
-            stage: this.clearedStage 
-          });
-        });
-
-        // ホバーエフェクト
-        retryButton.on('pointerover', () => {
-          this.tweens.add({
-            targets: [retryButton, this.children.getByName('retryText')],
-            scale: 1.05,
-            duration: GameConfig.ANIMATION.HOVER_DURATION,
-            ease: 'Power2'
-          });
-        });
-
-        retryButton.on('pointerout', () => {
-          this.tweens.add({
-            targets: [retryButton, this.children.getByName('retryText')],
-            scale: 1,
-            duration: GameConfig.ANIMATION.HOVER_DURATION,
-            ease: 'Power2'
-          });
-        });
+        // ステージ失敗時：リトライボタン（セカンダリ・Mサイズ）
+        const { button: retryButton } = ButtonFactory.createSecondaryButton(
+          this,
+          leftButtonX,
+          buttonY,
+          'リトライ',
+          'M',
+          () => {
+            // 同じステージをリトライ（アイテム選択画面を経由）
+            this.scene.start('ItemSelectionScene', { 
+              stage: this.clearedStage 
+            });
+          }
+        );
       }
 
-      // メイン画面ボタン（共通）
-      const mainButton = this.add.rectangle(rightButtonX, buttonY, buttonWidth, buttonHeight, 0x9E9E9E)
-        .setInteractive()
-        .setName('mainButton');
-
-      this.add.text(rightButtonX, buttonY, 'メイン画面', {
-        fontSize: '16px',
-        color: '#FFFFFF',
-        fontFamily: 'Arial'
-      }).setOrigin(0.5).setName('mainText');
-
-      mainButton.on('pointerdown', () => {
-        this.scene.start('MainScene');
-      });
-
-      // ホバーエフェクト
-      mainButton.on('pointerover', () => {
-        this.tweens.add({
-          targets: [mainButton, this.children.getByName('mainText')],
-          scale: 1.05,
-          duration: GameConfig.ANIMATION.HOVER_DURATION,
-          ease: 'Power2'
-        });
-      });
-
-      mainButton.on('pointerout', () => {
-        this.tweens.add({
-          targets: [mainButton, this.children.getByName('mainText')],
-          scale: 1,
-          duration: GameConfig.ANIMATION.HOVER_DURATION,
-          ease: 'Power2'
-        });
-      });
+      // メイン画面ボタン（ニュートラル・Mサイズ）
+      const { button: mainButton } = ButtonFactory.createNeutralButton(
+        this,
+        rightButtonX,
+        buttonY,
+        'メイン画面',
+        'M',
+        () => this.scene.start('MainScene')
+      );
     }
   }
 

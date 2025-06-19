@@ -6,6 +6,7 @@ import { ItemManager } from '../managers/ItemManager';
 import { ITEM_DATA } from '../data/ItemData';
 import { Item, ItemRarity } from '../types/Item';
 import { SoundManager } from '../utils/SoundManager';
+import { ButtonFactory, BUTTON_SPACING } from '../utils/ButtonStyles';
 
 /**
  * アイテム選択画面
@@ -552,88 +553,50 @@ export class ItemSelectionScene extends Phaser.Scene {
   private createButtons(): void {
     const { width, height } = this.cameras.main;
     const buttonY = height - 60;
-    const buttonWidth = 100;
-    const buttonHeight = 40;
-    const buttonSpacing = 120;
     
-    const leftButtonX = width / 2 - buttonSpacing / 2;
-    const rightButtonX = width / 2 + buttonSpacing / 2;
+    // 統一された間隔を使用
+    const leftButtonX = width / 2 - BUTTON_SPACING.DUAL_BUTTONS / 2;
+    const rightButtonX = width / 2 + BUTTON_SPACING.DUAL_BUTTONS / 2;
 
-    // 決定ボタン
-    const confirmButton = this.add.rectangle(leftButtonX, buttonY, buttonWidth, buttonHeight, 0x4CAF50)
-      .setInteractive()
-      .setName('confirmButton');
+    // 決定ボタン（セカンダリ・Sサイズ）
+    const { button: confirmButton, text: confirmText } = ButtonFactory.createSecondaryButton(
+      this,
+      leftButtonX,
+      buttonY,
+      '決定',
+      'S',
+      () => {
+        this.soundManager.playButtonTap();
+        this.soundManager.playScreenTransition();
+        
+        // 装備されたアイテム情報を取得
+        const equippedItems = this.itemManager.getEquippedItems();
+        
+        console.log('装備アイテム:', equippedItems);
+        
+        // ゲーム画面に遷移（装備アイテム情報を渡す）
+        this.scene.start('GameScene', { 
+          stage: this.currentStage,
+          equippedItems: equippedItems
+        });
+      }
+    );
 
-    this.add.text(leftButtonX, buttonY, '決定', {
-      fontSize: '16px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setName('confirmText');
-
-    // キャンセルボタン
-    const cancelButton = this.add.rectangle(rightButtonX, buttonY, buttonWidth, buttonHeight, 0x9E9E9E)
-      .setInteractive()
-      .setName('cancelButton');
-
-    this.add.text(rightButtonX, buttonY, 'キャンセル', {
-      fontSize: '16px',
-      color: '#FFFFFF',
-      fontFamily: 'Arial'
-    }).setOrigin(0.5).setName('cancelText');
-
-    // イベントハンドラー
-    confirmButton.on('pointerdown', () => {
-      this.soundManager.playButtonTap();
-      this.soundManager.playScreenTransition();
-      
-      // 装備されたアイテム情報を取得
-      const equippedItems = this.itemManager.getEquippedItems();
-      
-      console.log('装備アイテム:', equippedItems);
-      
-      // ゲーム画面に遷移（装備アイテム情報を渡す）
-      this.scene.start('GameScene', { 
-        stage: this.currentStage,
-        equippedItems: equippedItems
-      });
-    });
-
-    cancelButton.on('pointerdown', () => {
-      this.soundManager.playButtonTap();
-      this.soundManager.playScreenTransition();
-      
-      // メイン画面に戻る
-      this.scene.start('MainScene');
-    });
-
-    // ホバーエフェクト
-    this.addButtonHoverEffect(confirmButton, 'confirmText');
-    this.addButtonHoverEffect(cancelButton, 'cancelText');
-  }
-
-  /**
-   * ボタンホバーエフェクトを追加
-   */
-  private addButtonHoverEffect(button: Phaser.GameObjects.Rectangle, textName: string): void {
-    const text = this.children.getByName(textName);
-    
-    button.on('pointerover', () => {
-      this.tweens.add({
-        targets: [button, text],
-        scale: 1.05,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-
-    button.on('pointerout', () => {
-      this.tweens.add({
-        targets: [button, text],
-        scale: 1,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
+    // キャンセルボタン（ニュートラル・Sサイズ）
+    const { button: cancelButton, text: cancelText } = ButtonFactory.createNeutralButton(
+      this,
+      rightButtonX,
+      buttonY,
+      'キャンセル',
+      'S',
+      () => {
+        this.soundManager.playButtonTap();
+        this.soundManager.playScreenTransition();
+        
+        // メイン画面に戻る
+        this.scene.start('MainScene');
+      }
+    );
   }
 
   private addDebugLines(): void {

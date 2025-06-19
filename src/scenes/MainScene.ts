@@ -3,6 +3,9 @@ import { GameConfig } from '../config/GameConfig';
 import { DebugHelper } from '../utils/DebugHelper';
 import { StageManager } from '../managers/StageManager';
 import { SoundManager } from '../utils/SoundManager';
+import { AnimationManager, TransitionType } from '../utils/AnimationManager';
+import { TooltipManager } from '../utils/TooltipManager';
+import { ButtonFactory, BUTTON_SPACING } from '../utils/ButtonStyles';
 
 /**
  * メイン画面（ステージ選択画面）
@@ -11,6 +14,8 @@ export class MainScene extends Phaser.Scene {
   private debugHelper!: DebugHelper;
   private stageManager: StageManager;
   private soundManager!: SoundManager;
+  private animationManager!: AnimationManager;
+  private tooltipManager!: TooltipManager;
 
   constructor() {
     super({ key: 'MainScene' });
@@ -27,8 +32,17 @@ export class MainScene extends Phaser.Scene {
     this.soundManager = new SoundManager(this);
     this.soundManager.preloadSounds();
     
+    // アニメーションマネージャーを初期化
+    this.animationManager = new AnimationManager(this);
+    
+    // ツールチップマネージャーを初期化
+    this.tooltipManager = new TooltipManager(this);
+    
     // タイトルBGMを開始
     this.soundManager.playTitleBgm();
+    
+    // 背景演出を追加
+    this.createBackgroundEffects();
     
     // テスト用：初期ゴールドを追加（開発・テスト用）
     if (GameConfig.DEBUG_MODE) {
@@ -43,7 +57,7 @@ export class MainScene extends Phaser.Scene {
     // ヘッダー（ゴールド表示）
     const goldText = this.add.text(width - 10, 30, `ゴールド: ${gold.toLocaleString()}`, {
       fontSize: '18px',
-      color: '#FFFFFF',
+      color: '#FFD700',
       stroke: '#000000',
       strokeThickness: 2
     }).setOrigin(1, 0.5);
@@ -56,6 +70,16 @@ export class MainScene extends Phaser.Scene {
       stroke: '#000000',
       strokeThickness: 3
     }).setOrigin(0.5);
+    
+    // 軽やかな浮遊アニメーション
+    this.tweens.add({
+      targets: stageText,
+      y: height / 4 - 3,
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
     
     // ステージ詳細情報
     if (stageConfig) {
@@ -102,132 +126,137 @@ export class MainScene extends Phaser.Scene {
       }).setOrigin(0.5);
     }
     
-    // プレイボタン
-    const playButton = this.add.rectangle(width / 2, height / 2, 200, 60, 0x0088FF)
-      .setInteractive({ useHandCursor: true });
+    // プライマリボタン（プレイボタン・Lサイズ）
+    const { button: playButton, text: playText } = ButtonFactory.createPrimaryButton(
+      this,
+      width / 2,
+      height / 2,
+      'プレイ',
+      'L',
+      () => {
+        this.soundManager.playButtonTap();
+        
+        this.animationManager.buttonClick(playButton, () => {
+          this.soundManager.playScreenTransition();
+          
+          this.animationManager.screenTransition('MainScene', 'ItemSelectionScene', TransitionType.WAVE).then(() => {
+            this.scene.start('ItemSelectionScene', { 
+              stage: currentStage
+            });
+          });
+        });
+      }
+    );
     
-    const playText = this.add.text(width / 2, height / 2, 'プレイ', {
-      fontSize: '24px',
-      color: '#FFFFFF'
-    }).setOrigin(0.5);
-    
-    // アイテムボタン
-    const itemButton = this.add.rectangle(width / 4, height * 0.75, 120, 50, 0x22AA22)
-      .setInteractive({ useHandCursor: true });
-    
-    const itemText = this.add.text(width / 4, height * 0.75, 'アイテム', {
-      fontSize: '18px',
-      color: '#FFFFFF'
-    }).setOrigin(0.5);
-    
-    // ガチャボタン
-    const gachaButton = this.add.rectangle(width * 0.75, height * 0.75, 120, 50, 0xAA2222)
-      .setInteractive({ useHandCursor: true });
-    
-    const gachaText = this.add.text(width * 0.75, height * 0.75, 'ガチャ', {
-      fontSize: '18px',
-      color: '#FFFFFF'
-    }).setOrigin(0.5);
-    
-    // ボタンクリックイベント
-    playButton.on('pointerdown', () => {
-      this.soundManager.playButtonTap();
-      this.soundManager.playScreenTransition();
-      
-      // アイテム選択画面に遷移
-      this.scene.start('ItemSelectionScene', { 
-        stage: currentStage
-      });
+    // 軽やかな輝きエフェクト
+    this.tweens.add({
+      targets: playButton,
+      alpha: 0.9,
+      duration: 2000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
     });
     
-    itemButton.on('pointerdown', () => {
-      this.soundManager.playButtonTap();
-      this.soundManager.playScreenTransition();
-      
-      // アイテム一覧画面に遷移
-      this.scene.start('ItemListScene');
-    });
+    // セカンダリボタン（アイテムボタン・Sサイズ）
+    const { button: itemButton, text: itemText } = ButtonFactory.createSecondaryButton(
+      this,
+      width / 2 - BUTTON_SPACING.DUAL_BUTTONS / 2,
+      height * 0.75,
+      'アイテム',
+      'S',
+      () => {
+        this.soundManager.playButtonTap();
+        
+        this.animationManager.buttonClick(itemButton, () => {
+          this.soundManager.playScreenTransition();
+          
+          this.animationManager.screenTransition('MainScene', 'ItemListScene', TransitionType.BUBBLE).then(() => {
+            this.scene.start('ItemListScene');
+          });
+        });
+      }
+    );
     
-    gachaButton.on('pointerdown', () => {
-      this.soundManager.playButtonTap();
-      this.soundManager.playScreenTransition();
-      
-      // ガチャ画面に遷移
-      this.scene.start('GachaScene');
-    });
+    // 危険ボタン（ガチャボタン・Sサイズ）
+    const { button: gachaButton, text: gachaText } = ButtonFactory.createDangerButton(
+      this,
+      width / 2 + BUTTON_SPACING.DUAL_BUTTONS / 2,
+      height * 0.75,
+      'ガチャ',
+      'S',
+      () => {
+        this.soundManager.playButtonTap();
+        
+        this.animationManager.buttonClick(gachaButton, () => {
+          this.soundManager.playScreenTransition();
+          
+          this.animationManager.screenTransition('MainScene', 'GachaScene', TransitionType.BUBBLE).then(() => {
+            this.scene.start('GachaScene');
+          });
+        });
+      }
+    );
     
-    // ボタンホバーエフェクト
-    playButton.on('pointerover', () => {
-      this.tweens.add({
-        targets: [playButton, playText],
-        scale: 1.05,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-    
-    playButton.on('pointerout', () => {
-      this.tweens.add({
-        targets: [playButton, playText],
-        scale: 1,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-    
-    playButton.on('pointerdown', () => {
-      // クリック時の押し込みエフェクト
-      this.tweens.add({
-        targets: [playButton, playText],
-        scale: 0.95,
-        duration: 100,
-        yoyo: true,
-        ease: 'Power2'
-      });
-    });
-    
-    // アイテムボタンのホバーエフェクト
-    itemButton.on('pointerover', () => {
-      this.tweens.add({
-        targets: [itemButton, itemText],
-        scale: 1.05,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-    
-    itemButton.on('pointerout', () => {
-      this.tweens.add({
-        targets: [itemButton, itemText],
-        scale: 1,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-    
-    // ガチャボタンのホバーエフェクト
-    gachaButton.on('pointerover', () => {
-      this.tweens.add({
-        targets: [gachaButton, gachaText],
-        scale: 1.05,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
-    
-    gachaButton.on('pointerout', () => {
-      this.tweens.add({
-        targets: [gachaButton, gachaText],
-        scale: 1,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
-    });
+    // ツールチップを追加
+    this.tooltipManager.addButtonTooltip(playButton, 'ゲームを開始します\nアイテムを選択してステージに挑戦');
+    this.tooltipManager.addButtonTooltip(itemButton, '所持しているアイテムを確認できます');
+    this.tooltipManager.addButtonTooltip(gachaButton, 'ゴールドを使ってアイテムを獲得できます');
     
     // デバッグライン
     if (GameConfig.DEBUG_MODE) {
       this.addDebugLines();
     }
+  }
+  
+  /**
+   * 背景演出を作成
+   */
+  private createBackgroundEffects(): void {
+    const { width, height } = this.cameras.main;
+    
+    // 控えめな泡のパーティクルエフェクトのみ
+    this.createBubbleParticles();
+  }
+  
+  /**
+   * 泡のパーティクルエフェクトを作成（控えめ版）
+   */
+  private createBubbleParticles(): void {
+    const { width, height } = this.cameras.main;
+    
+    // 定期的に泡を生成（頻度を下げる）
+    this.time.addEvent({
+      delay: 4000, // 4秒に1回に変更
+      callback: () => {
+        // 泡の数を減らす
+        for (let i = 0; i < 2; i++) {
+          const bubble = this.add.circle(
+            Phaser.Math.Between(50, width - 50),
+            height + 20,
+            Phaser.Math.Between(2, 5), // サイズを小さく
+            0x87CEEB,
+            0.4 // 透明度を下げる
+          );
+          
+          bubble.setStrokeStyle(1, 0xFFFFFF, 0.6);
+          
+          // 泡の上昇アニメーション（ゆっくり）
+          this.tweens.add({
+            targets: bubble,
+            y: -20,
+            x: bubble.x + Phaser.Math.Between(-20, 20),
+            alpha: 0,
+            duration: Phaser.Math.Between(6000, 8000), // より長く
+            ease: 'Sine.easeOut',
+            onComplete: () => {
+              bubble.destroy();
+            }
+          });
+        }
+      },
+      loop: true
+    });
   }
   
   private addDebugLines(): void {
@@ -319,6 +348,16 @@ export class MainScene extends Phaser.Scene {
     // サウンドマネージャーをクリーンアップ
     if (this.soundManager) {
       this.soundManager.destroy();
+    }
+    
+    // アニメーションマネージャーをクリーンアップ
+    if (this.animationManager) {
+      this.animationManager.destroy();
+    }
+    
+    // ツールチップマネージャーをクリーンアップ
+    if (this.tooltipManager) {
+      this.tooltipManager.destroy();
     }
   }
 }
