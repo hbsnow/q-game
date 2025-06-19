@@ -48,6 +48,9 @@ export class GameScene extends Phaser.Scene {
   private isItemMode: boolean = false;
   private selectedItemSlot: 'special' | 'normal' | null = null;
   private scoreBoosterActive: boolean = false; // スコアブースターが有効かどうか
+  
+  // スワップ用の状態
+  private swapFirstBlock: {x: number, y: number} | null = null;
 
   constructor() {
     super({ key: 'GameScene' });
@@ -820,12 +823,9 @@ export class GameScene extends Phaser.Scene {
     
     switch (item.effectType) {
       case 'swap':
-        // スワップは2つのブロックが必要（簡略化のため、隣接ブロックと入れ替え）
-        const adjacentPos = this.findAdjacentBlock(x, y);
-        if (adjacentPos) {
-          result = ItemEffectManager.applySwap(this.blocks, {x, y}, adjacentPos);
-        }
-        break;
+        // スワップは2つのブロックを順番に選択
+        this.handleSwapSelection(x, y);
+        return; // スワップ処理は別途実行
         
       case 'changeOne':
         // 色選択UIを表示
@@ -1652,7 +1652,14 @@ export class GameScene extends Phaser.Scene {
     const item = this.selectedItemSlot === 'special' ? equippedItems.specialSlot : equippedItems.normalSlot;
     
     if (item) {
-      const message = this.add.text(width / 2, 100, `${item.name}を使用中 - 対象を選択してください`, {
+      let messageText = `${item.name}を使用中 - 対象を選択してください`;
+      
+      // スワップの場合は特別なメッセージ
+      if (item.effectType === 'swap') {
+        messageText = `${item.name}を使用中 - 1つ目のブロックを選択してください`;
+      }
+      
+      const message = this.add.text(width / 2, 100, messageText, {
         fontSize: '16px',
         color: '#FFFF00',
         stroke: '#000000',
@@ -1681,6 +1688,12 @@ export class GameScene extends Phaser.Scene {
   private exitItemMode(): void {
     this.isItemMode = false;
     this.selectedItemSlot = null;
+    
+    // スワップ状態をリセット
+    if (this.swapFirstBlock) {
+      this.highlightSwapBlock(this.swapFirstBlock.x, this.swapFirstBlock.y, false);
+      this.resetSwapState();
+    }
     
     // UI要素を削除
     const message = this.children.getByName('itemModeMessage');
@@ -2022,6 +2035,139 @@ export class GameScene extends Phaser.Scene {
       const label = this.children.getByName(`colorLabel_${i}`);
       if (button) button.destroy();
       if (label) label.destroy();
+    }
+  }
+
+  /**
+   * スワップアイテムの選択処理
+   */
+  private handleSwapSelection(x: number, y: number): void {
+    console.log(`スワップ選択: (${x}, ${y})`);
+    
+    // ブロックの存在チェック
+    if (!this.blocks[y] || !this.blocks[y][x]) {
+      console.log('ブロックが存在しません');
+      return;
+    }
+    
+    // 岩ブロックと鋼鉄ブロックは選択不可
+    const block = this.blocks[y][x];
+    if (block.type === 'rock' || block.type === 'steel') {
+      console.log('岩ブロックと鋼鉄ブロックは選択できません');
+      return;
+    }
+    
+    if (!this.swapFirstBlock) {
+      // 1つ目のブロックを選択
+      this.swapFirstBlock = {x, y};
+      console.log(`1つ目のブロックを選択: (${x}, ${y})`);
+      
+      // 選択されたブロックをハイライト表示
+      this.highlightSwapBlock(x, y, true);
+      
+      // メッセージを更新
+      this.updateItemModeMessage('2つ目のブロックを選択してください');
+    } else {
+      // 2つ目のブロックを選択
+      console.log(`2つ目のブロックを選択: (${x}, ${y})`);
+      
+      // 同じブロックを選択した場合はキャンセル
+      if (this.swapFirstBlock.x === x && this.swapFirstBlock.y === y) {
+        console.log('同じブロックが選択されました。選択をキャンセルします');
+        this.cancelSwapSelection();
+        return;
+      }
+      
+      // スワップを実行
+      this.executeSwap(this.swapFirstBlock, {x, y});
+    }
+  }
+
+  /**
+   * スワップを実行
+   */
+  private executeSwap(pos1: {x: number, y: number}, pos2: {x: number, y: number}): void {
+    console.log(`スワップ実行: (${pos1.x}, ${pos1.y}) <-> (${pos2.x}, ${pos2.y})`);
+    
+    const result = ItemEffectManager.applySwap(this.blocks, pos1, pos2);
+    
+    if (result && result.success) {
+      console.log('スワップ成功');
+      
+      // 結果を盤面に適用
+      if (result.newBlocks) {
+        this.blocks = result.newBlocks;
+      }
+      
+      // スワップエフェクトを表示（簡易版）
+      console.log('スワップエフェクト表示');
+      // TODO: 後でスワップ専用エフェクトを実装
+      
+      // アイテムを使用済みに設定
+      this.itemManager.useItem(this.selectedItemSlot!);
+      
+      // ブロック表示を更新
+      this.updateBlockSprites();
+      
+      // アイテムボタンの表示を更新
+      this.updateItemButtons();
+      
+      // スワップ状態をリセット
+      this.resetSwapState();
+      
+      // アイテムモードを終了
+      this.exitItemMode();
+    } else {
+      console.log('スワップ失敗:', result?.message);
+      this.cancelSwapSelection();
+    }
+  }
+
+  /**
+   * スワップ選択をキャンセル
+   */
+  private cancelSwapSelection(): void {
+    if (this.swapFirstBlock) {
+      // ハイライトを削除
+      this.highlightSwapBlock(this.swapFirstBlock.x, this.swapFirstBlock.y, false);
+    }
+    this.resetSwapState();
+    this.updateItemModeMessage('1つ目のブロックを選択してください');
+  }
+
+  /**
+   * スワップ状態をリセット
+   */
+  private resetSwapState(): void {
+    this.swapFirstBlock = null;
+  }
+
+  /**
+   * スワップブロックのハイライト表示
+   */
+  private highlightSwapBlock(x: number, y: number, highlight: boolean): void {
+    const blockSprite = this.blockSprites[y] && this.blockSprites[y][x];
+    if (blockSprite) {
+      if (highlight) {
+        // ハイライト効果（明るくする）
+        blockSprite.setTint(0xFFFFAA);
+        blockSprite.setScale(1.1);
+      } else {
+        // ハイライト解除
+        blockSprite.clearTint();
+        blockSprite.setScale(1);
+      }
+    }
+  }
+
+  /**
+   * アイテムモードのメッセージを更新
+   */
+  private updateItemModeMessage(message: string): void {
+    // 既存のメッセージテキストを更新
+    const messageText = this.children.getByName('itemModeMessage') as Phaser.GameObjects.Text;
+    if (messageText) {
+      messageText.setText(message);
     }
   }
 }
