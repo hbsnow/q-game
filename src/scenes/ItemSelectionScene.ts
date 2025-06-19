@@ -6,7 +6,7 @@ import { ItemManager } from '../managers/ItemManager';
 import { ITEM_DATA } from '../data/ItemData';
 import { Item, ItemRarity } from '../types/Item';
 import { SoundManager } from '../utils/SoundManager';
-import { ButtonFactory, BUTTON_SPACING } from '../utils/ButtonStyles';
+import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
  * アイテム選択画面
@@ -554,17 +554,19 @@ export class ItemSelectionScene extends Phaser.Scene {
     const { width, height } = this.cameras.main;
     const buttonY = height - 60;
     
-    // 統一された間隔を使用
-    const leftButtonX = width / 2 - BUTTON_SPACING.DUAL_BUTTONS / 2;
-    const rightButtonX = width / 2 + BUTTON_SPACING.DUAL_BUTTONS / 2;
+    // ボタン配置
+    const leftButtonX = width / 2 - 80;
+    const rightButtonX = width / 2 + 80;
 
-    // 決定ボタン（セカンダリ・Sサイズ）
-    const { button: confirmButton, text: confirmText } = ButtonFactory.createSecondaryButton(
+    // 決定ボタン
+    const confirmButton = new SimpleOceanButton(
       this,
       leftButtonX,
       buttonY,
+      120,
+      45,
       '決定',
-      'S',
+      'success',
       () => {
         this.soundManager.playButtonTap();
         this.soundManager.playScreenTransition();
@@ -582,13 +584,15 @@ export class ItemSelectionScene extends Phaser.Scene {
       }
     );
 
-    // キャンセルボタン（ニュートラル・Sサイズ）
-    const { button: cancelButton, text: cancelText } = ButtonFactory.createNeutralButton(
+    // キャンセルボタン
+    const cancelButton = new SimpleOceanButton(
       this,
       rightButtonX,
       buttonY,
+      120,
+      45,
       'キャンセル',
-      'S',
+      'secondary',
       () => {
         this.soundManager.playButtonTap();
         this.soundManager.playScreenTransition();

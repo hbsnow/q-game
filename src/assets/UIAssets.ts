@@ -3,7 +3,7 @@
  */
 export class UIAssets {
   /**
-   * 海洋テーマのボタンを生成
+   * 海洋テーマのボタンを生成（通常状態）
    */
   static createOceanButton(
     scene: Phaser.Scene, 
@@ -11,55 +11,157 @@ export class UIAssets {
     height: number, 
     type: 'primary' | 'secondary' | 'danger' | 'success' = 'primary'
   ): Phaser.Textures.Texture {
+    return this.createOceanButtonState(scene, width, height, type, 'normal');
+  }
+
+  /**
+   * 海洋テーマのボタンを生成（ホバー状態）
+   */
+  static createOceanButtonHover(
+    scene: Phaser.Scene, 
+    width: number, 
+    height: number, 
+    type: 'primary' | 'secondary' | 'danger' | 'success' = 'primary'
+  ): Phaser.Textures.Texture {
+    return this.createOceanButtonState(scene, width, height, type, 'hover');
+  }
+
+  /**
+   * 海洋テーマのボタンを生成（プレス状態）
+   */
+  static createOceanButtonPressed(
+    scene: Phaser.Scene, 
+    width: number, 
+    height: number, 
+    type: 'primary' | 'secondary' | 'danger' | 'success' = 'primary'
+  ): Phaser.Textures.Texture {
+    return this.createOceanButtonState(scene, width, height, type, 'pressed');
+  }
+
+  /**
+   * 海洋テーマのボタンを生成（無効状態）
+   */
+  static createOceanButtonDisabled(
+    scene: Phaser.Scene, 
+    width: number, 
+    height: number, 
+    type: 'primary' | 'secondary' | 'danger' | 'success' = 'primary'
+  ): Phaser.Textures.Texture {
+    return this.createOceanButtonState(scene, width, height, type, 'disabled');
+  }
+
+  /**
+   * 海洋テーマのボタンを状態別に生成
+   */
+  private static createOceanButtonState(
+    scene: Phaser.Scene, 
+    width: number, 
+    height: number, 
+    type: 'primary' | 'secondary' | 'danger' | 'success',
+    state: 'normal' | 'hover' | 'pressed' | 'disabled'
+  ): Phaser.Textures.Texture {
     const graphics = scene.add.graphics();
     
     // ボタンタイプ別の色設定
     const buttonThemes = {
       primary: {
-        gradient: [0x1E88E5, 0x42A5F5, 0x1E88E5],
-        border: 0x0D47A1,
-        highlight: 0x64B5F6
+        gradient: [0x0D47A1, 0x1E88E5, 0x42A5F5, 0x1E88E5, 0x0D47A1],
+        border: 0x01579B,
+        highlight: 0x64B5F6,
+        shadow: 0x0D47A1,
+        glow: 0x2196F3
       },
       secondary: {
-        gradient: [0x26A69A, 0x4DB6AC, 0x26A69A],
-        border: 0x00695C,
-        highlight: 0x80CBC4
+        gradient: [0x004D40, 0x26A69A, 0x4DB6AC, 0x26A69A, 0x004D40],
+        border: 0x00251A,
+        highlight: 0x80CBC4,
+        shadow: 0x004D40,
+        glow: 0x009688
       },
       danger: {
-        gradient: [0xE53935, 0xEF5350, 0xE53935],
-        border: 0xB71C1C,
-        highlight: 0xEF9A9A
+        gradient: [0xB71C1C, 0xE53935, 0xEF5350, 0xE53935, 0xB71C1C],
+        border: 0x8E0000,
+        highlight: 0xEF9A9A,
+        shadow: 0xB71C1C,
+        glow: 0xF44336
       },
       success: {
-        gradient: [0x43A047, 0x66BB6A, 0x43A047],
-        border: 0x1B5E20,
-        highlight: 0xA5D6A7
+        gradient: [0x1B5E20, 0x43A047, 0x66BB6A, 0x43A047, 0x1B5E20],
+        border: 0x0D3311,
+        highlight: 0xA5D6A7,
+        shadow: 0x1B5E20,
+        glow: 0x4CAF50
       }
     };
     
     const theme = buttonThemes[type];
     
+    // 状態による調整
+    const stateAdjustments = this.getButtonStateAdjustments(state);
+    
+    // 3D効果のためのシャドウ（プレス時は小さく）
+    const shadowOffset = state === 'pressed' ? 1 : 3;
+    const shadowBlur = state === 'pressed' ? 2 : 4;
+    
+    // シャドウ描画
+    if (state !== 'disabled') {
+      graphics.fillStyle(theme.shadow, 0.4);
+      graphics.fillRoundedRect(shadowOffset, shadowOffset + shadowBlur, width, height, 12);
+    }
+    
+    // メインボタンの描画位置（プレス時は下に移動）
+    const buttonY = state === 'pressed' ? shadowOffset : 0;
+    
     // グラデーション背景
-    this.createButtonGradient(graphics, width, height, theme.gradient);
+    this.createAdvancedButtonGradient(graphics, 0, buttonY, width, height, theme.gradient, stateAdjustments);
     
     // 海洋装飾
-    this.addOceanButtonDecorations(graphics, width, height, type);
+    this.addAdvancedOceanButtonDecorations(graphics, 0, buttonY, width, height, type, state);
     
-    // ボタンの枠線
-    graphics.lineStyle(2, theme.border, 1);
-    graphics.strokeRoundedRect(1, 1, width - 2, height - 2, 8);
+    // 光沢効果（上部）
+    if (state !== 'disabled') {
+      graphics.fillStyle(0xFFFFFF, stateAdjustments.glossOpacity);
+      graphics.fillRoundedRect(4, buttonY + 4, width - 8, height * 0.3, 8);
+    }
     
-    // ハイライト効果
-    graphics.lineStyle(1, theme.highlight, 0.6);
-    graphics.strokeRoundedRect(3, 3, width - 6, height * 0.3, 6);
+    // メインの枠線（3D効果）
+    graphics.lineStyle(3, theme.border, stateAdjustments.borderOpacity);
+    graphics.strokeRoundedRect(1.5, buttonY + 1.5, width - 3, height - 3, 10);
     
-    const key = `ocean_button_${type}_${width}x${height}`;
-    const rt = scene.add.renderTexture(0, 0, width, height);
+    // 内側のハイライト
+    if (state !== 'disabled') {
+      graphics.lineStyle(1, theme.highlight, stateAdjustments.highlightOpacity);
+      graphics.strokeRoundedRect(4, buttonY + 4, width - 8, height - 8, 8);
+    }
+    
+    // ホバー時のグロー効果
+    if (state === 'hover') {
+      graphics.lineStyle(4, theme.glow, 0.3);
+      graphics.strokeRoundedRect(-1, buttonY - 1, width + 2, height + 2, 12);
+    }
+    
+    // 波紋エフェクト（ホバー・プレス時）
+    if (state === 'hover' || state === 'pressed') {
+      this.addRippleEffect(graphics, width / 2, buttonY + height / 2, width, state === 'pressed' ? 0.4 : 0.2);
+    }
+    
+    const key = `ocean_button_${type}_${state}_${width}x${height}`;
+    
+    // 既存のテクスチャがあれば削除
+    if (scene.textures.exists(key)) {
+      scene.textures.remove(key);
+    }
+    
+    const rt = scene.add.renderTexture(0, 0, width + shadowOffset + shadowBlur, height + shadowOffset + shadowBlur);
     rt.draw(graphics, 0, 0);
     
-    graphics.destroy();
+    // テクスチャを生成してキャッシュに保存
+    rt.saveTexture(key);
     
-    return rt.texture;
+    graphics.destroy();
+    rt.destroy();
+    
+    return scene.textures.get(key);
   }
   
   /**
@@ -196,47 +298,184 @@ export class UIAssets {
   }
   
   /**
-   * ボタンのグラデーションを作成
+   * 高度なボタンのグラデーションを作成
    */
-  private static createButtonGradient(graphics: Phaser.GameObjects.Graphics, width: number, height: number, colors: number[]): void {
-    const steps = 10;
+  private static createAdvancedButtonGradient(
+    graphics: Phaser.GameObjects.Graphics, 
+    x: number, 
+    y: number, 
+    width: number, 
+    height: number, 
+    colors: number[], 
+    adjustments: any
+  ): void {
+    const steps = 20;
     const stepHeight = height / steps;
     
     for (let i = 0; i < steps; i++) {
       const ratio = i / (steps - 1);
-      let color: number;
+      const color = this.interpolateMultipleColors(colors, ratio);
+      const adjustedColor = this.adjustColorBrightness(color, adjustments.brightness);
       
-      if (ratio <= 0.5) {
-        const localRatio = ratio * 2;
-        color = this.interpolateColor(colors[0], colors[1], localRatio);
-      } else {
-        const localRatio = (ratio - 0.5) * 2;
-        color = this.interpolateColor(colors[1], colors[2], localRatio);
-      }
+      const cornerRadius = i === 0 ? 12 : (i === steps - 1 ? 12 : 0);
       
-      graphics.fillStyle(color, 1);
-      graphics.fillRoundedRect(0, i * stepHeight, width, stepHeight + 1, i === 0 ? 8 : 0);
+      graphics.fillStyle(adjustedColor, adjustments.opacity);
+      graphics.fillRoundedRect(x, y + i * stepHeight, width, stepHeight + 1, cornerRadius);
     }
   }
-  
+
   /**
-   * ボタンの海洋装飾を追加
+   * 高度な海洋装飾を追加
    */
-  private static addOceanButtonDecorations(graphics: Phaser.GameObjects.Graphics, width: number, height: number, type: string): void {
-    // 小さな泡のエフェクト
-    const bubbles = Math.floor(width / 20);
+  private static addAdvancedOceanButtonDecorations(
+    graphics: Phaser.GameObjects.Graphics, 
+    x: number, 
+    y: number, 
+    width: number, 
+    height: number, 
+    type: string, 
+    state: string
+  ): void {
+    // 泡のエフェクト（状態に応じて変化）
+    const bubbleCount = state === 'hover' ? Math.floor(width / 15) : Math.floor(width / 20);
+    const bubbleOpacity = state === 'disabled' ? 0.1 : (state === 'hover' ? 0.5 : 0.3);
     
-    for (let i = 0; i < bubbles; i++) {
-      const x = (width / (bubbles + 1)) * (i + 1);
-      const y = height * 0.3;
-      const radius = 1 + Math.random() * 1.5;
+    for (let i = 0; i < bubbleCount; i++) {
+      const bubbleX = x + (width / (bubbleCount + 1)) * (i + 1);
+      const bubbleY = y + height * (0.2 + Math.random() * 0.6);
+      const radius = 1 + Math.random() * 2;
       
-      graphics.fillStyle(0xFFFFFF, 0.3);
-      graphics.fillCircle(x, y, radius);
+      // 泡の本体
+      graphics.fillStyle(0xFFFFFF, bubbleOpacity);
+      graphics.fillCircle(bubbleX, bubbleY, radius);
       
-      graphics.lineStyle(0.5, 0xFFFFFF, 0.6);
-      graphics.strokeCircle(x, y, radius);
+      // 泡の輪郭
+      graphics.lineStyle(0.5, 0xFFFFFF, bubbleOpacity * 1.5);
+      graphics.strokeCircle(bubbleX, bubbleY, radius);
+      
+      // 泡のハイライト
+      graphics.fillStyle(0xFFFFFF, bubbleOpacity * 0.8);
+      graphics.fillCircle(bubbleX - radius * 0.3, bubbleY - radius * 0.3, radius * 0.3);
     }
+    
+    // 水流エフェクト（波線）
+    if (state !== 'disabled') {
+      const waveOpacity = state === 'hover' ? 0.4 : 0.2;
+      graphics.lineStyle(1, 0xFFFFFF, waveOpacity);
+      
+      const waveCount = 3;
+      for (let w = 0; w < waveCount; w++) {
+        const waveY = y + height * (0.3 + w * 0.2);
+        graphics.beginPath();
+        graphics.moveTo(x + 10, waveY);
+        
+        for (let i = 0; i <= width - 20; i += 8) {
+          const waveX = x + 10 + i;
+          const waveOffset = Math.sin((i / 8) * Math.PI * 0.5) * 2;
+          graphics.lineTo(waveX, waveY + waveOffset);
+        }
+        graphics.strokePath();
+      }
+    }
+    
+    // 深海の粒子エフェクト
+    if (type === 'primary' && state !== 'disabled') {
+      const particleCount = 8;
+      const particleOpacity = state === 'hover' ? 0.3 : 0.15;
+      
+      for (let i = 0; i < particleCount; i++) {
+        const particleX = x + Math.random() * width;
+        const particleY = y + Math.random() * height;
+        const size = 0.5 + Math.random() * 1;
+        
+        graphics.fillStyle(0x87CEEB, particleOpacity);
+        graphics.fillCircle(particleX, particleY, size);
+      }
+    }
+  }
+
+  /**
+   * 波紋エフェクトを追加
+   */
+  private static addRippleEffect(
+    graphics: Phaser.GameObjects.Graphics, 
+    centerX: number, 
+    centerY: number, 
+    maxRadius: number, 
+    opacity: number
+  ): void {
+    const rippleCount = 3;
+    
+    for (let i = 0; i < rippleCount; i++) {
+      const radius = (maxRadius / rippleCount) * (i + 1) * 0.3;
+      const rippleOpacity = opacity * (1 - i / rippleCount);
+      
+      graphics.lineStyle(2, 0xFFFFFF, rippleOpacity);
+      graphics.strokeCircle(centerX, centerY, radius);
+    }
+  }
+
+  /**
+   * ボタン状態による調整値を取得
+   */
+  private static getButtonStateAdjustments(state: string): any {
+    const adjustments: { [key: string]: any } = {
+      normal: {
+        brightness: 1.0,
+        opacity: 1.0,
+        borderOpacity: 1.0,
+        highlightOpacity: 0.6,
+        glossOpacity: 0.2
+      },
+      hover: {
+        brightness: 1.1,
+        opacity: 1.0,
+        borderOpacity: 1.0,
+        highlightOpacity: 0.8,
+        glossOpacity: 0.3
+      },
+      pressed: {
+        brightness: 0.9,
+        opacity: 1.0,
+        borderOpacity: 1.0,
+        highlightOpacity: 0.4,
+        glossOpacity: 0.1
+      },
+      disabled: {
+        brightness: 0.6,
+        opacity: 0.5,
+        borderOpacity: 0.3,
+        highlightOpacity: 0.0,
+        glossOpacity: 0.0
+      }
+    };
+    
+    return adjustments[state] || adjustments.normal;
+  }
+
+  /**
+   * 複数色の補間
+   */
+  private static interpolateMultipleColors(colors: number[], ratio: number): number {
+    if (colors.length < 2) return colors[0] || 0x000000;
+    
+    const segmentCount = colors.length - 1;
+    const segmentSize = 1 / segmentCount;
+    const segmentIndex = Math.min(Math.floor(ratio / segmentSize), segmentCount - 1);
+    const localRatio = (ratio - segmentIndex * segmentSize) / segmentSize;
+    
+    return this.interpolateColor(colors[segmentIndex], colors[segmentIndex + 1], localRatio);
+  }
+
+  /**
+   * 色の明度を調整
+   */
+  private static adjustColorBrightness(color: number, brightness: number): number {
+    const r = Math.min(255, Math.max(0, ((color >> 16) & 0xFF) * brightness));
+    const g = Math.min(255, Math.max(0, ((color >> 8) & 0xFF) * brightness));
+    const b = Math.min(255, Math.max(0, (color & 0xFF) * brightness));
+    
+    return (Math.floor(r) << 16) | (Math.floor(g) << 8) | Math.floor(b);
   }
   
   /**

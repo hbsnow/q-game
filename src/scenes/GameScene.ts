@@ -18,7 +18,7 @@ import { ItemEffectManager } from '../managers/ItemEffectManager';
 import { ItemEffectVisualizer } from '../utils/ItemEffectVisualizer';
 import { ITEM_DATA } from '../data/ItemData';
 import { ParticleManager } from '../utils/ParticleManager';
-import { ButtonFactory } from '../utils/ButtonStyles';
+import { SimpleOceanButton } from '../components/SimpleOceanButton';
 import { SoundManager } from '../utils/SoundManager';
 import { ErrorManager, ErrorType } from '../utils/ErrorManager';
 import { TooltipManager } from '../utils/TooltipManager';
@@ -260,19 +260,20 @@ export class GameScene extends Phaser.Scene {
       console.log('アイテムボタン:', button.name, 'x:', (button as any).x, 'y:', (button as any).y);
     });
     
-    // リタイアボタン（危険・Sサイズ）
-    const { button: retireButton, text: retireText } = ButtonFactory.createDangerButton(
+    // リタイアボタン
+    const retireButton = new SimpleOceanButton(
       this,
       width - 70,
       buttonCenterY,
+      100,
+      40,
       'リタイア',
-      'S',
+      'danger',
       () => this.onRetire()
     );
     
     // ボタンに名前を設定（後で参照するため）
     retireButton.setName('retireButton');
-    retireText.setName('retireText');
     
     // ブロックの初期配置
     this.createInitialBlocks();
@@ -1473,51 +1474,26 @@ export class GameScene extends Phaser.Scene {
   private showClearButton(): void {
     const { width, height } = this.cameras.main;
     
-    // ButtonFactoryで作成されたボタンを取得
-    const retireButton = this.children.getByName('retireButton') as Phaser.GameObjects.Graphics;
-    const retireText = this.children.getByName('retireText') as Phaser.GameObjects.Text;
+    // OceanButtonで作成されたボタンを取得
+    const retireButton = this.children.getByName('retireButton') as SimpleOceanButton;
     
-    if (retireButton && retireText) {
-      // Graphicsオブジェクトの場合、色を変更するには再描画が必要
-      retireButton.clear(); // 既存の描画をクリア
+    if (retireButton) {
+      // ボタンのテキストを「クリア」に変更
+      retireButton.setText('クリア');
       
-      // 成功色（緑）でボタンを再描画
-      const sizeInfo = { width: 120, height: 40 }; // Sサイズの寸法
-      const cornerRadius = 8;
-      const rectX = -sizeInfo.width / 2;
-      const rectY = -sizeInfo.height / 2;
-      
-      retireButton.fillStyle(0x22AA22); // 成功色（緑）
-      retireButton.lineStyle(2, 0x1A7A1A); // 濃い緑のボーダー
-      
-      retireButton.fillRoundedRect(
-        rectX,
-        rectY,
-        sizeInfo.width,
-        sizeInfo.height,
-        cornerRadius
-      );
-      retireButton.strokeRoundedRect(
-        rectX,
-        rectY,
-        sizeInfo.width,
-        sizeInfo.height,
-        cornerRadius
-      );
-      
-      // テキストを変更
-      retireText.setText('クリア');
-      
-      // クリックイベントを更新
-      retireButton.off('pointerdown');
-      retireButton.on('pointerdown', () => {
-        // ボタンタップ音を再生
-        this.soundManager.playButtonTap();
-        
-        // ステージクリア処理
-        this.onStageClear();
-      });
+      // ボタンのコールバックを変更
+      retireButton.setCallback(() => this.onClear());
     }
+  }
+  
+  /**
+   * クリア処理
+   */
+  private onClear(): void {
+    this.soundManager.playButtonTap();
+    
+    // ステージクリア処理
+    this.onStageClear();
   }
   
   /**
@@ -1610,40 +1586,28 @@ export class GameScene extends Phaser.Scene {
     
     const isUsed = this.itemManager.isItemUsed(slot);
     
-    // ButtonFactoryを使用して統一デザイン + 左端カラーバーのアイテムボタンを作成
-    const { button, text } = ButtonFactory.createItemButton(
-      this,
-      x,
-      y,
-      itemName,
-      isUsed,
-      'S', // Sサイズ（120×40px）でコンパクトに
-      isUsed ? undefined : () => this.onItemButtonClick(slot),
-      slot === 'special' // 特殊枠かどうかを渡す
-    );
+    // TODO: アイテムボタンを新しいOceanButtonシステムで実装
+    // 一旦シンプルなボタンで代替
+    const button = this.add.rectangle(x, y, 120, 40, isUsed ? 0x666666 : 0x4CAF50);
+    button.setStrokeStyle(2, 0x333333);
+    button.setInteractive();
+    
+    const text = this.add.text(x, y, itemName, {
+      fontSize: '14px',
+      color: isUsed ? '#999999' : '#FFFFFF'
+    });
+    text.setOrigin(0.5, 0.5);
     
     // ボタンに名前を設定（後で参照するため）
     button.setName(`itemButton_${slot}`);
     text.setName(`itemText_${slot}`);
     
+    if (!isUsed) {
+      button.on('pointerdown', () => this.onItemButtonClick(slot));
+    }
+    
     console.log(`ボタン作成完了: ${button.name}, 座標: (${button.x}, ${button.y})`);
     console.log(`テキスト作成完了: ${text.name}, テキスト: "${itemName}", 座標: (${text.x}, ${text.y})`);
-    
-    if (!isUsed) {
-      // ツールチップを追加
-      const itemData = this.itemManager.getItemData(itemName);
-      if (itemData) {
-        this.tooltipManager.addItemTooltip(
-          button, 
-          itemData.name, 
-          itemData.description, 
-          itemData.rarity
-        );
-      }
-    } else {
-      // 使用済みアイテムにはエラーツールチップを追加
-      this.tooltipManager.addErrorTooltip(button, 'このアイテムはすでに使用済みです');
-    }
     
     console.log(`アイテムボタン作成完了: ${slot}枠`);
   }

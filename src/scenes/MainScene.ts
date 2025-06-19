@@ -5,7 +5,7 @@ import { StageManager } from '../managers/StageManager';
 import { SoundManager } from '../utils/SoundManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
 import { TooltipManager } from '../utils/TooltipManager';
-import { ButtonFactory, BUTTON_SPACING } from '../utils/ButtonStyles';
+import { SimpleOceanButton } from '../components/SimpleOceanButton';
 
 /**
  * メイン画面（ステージ選択画面）
@@ -126,75 +126,56 @@ export class MainScene extends Phaser.Scene {
       }).setOrigin(0.5);
     }
     
-    // プライマリボタン（プレイボタン・Lサイズ）
-    const { button: playButton, text: playText } = ButtonFactory.createPrimaryButton(
+    // プライマリボタン（プレイボタン）
+    const playButton = new SimpleOceanButton(
       this,
       width / 2,
       height / 2,
+      200,
+      60,
       'プレイ',
-      'L',
+      'primary',
       () => {
         this.soundManager.playButtonTap();
+        this.soundManager.playScreenTransition();
         
-        this.animationManager.buttonClick(playButton, () => {
-          this.soundManager.playScreenTransition();
-          
-          this.animationManager.screenTransition('MainScene', 'ItemSelectionScene', TransitionType.WAVE).then(() => {
-            this.scene.start('ItemSelectionScene', { 
-              stage: currentStage
-            });
-          });
+        this.scene.start('ItemSelectionScene', { 
+          stage: currentStage
         });
       }
     );
     
-    // 軽やかな輝きエフェクト
-    this.tweens.add({
-      targets: playButton,
-      alpha: 0.9,
-      duration: 2000,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut'
-    });
-    
-    // セカンダリボタン（アイテムボタン・Sサイズ）
-    const { button: itemButton, text: itemText } = ButtonFactory.createSecondaryButton(
+    // セカンダリボタン（アイテムボタン）
+    const itemButton = new SimpleOceanButton(
       this,
-      width / 2 - BUTTON_SPACING.DUAL_BUTTONS / 2,
+      width / 2 - 80,
       height * 0.75,
+      140,
+      50,
       'アイテム',
-      'S',
+      'secondary',
       () => {
         this.soundManager.playButtonTap();
+        this.soundManager.playScreenTransition();
         
-        this.animationManager.buttonClick(itemButton, () => {
-          this.soundManager.playScreenTransition();
-          
-          this.animationManager.screenTransition('MainScene', 'ItemListScene', TransitionType.BUBBLE).then(() => {
-            this.scene.start('ItemListScene');
-          });
-        });
+        this.scene.start('ItemListScene');
       }
     );
     
-    // 危険ボタン（ガチャボタン・Sサイズ）
-    const { button: gachaButton, text: gachaText } = ButtonFactory.createDangerButton(
+    // 危険ボタン（ガチャボタン）
+    const gachaButton = new SimpleOceanButton(
       this,
-      width / 2 + BUTTON_SPACING.DUAL_BUTTONS / 2,
+      width / 2 + 80,
       height * 0.75,
+      140,
+      50,
       'ガチャ',
-      'S',
+      'danger',
       () => {
         this.soundManager.playButtonTap();
+        this.soundManager.playScreenTransition();
         
-        this.animationManager.buttonClick(gachaButton, () => {
-          this.soundManager.playScreenTransition();
-          
-          this.animationManager.screenTransition('MainScene', 'GachaScene', TransitionType.BUBBLE).then(() => {
-            this.scene.start('GachaScene');
-          });
-        });
+        this.scene.start('GachaScene');
       }
     );
     
