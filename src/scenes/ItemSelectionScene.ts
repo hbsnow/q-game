@@ -213,12 +213,14 @@ export class ItemSelectionScene extends Phaser.Scene {
    * アイテムリストを作成
    */
   private createItemList(startY: number): void {
-    const { width } = this.cameras.main;
-    const itemHeight = 25;
-    let currentY = startY;
-
+    const { width, height } = this.cameras.main;
+    
+    // 利用可能な空間を計算
+    const buttonAreaHeight = 80; // ボタンエリアの高さ
+    const availableHeight = height - startY - buttonAreaHeight - 20; // 20pxは余白
+    
     if (this.availableItems.length === 0) {
-      this.add.text(width / 2, currentY, 'アイテムを所持していません', {
+      this.add.text(width / 2, startY, 'アイテムを所持していません', {
         fontSize: '14px',
         color: '#888888',
         fontFamily: 'Arial'
@@ -226,26 +228,59 @@ export class ItemSelectionScene extends Phaser.Scene {
       return;
     }
 
+    // 2列表示の設定
+    const columns = 2;
+    const columnWidth = width / columns;
+    const leftColumnX = columnWidth / 2;
+    const rightColumnX = leftColumnX + columnWidth;
+    
+    // 行数を計算（全13アイテムを基準）
+    const maxItems = 13; // 実装されている全アイテム数
+    const maxRows = Math.ceil(maxItems / columns); // 最大7行
+    const itemHeight = Math.max(22, Math.floor(availableHeight / maxRows)); // 最小22px
+    
+    // フォントサイズを適切に設定（読みやすさ重視）
+    const fontSize = itemHeight >= 30 ? '14px' : itemHeight >= 25 ? '13px' : '12px';
+
     this.availableItems.forEach((item, index) => {
       const count = this.itemManager.getItemCount(item.id);
       const rarityColor = this.getRarityColor(item.rarity);
       
+      // 2列配置の計算
+      const row = Math.floor(index / columns);
+      const col = index % columns;
+      const x = col === 0 ? leftColumnX : rightColumnX;
+      const y = startY + row * itemHeight;
+      
       const itemText = `${item.name} ×${count} (${item.rarity})`;
       
-      const text = this.add.text(width / 2, currentY, itemText, {
-        fontSize: '14px',
+      // アイテム背景（クリック範囲を明確にするため）
+      const itemBg = this.add.rectangle(x, y, columnWidth - 10, itemHeight - 2, 0x000000, 0.1)
+        .setInteractive({ useHandCursor: true })
+        .setName(`itemBg_${item.id}`);
+      
+      const text = this.add.text(x, y, itemText, {
+        fontSize: fontSize,
         color: rarityColor,
         fontFamily: 'Arial'
       }).setOrigin(0.5)
         .setInteractive({ useHandCursor: true })
         .setName(`item_${item.id}`);
       
-      // アイテム説明をツールチップとして表示
-      text.on('pointerover', () => {
-        console.log(`${item.name}: ${item.description}`);
-      });
+      // ホバーエフェクト
+      const addHoverEffect = (target: Phaser.GameObjects.GameObject) => {
+        target.on('pointerover', () => {
+          itemBg.setFillStyle(0x333333, 0.3);
+          console.log(`${item.name}: ${item.description}`);
+        });
+        
+        target.on('pointerout', () => {
+          itemBg.setFillStyle(0x000000, 0.1);
+        });
+      };
       
-      currentY += itemHeight;
+      addHoverEffect(itemBg);
+      addHoverEffect(text);
     });
   }
 
@@ -557,19 +592,27 @@ export class ItemSelectionScene extends Phaser.Scene {
   private addDebugLines(): void {
     const { width, height } = this.cameras.main;
     
-    // タイトルエリア
-    const titleHeight = 80;
-    const titleCenterY = 40;
+    // タイトルエリア（ステージ情報含む）
+    const titleHeight = 100;
+    const titleCenterY = 50;
     this.debugHelper.addAreaBorder(width / 2, titleCenterY, width, titleHeight, 0xFF0000, 'タイトルエリア');
     
-    // メインコンテンツエリア
-    const contentHeight = 480;
-    const contentCenterY = 320;
-    this.debugHelper.addAreaBorder(width / 2, contentCenterY, width, contentHeight, 0x0000FF, 'メインコンテンツエリア');
+    // 装備枠エリア（特殊枠 + 通常枠）
+    const equipmentStartY = 120;
+    const equipmentHeight = 200; // 特殊枠(60px) + 通常枠(60px) + 間隔(80px)
+    const equipmentCenterY = equipmentStartY + equipmentHeight / 2;
+    this.debugHelper.addAreaBorder(width / 2, equipmentCenterY, width, equipmentHeight, 0x00FF00, '装備枠エリア');
+    
+    // 所持アイテム一覧エリア（2列表示）
+    const itemListStartY = equipmentStartY + equipmentHeight + 30; // タイトル分を追加
+    const buttonAreaHeight = 80;
+    const itemListHeight = height - itemListStartY - buttonAreaHeight;
+    const itemListCenterY = itemListStartY + itemListHeight / 2;
+    this.debugHelper.addAreaBorder(width / 2, itemListCenterY, width, itemListHeight, 0x0000FF, '所持アイテム一覧エリア（2列）');
     
     // ボタンエリア
     const buttonHeight = 80;
     const buttonCenterY = height - 40;
-    this.debugHelper.addAreaBorder(width / 2, buttonCenterY, width, buttonHeight, 0xFF00FF, 'ボタンエリア');
+    this.debugHelper.addAreaBorder(width / 2, buttonCenterY, width, buttonHeight, 0xFF00FF, 'ボタン/アクションエリア');
   }
 }
