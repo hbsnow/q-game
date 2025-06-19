@@ -75,14 +75,32 @@ export class GameScene extends Phaser.Scene {
     }
     
     // 装備されたアイテムを設定
+    console.log('GameScene init data:', data);
     if (data.equippedItems) {
+      console.log('装備アイテムデータ:', data.equippedItems);
       if (data.equippedItems.specialSlot) {
-        this.itemManager.equipItem(data.equippedItems.specialSlot, 'special');
+        console.log('特殊枠アイテム装備:', data.equippedItems.specialSlot);
+        // アイテムを所持品に追加してから装備
+        this.itemManager.addItem(data.equippedItems.specialSlot.id, 1);
+        console.log('特殊枠アイテム追加後の所持数:', this.itemManager.getItemCount(data.equippedItems.specialSlot.id));
+        const success1 = this.itemManager.equipItem(data.equippedItems.specialSlot, 'special');
+        console.log('特殊枠装備結果:', success1);
       }
       if (data.equippedItems.normalSlot) {
-        this.itemManager.equipItem(data.equippedItems.normalSlot, 'normal');
+        console.log('通常枠アイテム装備:', data.equippedItems.normalSlot);
+        // アイテムを所持品に追加してから装備
+        this.itemManager.addItem(data.equippedItems.normalSlot.id, 1);
+        console.log('通常枠アイテム追加後の所持数:', this.itemManager.getItemCount(data.equippedItems.normalSlot.id));
+        const success2 = this.itemManager.equipItem(data.equippedItems.normalSlot, 'normal');
+        console.log('通常枠装備結果:', success2);
       }
+    } else {
+      console.log('装備アイテムデータがありません');
     }
+    
+    // 装備確認
+    const equippedCheck = this.itemManager.getEquippedItems();
+    console.log('装備確認:', equippedCheck);
     
     this.score = 0;
     this.isItemMode = false;
@@ -199,9 +217,18 @@ export class GameScene extends Phaser.Scene {
     // ボタンエリア
     const buttonHeight = 60;
     const buttonCenterY = height - buttonHeight / 2;
+    console.log(`ボタン座標計算: height=${height}, buttonHeight=${buttonHeight}, buttonCenterY=${buttonCenterY}`);
     
     // アイテムボタンを作成
     this.createItemButtons(buttonCenterY);
+    
+    // デバッグ: 作成されたオブジェクトを確認
+    console.log('シーンの子要素数:', this.children.length);
+    const itemButtons = this.children.list.filter(child => child.name && child.name.startsWith('itemButton_'));
+    console.log('アイテムボタン数:', itemButtons.length);
+    itemButtons.forEach(button => {
+      console.log('アイテムボタン:', button.name, 'x:', (button as any).x, 'y:', (button as any).y);
+    });
     
     // リタイアボタン
     const retireButton = this.add.rectangle(width - 70, buttonCenterY, 120, 40, 0xAA2222)
@@ -1453,15 +1480,22 @@ export class GameScene extends Phaser.Scene {
    */
   private createItemButtons(buttonY: number): void {
     const equippedItems = this.itemManager.getEquippedItems();
+    console.log('createItemButtons - 装備アイテム:', equippedItems);
     
     // 特殊枠アイテムボタン
     if (equippedItems.specialSlot) {
+      console.log('特殊枠ボタン作成:', equippedItems.specialSlot.name);
       this.createItemButton(equippedItems.specialSlot.name, 'special', 80, buttonY);
+    } else {
+      console.log('特殊枠にアイテムが装備されていません');
     }
     
     // 通常枠アイテムボタン
     if (equippedItems.normalSlot) {
+      console.log('通常枠ボタン作成:', equippedItems.normalSlot.name);
       this.createItemButton(equippedItems.normalSlot.name, 'normal', 220, buttonY);
+    } else {
+      console.log('通常枠にアイテムが装備されていません');
     }
   }
 
@@ -1469,18 +1503,28 @@ export class GameScene extends Phaser.Scene {
    * 個別のアイテムボタンを作成
    */
   private createItemButton(itemName: string, slot: 'special' | 'normal', x: number, y: number): void {
+    console.log(`createItemButton呼び出し: ${itemName}, slot: ${slot}, x: ${x}, y: ${y}`);
+    
     const isUsed = this.itemManager.isItemUsed(slot);
-    const buttonColor = isUsed ? 0x666666 : 0x0066CC;
+    // テスト用：より目立つ色とサイズに変更
+    const buttonColor = isUsed ? 0x666666 : 0xFF0000; // 赤色で目立たせる
     const textColor = isUsed ? '#AAAAAA' : '#FFFFFF';
     
-    const button = this.add.rectangle(x, y, 120, 40, buttonColor)
+    console.log(`ボタン作成中: 色=${buttonColor.toString(16)}, 使用済み=${isUsed}`);
+    
+    // テスト用：より大きなサイズに変更
+    const button = this.add.rectangle(x, y, 150, 50, buttonColor)
       .setInteractive({ useHandCursor: !isUsed })
       .setName(`itemButton_${slot}`);
     
+    console.log(`ボタン作成完了: ${button.name}, 座標: (${button.x}, ${button.y})`);
+    
     const text = this.add.text(x, y, itemName, {
-      fontSize: '14px',
+      fontSize: '16px', // フォントサイズも大きく
       color: textColor
     }).setOrigin(0.5).setName(`itemText_${slot}`);
+    
+    console.log(`テキスト作成完了: ${text.name}, テキスト: "${itemName}", 座標: (${text.x}, ${text.y})`);
     
     if (!isUsed) {
       button.on('pointerdown', () => {
@@ -1490,6 +1534,8 @@ export class GameScene extends Phaser.Scene {
       // ホバーエフェクト
       this.addButtonHoverEffect(button, text);
     }
+    
+    console.log(`アイテムボタン作成完了: ${slot}枠`);
   }
 
   /**

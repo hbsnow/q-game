@@ -45,14 +45,22 @@ export class ItemSelectionScene extends Phaser.Scene {
     // 背景色を設定
     this.cameras.main.setBackgroundColor('#1E5799');
     
+    console.log('ItemSelectionScene create開始');
+    
     this.createUI();
     this.addDebugLines();
+    
+    // テスト用：自動的にアイテムを装備（必ず実行）
+    console.log('DEBUG_MODE:', GameConfig.DEBUG_MODE);
+    this.autoEquipTestItems();
   }
 
   /**
    * テスト用アイテムを追加（開発・テスト用）
    */
   private addTestItems(): void {
+    console.log('addTestItems開始');
+    
     // 基本アイテムを追加
     this.itemManager.addItem('swap', 3);
     this.itemManager.addItem('changeOne', 2);
@@ -71,6 +79,9 @@ export class ItemSelectionScene extends Phaser.Scene {
     this.itemManager.addItem('hammer', 2);
     this.itemManager.addItem('steelHammer', 1);
     this.itemManager.addItem('specialHammer', 1);
+    
+    console.log('テストアイテム追加完了');
+    console.log('追加後のインベントリ:', this.itemManager.getInventory());
   }
 
   /**
@@ -80,19 +91,27 @@ export class ItemSelectionScene extends Phaser.Scene {
     this.availableItems = [];
     const inventory = this.itemManager.getInventory();
     
+    console.log('loadAvailableItems開始');
+    console.log('インベントリ:', inventory);
+    
     // 所持しているアイテムのみを表示
     for (const itemId in inventory) {
       const itemData = ITEM_DATA[itemId];
       if (itemData && inventory[itemId] > 0) {
         this.availableItems.push(itemData);
+        console.log(`アイテム追加: ${itemData.name} (${itemId}) x${inventory[itemId]}`);
       }
     }
+    
+    console.log('利用可能なアイテム数:', this.availableItems.length);
     
     // レア度順でソート（S > A > B > C > D > E > F）
     this.availableItems.sort((a, b) => {
       const rarityOrder = { S: 0, A: 1, B: 2, C: 3, D: 4, E: 5, F: 6 };
       return rarityOrder[a.rarity] - rarityOrder[b.rarity];
     });
+    
+    console.log('ソート後のアイテム一覧:', this.availableItems.map(item => `${item.name}(${item.rarity})`));
   }
 
   private createUI(): void {
@@ -614,5 +633,73 @@ export class ItemSelectionScene extends Phaser.Scene {
     const buttonHeight = 80;
     const buttonCenterY = height - 40;
     this.debugHelper.addAreaBorder(width / 2, buttonCenterY, width, buttonHeight, 0xFF00FF, 'ボタン/アクションエリア');
+  }
+
+  /**
+   * テスト用：自動的にアイテムを装備
+   */
+  private autoEquipTestItems(): void {
+    console.log('autoEquipTestItems開始');
+    console.log('利用可能なアイテム:', this.availableItems);
+    
+    // 利用可能なアイテムから自動装備
+    const availableItems = this.availableItems.filter(item => this.itemManager.getItemCount(item.id) > 0);
+    console.log('所持しているアイテム:', availableItems);
+    
+    if (availableItems.length > 0) {
+      // 特殊枠に最初のアイテムを装備
+      const firstItem = availableItems[0];
+      console.log('特殊枠に装備予定:', firstItem);
+      const success1 = this.itemManager.equipItem(firstItem, 'special');
+      if (success1) {
+        this.selectedSpecialItem = firstItem;
+        this.updateSlotDisplay('specialSlotText', firstItem);
+        console.log(`自動装備成功: ${firstItem.name}を特殊枠に装備`);
+      } else {
+        console.log(`自動装備失敗: ${firstItem.name}を特殊枠に装備できませんでした`);
+      }
+      
+      // 通常枠に2番目のアイテムを装備（あれば）
+      if (availableItems.length > 1) {
+        const secondItem = availableItems[1];
+        console.log('通常枠に装備予定:', secondItem, 'レア度:', secondItem.rarity);
+        // 通常枠の制限をチェック（B〜Fレアのみ）
+        if (['B', 'C', 'D', 'E', 'F'].includes(secondItem.rarity)) {
+          const success2 = this.itemManager.equipItem(secondItem, 'normal');
+          if (success2) {
+            this.selectedNormalItem = secondItem;
+            this.updateSlotDisplay('normalSlotText', secondItem);
+            console.log(`自動装備成功: ${secondItem.name}を通常枠に装備`);
+          } else {
+            console.log(`自動装備失敗: ${secondItem.name}を通常枠に装備できませんでした`);
+          }
+        } else {
+          console.log(`${secondItem.name}は通常枠に装備できません（レア度: ${secondItem.rarity}）`);
+          // B〜Fレアのアイテムを探す
+          const normalSlotItem = availableItems.find(item => ['B', 'C', 'D', 'E', 'F'].includes(item.rarity));
+          if (normalSlotItem) {
+            console.log('代替アイテムを通常枠に装備:', normalSlotItem);
+            const success2 = this.itemManager.equipItem(normalSlotItem, 'normal');
+            if (success2) {
+              this.selectedNormalItem = normalSlotItem;
+              this.updateSlotDisplay('normalSlotText', normalSlotItem);
+              console.log(`自動装備成功: ${normalSlotItem.name}を通常枠に装備`);
+            } else {
+              console.log(`自動装備失敗: ${normalSlotItem.name}を通常枠に装備できませんでした`);
+            }
+          } else {
+            console.log('通常枠に装備可能なアイテムが見つかりませんでした');
+          }
+        }
+      } else {
+        console.log('通常枠に装備するアイテムがありません');
+      }
+    } else {
+      console.log('装備可能なアイテムがありません');
+    }
+    
+    // 最終的な装備状況を確認
+    const finalEquipped = this.itemManager.getEquippedItems();
+    console.log('最終装備状況:', finalEquipped);
   }
 }
