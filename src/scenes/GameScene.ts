@@ -367,9 +367,7 @@ export class GameScene extends Phaser.Scene {
       for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
         // 既に妨害ブロックが配置されている場合はスキップ
         if (this.blocks[y][x]) {
-          // スプライトのみ作成
-          this.createBlockSprite(x, y, this.blocks[y][x]!);
-          continue;
+          continue; // スプライト作成は後で演出付きで行う
         }
         
         // ランダムな色を選択
@@ -379,27 +377,18 @@ export class GameScene extends Phaser.Scene {
         // 通常ブロックを作成
         const block = blockFactory.createNormalBlock(x, y, color);
         this.blocks[y][x] = block;
-        
-        // ブロックのスプライトを作成
-        this.createBlockSprite(x, y, block);
       }
     }
     
     // 消去可能なブロックがない場合は再生成
     if (!this.blockLogic.hasRemovableBlocks(this.blocks)) {
-      // スプライトを破棄
-      for (let y = 0; y < GameConfig.BOARD_HEIGHT; y++) {
-        for (let x = 0; x < GameConfig.BOARD_WIDTH; x++) {
-          if (this.blockSprites[y][x]) {
-            this.blockSprites[y][x].destroy();
-            this.blockSprites[y][x] = null;
-          }
-        }
-      }
-      
       // 再生成
       this.createInitialBlocks();
+      return;
     }
+    
+    // 演出付きでブロックを配置
+    this.animateBlockPlacement();
   }
   
   /**
@@ -2264,6 +2253,133 @@ export class GameScene extends Phaser.Scene {
     if (messageText) {
       messageText.setText(message);
     }
+  }
+
+  /**
+   * 演出付きでブロックを配置する
+   */
+  private animateBlockPlacement(): void {
+    Logger.debug('🌊 ブロック配置演出開始');
+    
+    let delay = 0;
+    const baseDelay = 4; // さらに短縮（8ms → 4ms）
+    
+    // 上から下へ、左から右へ順番に配置
+    for (let row = 0; row < GameConfig.BOARD_HEIGHT; row++) {
+      for (let col = 0; col < GameConfig.BOARD_WIDTH; col++) {
+        const block = this.blocks[row][col];
+        if (block) {
+          // 遅延を設定して演出付きでスプライトを作成
+          this.time.delayedCall(delay, () => {
+            this.createBlockSpriteWithAnimation(col, row, block);
+          });
+          
+          delay += baseDelay;
+        }
+      }
+    }
+    
+    // 全ブロック配置完了後の処理（さらに短縮）
+    const totalDelay = delay + 50; // 余裕時間をさらに短縮（100ms → 50ms）
+    this.time.delayedCall(totalDelay, () => {
+      Logger.debug('✅ ブロック配置演出完了');
+      // 配置完了音を再生
+      this.soundManager.playBlockPlace();
+    });
+  }
+
+  /**
+   * 演出付きでブロックスプライトを作成
+   */
+  private createBlockSpriteWithAnimation(x: number, y: number, block: Block): void {
+    const finalX = this.boardX + x * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+    const finalY = this.boardY + y * GameConfig.BLOCK_SIZE + GameConfig.BLOCK_SIZE / 2;
+    
+    // ブロックの色に応じた演出設定を取得
+    const animConfig = this.getBlockAnimationConfig(block.color);
+    
+    // 通常のスプライト作成処理を実行
+    const blockContainer = this.createOceanThemedBlock(finalX, finalY, block.color, block.type, block);
+    
+    // コンテナを対話可能に設定
+    const blockSize = GameConfig.BLOCK_SIZE - 4;
+    blockContainer.setInteractive(
+      new Phaser.Geom.Rectangle(-blockSize/2, -blockSize/2, blockSize, blockSize),
+      Phaser.Geom.Rectangle.Contains
+    );
+    
+    // クリックイベント
+    blockContainer.on('pointerdown', () => {
+      this.onBlockClick(x, y);
+    });
+    
+    // スプライト配列に保存（型変換が必要）
+    this.blockSprites[y][x] = blockContainer as unknown as Phaser.GameObjects.Sprite;
+    
+    // ブロックオブジェクトにスプライト参照を追加
+    this.blocks[y][x].sprite = blockContainer as unknown as Phaser.GameObjects.Sprite;
+    
+    // 初期状態を設定（最終位置のすぐ下から開始）
+    const startY = finalY + animConfig.startOffset; // 画面下ではなく最終位置の下
+    blockContainer.setPosition(finalX, startY);
+    blockContainer.setAlpha(0);
+    blockContainer.setScale(0.8); // 初期スケールをさらに大きく（0.7 → 0.8）
+    
+    // 浮上アニメーション（超短距離）
+    this.tweens.add({
+      targets: blockContainer,
+      x: finalX,
+      y: finalY,
+      alpha: 1,
+      scale: 1,
+      duration: animConfig.duration,
+      ease: 'Power2.easeOut'
+    });
+  }
+
+  /**
+   * ブロックの色に応じたアニメーション設定を取得
+   */
+  private getBlockAnimationConfig(color: string): any {
+    // アニメーション時間をさらに短縮（250-300ms → 150-200ms）
+    const configs: { [key: string]: any } = {
+      '#1E5799': { // 深い青
+        startOffset: 20,  // さらに短縮（25px → 20px）
+        duration: 200,    // 大幅短縮（300ms → 200ms）
+        ease: 'Power2.easeOut'
+      },
+      '#7DB9E8': { // 水色
+        startOffset: 18,  // さらに短縮（22px → 18px）
+        duration: 180,    // 大幅短縮（280ms → 180ms）
+        ease: 'Power2.easeOut'
+      },
+      '#2E8B57': { // 海緑
+        startOffset: 19,  // さらに短縮（23px → 19px）
+        duration: 190,    // 大幅短縮（290ms → 190ms）
+        ease: 'Power2.easeOut'
+      },
+      '#FF6347': { // 珊瑚赤
+        startOffset: 16,  // さらに短縮（20px → 16px）
+        duration: 170,    // 大幅短縮（270ms → 170ms）
+        ease: 'Power2.easeOut'
+      },
+      '#F4D03F': { // 砂金色
+        startOffset: 14,  // さらに短縮（18px → 14px）
+        duration: 160,    // 大幅短縮（260ms → 160ms）
+        ease: 'Power2.easeOut'
+      },
+      '#F5F5F5': { // 真珠白
+        startOffset: 12,  // さらに短縮（15px → 12px）
+        duration: 150,    // 大幅短縮（250ms → 150ms）
+        ease: 'Power2.easeOut'
+      }
+    };
+    
+    return configs[color] || {
+      startOffset: 16,  // デフォルトも短縮（20px → 16px）
+      duration: 180,    // デフォルトも短縮（280ms → 180ms）
+      ease: 'Power2.easeOut'
+    };
   }
 
   /**

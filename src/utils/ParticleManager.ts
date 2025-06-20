@@ -155,7 +155,7 @@ export class ParticleManager {
   /**
    * 波紋エフェクト
    */
-  private createRippleEffect(x: number, y: number): void {
+  createRippleEffect(x: number, y: number): void {
     // 複数の波紋を作成
     for (let i = 0; i < 3; i++) {
       const ripple = this.scene.add.circle(x, y, 10, 0x7DB9E8, 0.3);

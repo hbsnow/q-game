@@ -482,8 +482,12 @@ export class SoundManager {
     this.playOceanSFX('drop', 0.3);
   }
 
-  playBlockLand(): void {
-    this.playOceanSFX('drop', 0.2);
+  playBlockLand(volume: number = 0.2): void {
+    this.playOceanSFX('drop', volume);
+  }
+
+  playBlockPlace(): void {
+    this.playOceanSFX('bubble', 0.4);
   }
 
   /**
