@@ -41,5 +41,5 @@ export const GameConfig = {
   },
   
   // デバッグモード
-  DEBUG_MODE: true,
+  DEBUG_MODE: false,
 };

@@ -45,8 +45,8 @@ export class ItemManager {
 
   private constructor() {
     // プライベートコンストラクタでシングルトンを保証
-    console.log('[ItemManager] ItemManager初期化');
-    console.log('[ItemManager] 初期インベントリ:', this.inventory);
+    // console.log('[ItemManager] ItemManager初期化');
+    // console.log('[ItemManager] 初期インベントリ:', this.inventory);
   }
 
   /**
@@ -63,9 +63,9 @@ export class ItemManager {
    * アイテムを追加
    */
   addItem(itemId: string, count: number = 1): void {
-    // デバッグ用ログ出力
-    console.log(`[ItemManager] アイテム追加: ${itemId} x${count}`);
-    console.log(`[ItemManager] 追加前の所持数: ${this.inventory[itemId] || 0}`);
+    // デバッグ用ログ出力（本番では無効化）
+    // console.log(`[ItemManager] アイテム追加: ${itemId} x${count}`);
+    // console.log(`[ItemManager] 追加前の所持数: ${this.inventory[itemId] || 0}`);
     
     if (this.inventory[itemId]) {
       this.inventory[itemId] += count;
@@ -78,8 +78,8 @@ export class ItemManager {
       this.inventory[itemId] = 99;
     }
     
-    console.log(`[ItemManager] 追加後の所持数: ${this.inventory[itemId]}`);
-    console.log(`[ItemManager] 現在のインベントリ:`, this.inventory);
+    // console.log(`[ItemManager] 追加後の所持数: ${this.inventory[itemId]}`);
+    // console.log(`[ItemManager] 現在のインベントリ:`, this.inventory);
   }
 
   /**

@@ -9,6 +9,7 @@ import { SoundManager } from '../utils/SoundManager';
 import { AnimationManager, TransitionType } from '../utils/AnimationManager';
 import { BackgroundManager } from '../utils/BackgroundManager';
 import { SimpleOceanButton } from '../components/SimpleOceanButton';
+import { Logger } from '../utils/Logger';
 
 /**
  * アイテム選択画面
@@ -47,7 +48,7 @@ export class ItemSelectionScene extends Phaser.Scene {
     // 背景色を設定
     this.cameras.main.setBackgroundColor('#1E5799');
     
-    console.log('ItemSelectionScene create開始');
+    Logger.debug('ItemSelectionScene create開始');
     
     // サウンドマネージャーを初期化
     this.soundManager = new SoundManager(this);
@@ -69,7 +70,7 @@ export class ItemSelectionScene extends Phaser.Scene {
     this.addDebugLines();
     
     // テスト用：自動的にアイテムを装備（必ず実行）
-    console.log('DEBUG_MODE:', GameConfig.DEBUG_MODE);
+    Logger.debug('DEBUG_MODE:', GameConfig.DEBUG_MODE);
     this.autoEquipTestItems();
   }
 
@@ -80,19 +81,19 @@ export class ItemSelectionScene extends Phaser.Scene {
     this.availableItems = [];
     const inventory = this.itemManager.getInventory();
     
-    console.log('loadAvailableItems開始');
-    console.log('インベントリ:', inventory);
+    Logger.debug('loadAvailableItems開始');
+    Logger.debug('インベントリ:', inventory);
     
     // 所持しているアイテムのみを表示
     for (const itemId in inventory) {
       const itemData = ITEM_DATA[itemId];
       if (itemData && inventory[itemId] > 0) {
         this.availableItems.push(itemData);
-        console.log(`アイテム追加: ${itemData.name} (${itemId}) x${inventory[itemId]}`);
+        Logger.debug(`アイテム追加: ${itemData.name} (${itemId}) x${inventory[itemId]}`);
       }
     }
     
-    console.log('利用可能なアイテム数:', this.availableItems.length);
+    Logger.debug('利用可能なアイテム数:', this.availableItems.length);
     
     // レア度順でソート（S > A > B > C > D > E > F）
     this.availableItems.sort((a, b) => {
@@ -100,7 +101,7 @@ export class ItemSelectionScene extends Phaser.Scene {
       return rarityOrder[a.rarity] - rarityOrder[b.rarity];
     });
     
-    console.log('ソート後のアイテム一覧:', this.availableItems.map(item => `${item.name}(${item.rarity})`));
+    Logger.debug('ソート後のアイテム一覧:', this.availableItems.map(item => `${item.name}(${item.rarity})`));
   }
 
   private createUI(): void {
@@ -291,7 +292,7 @@ export class ItemSelectionScene extends Phaser.Scene {
       const addHoverEffect = (target: Phaser.GameObjects.GameObject) => {
         target.on('pointerover', () => {
           itemBg.setFillStyle(0x333333, 0.3);
-          console.log(`${item.name}: ${item.description}`);
+          Logger.debug(`${item.name}: ${item.description}`);
         });
         
         target.on('pointerout', () => {
@@ -338,7 +339,7 @@ export class ItemSelectionScene extends Phaser.Scene {
     });
 
     if (equipableItems.length === 0) {
-      console.log('装備可能なアイテムがありません');
+      Logger.debug('装備可能なアイテムがありません');
       return;
     }
 
@@ -673,7 +674,7 @@ export class ItemSelectionScene extends Phaser.Scene {
         console.log('通常枠に装備するアイテムがありません');
       }
     } else {
-      console.log('装備可能なアイテムがありません');
+      Logger.debug('装備可能なアイテムがありません');
     }
     
     // 最終的な装備状況を確認

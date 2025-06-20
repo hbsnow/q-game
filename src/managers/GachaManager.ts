@@ -70,9 +70,9 @@ export class GachaManager {
         rarity: item.rarity
       }));
     
-    // デバッグ用ログ出力
-    console.log(`[GachaManager] 現在のステージ: ${currentStage}`);
-    console.log(`[GachaManager] 出現可能アイテム:`, availableItems);
+    // デバッグ用ログ出力（本番では無効化）
+    // console.log(`[GachaManager] 現在のステージ: ${currentStage}`);
+    // console.log(`[GachaManager] 出現可能アイテム:`, availableItems);
     
     return availableItems;
   }
@@ -198,10 +198,10 @@ export class GachaManager {
   public drawSingle(): GachaResult | null {
     const result = this.drawItem();
     
-    // デバッグ用ログ出力
-    if (result) {
-      console.log(`[GachaManager] ガチャ結果:`, result);
-    }
+    // デバッグ用ログ出力（本番では無効化）
+    // if (result) {
+    //   console.log(`[GachaManager] ガチャ結果:`, result);
+    // }
     
     return result;
   }

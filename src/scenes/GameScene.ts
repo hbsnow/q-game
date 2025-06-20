@@ -24,6 +24,7 @@ import { SoundManager } from '../utils/SoundManager';
 import { ErrorManager, ErrorType } from '../utils/ErrorManager';
 import { TooltipManager } from '../utils/TooltipManager';
 import { AnimationManager, TransitionType, AppearType } from '../utils/AnimationManager';
+import { Logger } from '../utils/Logger';
 
 /**
  * ゲーム画面
@@ -91,32 +92,32 @@ export class GameScene extends Phaser.Scene {
     }
     
     // 装備されたアイテムを設定
-    console.log('GameScene init data:', data);
+    Logger.debug('GameScene init data:', data);
     if (data.equippedItems) {
-      console.log('装備アイテムデータ:', data.equippedItems);
+      Logger.debug('装備アイテムデータ:', data.equippedItems);
       if (data.equippedItems.specialSlot) {
-        console.log('特殊枠アイテム装備:', data.equippedItems.specialSlot);
+        Logger.debug('特殊枠アイテム装備:', data.equippedItems.specialSlot);
         // アイテムを所持品に追加してから装備
         this.itemManager.addItem(data.equippedItems.specialSlot.id, 1);
-        console.log('特殊枠アイテム追加後の所持数:', this.itemManager.getItemCount(data.equippedItems.specialSlot.id));
+        Logger.debug('特殊枠アイテム追加後の所持数:', this.itemManager.getItemCount(data.equippedItems.specialSlot.id));
         const success1 = this.itemManager.equipItem(data.equippedItems.specialSlot, 'special');
-        console.log('特殊枠装備結果:', success1);
+        Logger.debug('特殊枠装備結果:', success1);
       }
       if (data.equippedItems.normalSlot) {
-        console.log('通常枠アイテム装備:', data.equippedItems.normalSlot);
+        Logger.debug('通常枠アイテム装備:', data.equippedItems.normalSlot);
         // アイテムを所持品に追加してから装備
         this.itemManager.addItem(data.equippedItems.normalSlot.id, 1);
-        console.log('通常枠アイテム追加後の所持数:', this.itemManager.getItemCount(data.equippedItems.normalSlot.id));
+        Logger.debug('通常枠アイテム追加後の所持数:', this.itemManager.getItemCount(data.equippedItems.normalSlot.id));
         const success2 = this.itemManager.equipItem(data.equippedItems.normalSlot, 'normal');
-        console.log('通常枠装備結果:', success2);
+        Logger.debug('通常枠装備結果:', success2);
       }
     } else {
-      console.log('装備アイテムデータがありません');
+      Logger.debug('装備アイテムデータがありません');
     }
     
     // 装備確認
     const equippedCheck = this.itemManager.getEquippedItems();
-    console.log('装備確認:', equippedCheck);
+    Logger.debug('装備確認:', equippedCheck);
     
     this.score = 0;
     this.isItemMode = false;
@@ -255,17 +256,17 @@ export class GameScene extends Phaser.Scene {
     // ボタンエリア
     const buttonHeight = 60;
     const buttonCenterY = height - buttonHeight / 2;
-    console.log(`ボタン座標計算: height=${height}, buttonHeight=${buttonHeight}, buttonCenterY=${buttonCenterY}`);
+    Logger.debug(`ボタン座標計算: height=${height}, buttonHeight=${buttonHeight}, buttonCenterY=${buttonCenterY}`);
     
     // アイテムボタンを作成
     this.createItemButtons(buttonCenterY);
     
     // デバッグ: 作成されたオブジェクトを確認
-    console.log('シーンの子要素数:', this.children.length);
+    Logger.debug('シーンの子要素数:', this.children.length);
     const itemButtons = this.children.list.filter(child => child.name && child.name.startsWith('itemButton_'));
-    console.log('アイテムボタン数:', itemButtons.length);
+    Logger.debug('アイテムボタン数:', itemButtons.length);
     itemButtons.forEach(button => {
-      console.log('アイテムボタン:', button.name, 'x:', (button as any).x, 'y:', (button as any).y);
+      Logger.debug('アイテムボタン:', button.name, 'x:', (button as any).x, 'y:', (button as any).y);
     });
     
     // リタイアボタン
@@ -958,7 +959,7 @@ export class GameScene extends Phaser.Scene {
         break;
         
       default:
-        console.log(`アイテム ${item.name} の効果は未実装です`);
+        Logger.debug(`アイテム ${item.name} の効果は未実装です`);
         this.exitItemMode();
         return;
     }
@@ -987,7 +988,7 @@ export class GameScene extends Phaser.Scene {
       this.isProcessing = false;
     } else {
       // 失敗時はメッセージを表示
-      console.log(result?.message || 'アイテムの使用に失敗しました');
+      Logger.debug(result?.message || 'アイテムの使用に失敗しました');
     }
   }
 
@@ -1304,16 +1305,12 @@ export class GameScene extends Phaser.Scene {
    * ブロックスプライトを更新する（全て再作成）
    */
   private updateBlockSprites(): void {
-    console.log('🔄 updateBlockSprites開始');
-    console.log(`📏 blocks配列サイズ: ${this.blocks.length} x ${this.blocks[0]?.length || 0}`);
-    console.log(`📏 blockSprites配列サイズ: ${this.blockSprites.length} x ${this.blockSprites[0]?.length || 0}`);
+    Logger.debug('🔄 updateBlockSprites開始');
     
     // 🚨 重要：進行中のすべてのTweenを停止
-    console.log('⏹️ 進行中のTweenを停止');
     this.tweens.killAll();
     
     // 🚨 最も根本的な解決：ゲーム盤面エリア内のすべてのオブジェクトを削除
-    console.log('🧹 ゲーム盤面エリア内のすべてのオブジェクトを削除');
     const boardLeft = this.boardX;
     const boardRight = this.boardX + GameConfig.BOARD_WIDTH * GameConfig.BLOCK_SIZE;
     const boardTop = this.boardY;
@@ -1328,22 +1325,19 @@ export class GameScene extends Phaser.Scene {
         if (gameObject.x >= boardLeft && gameObject.x <= boardRight && 
             gameObject.y >= boardTop && gameObject.y <= boardBottom &&
             gameObject.name !== 'boardBackground') { // 背景は削除しない
-          console.log(`🗑️ 盤面内オブジェクト削除: (${gameObject.x}, ${gameObject.y}) type: ${gameObject.type}`);
           child.destroy();
           removedCount++;
         }
       }
       // スコア表示テキスト（depth=500）も削除
       if (child instanceof Phaser.GameObjects.Text && (child as any).depth === 500) {
-        console.log(`🗑️ スコア表示テキスト削除: "${(child as Phaser.GameObjects.Text).text}"`);
         child.destroy();
         removedCount++;
       }
     });
-    console.log(`📊 削除したオブジェクト数: ${removedCount}`);
+    Logger.debug(`📊 削除したオブジェクト数: ${removedCount}`);
     
     // blockSprites配列をクリア
-    console.log('🧹 blockSprites配列をクリア');
     for (let y = 0; y < this.blockSprites.length; y++) {
       for (let x = 0; x < this.blockSprites[y].length; x++) {
         this.blockSprites[y][x] = null;
@@ -1351,37 +1345,32 @@ export class GameScene extends Phaser.Scene {
     }
     
     // 🚨 重要：blocks配列内のスプライト参照もクリア
-    console.log('🧹 blocks配列内のスプライト参照をクリア');
+    // blocks配列内のスプライト参照をクリア
     for (let y = 0; y < this.blocks.length; y++) {
       for (let x = 0; x < this.blocks[y].length; x++) {
         if (this.blocks[y][x] && this.blocks[y][x].sprite) {
-          console.log(`🧹 ブロック内スプライト参照クリア: (${x}, ${y})`);
           this.blocks[y][x].sprite = null;
         }
       }
     }
     
     // blockSprites配列をblocks配列と同じサイズに再初期化
-    console.log('🔄 blockSprites配列を再初期化');
     this.blockSprites = Array(this.blocks.length).fill(0).map(() => 
       Array(this.blocks[0]?.length || GameConfig.BOARD_WIDTH).fill(null)
     );
-    console.log(`📏 新しいblockSprites配列サイズ: ${this.blockSprites.length} x ${this.blockSprites[0]?.length || 0}`);
     
     // 論理状態と視覚状態の同期チェック（再初期化後）
-    console.log('🔍 論理状態と視覚状態の同期チェック:');
     let syncIssues = 0;
     for (let y = 0; y < this.blocks.length; y++) {
       for (let x = 0; x < this.blocks[y].length; x++) {
         const hasLogic = this.blocks[y][x] !== null;
         const hasVisual = this.blockSprites[y] && this.blockSprites[y][x] !== null;
         if (hasLogic !== hasVisual) {
-          console.warn(`⚠️ 不整合検出: (${x}, ${y}) 論理=${hasLogic}, 視覚=${hasVisual}`);
+          Logger.warn(`⚠️ 不整合検出: (${x}, ${y}) 論理=${hasLogic}, 視覚=${hasVisual}`);
           syncIssues++;
         }
       }
     }
-    console.log(`📊 同期問題数: ${syncIssues}`);
     
     // 新しいスプライトを作成
     let createCount = 0;
@@ -1389,15 +1378,14 @@ export class GameScene extends Phaser.Scene {
       for (let x = 0; x < this.blocks[y].length; x++) {
         const block = this.blocks[y][x];
         if (block) {
-          console.log(`🎨 スプライト作成: (${x}, ${y}) - ${block.type}`);
           this.createBlockSprite(x, y, block);
           createCount++;
         }
       }
     }
-    console.log(`📊 作成したスプライト数: ${createCount}`);
+    Logger.debug(`📊 作成したスプライト数: ${createCount}`);
     
-    console.log('✅ updateBlockSprites完了');
+    Logger.debug('✅ updateBlockSprites完了');
   }
   
   /**
@@ -1561,28 +1549,28 @@ export class GameScene extends Phaser.Scene {
    */
   private createItemButtons(buttonY: number): void {
     const equippedItems = this.itemManager.getEquippedItems();
-    console.log('createItemButtons - 装備アイテム:', equippedItems);
+    Logger.debug('createItemButtons - 装備アイテム:', equippedItems);
     
     // シンプルに左寄せで配置（リタイアボタンとは完全に別物として扱う）
     const leftButtonX = 70;   // 左端から70px
     const rightButtonX = 200; // 左端から200px
     
-    console.log(`シンプル配置: 左=${leftButtonX}, 右=${rightButtonX}`);
+    Logger.debug(`シンプル配置: 左=${leftButtonX}, 右=${rightButtonX}`);
     
     // 特殊枠アイテムボタン
     if (equippedItems.specialSlot) {
-      console.log('特殊枠ボタン作成:', equippedItems.specialSlot.name);
+      Logger.debug('特殊枠ボタン作成:', equippedItems.specialSlot.name);
       this.createItemButton(equippedItems.specialSlot.name, 'special', leftButtonX, buttonY);
     } else {
-      console.log('特殊枠にアイテムが装備されていません');
+      Logger.debug('特殊枠にアイテムが装備されていません');
     }
     
     // 通常枠アイテムボタン
     if (equippedItems.normalSlot) {
-      console.log('通常枠ボタン作成:', equippedItems.normalSlot.name);
+      Logger.debug('通常枠ボタン作成:', equippedItems.normalSlot.name);
       this.createItemButton(equippedItems.normalSlot.name, 'normal', rightButtonX, buttonY);
     } else {
-      console.log('通常枠にアイテムが装備されていません');
+      Logger.debug('通常枠にアイテムが装備されていません');
     }
   }
 
@@ -1590,7 +1578,7 @@ export class GameScene extends Phaser.Scene {
    * 個別のアイテムボタンを作成
    */
   private createItemButton(itemName: string, slot: 'special' | 'normal', x: number, y: number): void {
-    console.log(`createItemButton呼び出し: ${itemName}, slot: ${slot}, x: ${x}, y: ${y}`);
+    Logger.debug(`createItemButton呼び出し: ${itemName}, slot: ${slot}, x: ${x}, y: ${y}`);
     
     const isUsed = this.itemManager.isItemUsed(slot);
     
@@ -1614,10 +1602,10 @@ export class GameScene extends Phaser.Scene {
       button.on('pointerdown', () => this.onItemButtonClick(slot));
     }
     
-    console.log(`ボタン作成完了: ${button.name}, 座標: (${button.x}, ${button.y})`);
-    console.log(`テキスト作成完了: ${text.name}, テキスト: "${itemName}", 座標: (${text.x}, ${text.y})`);
+    Logger.debug(`ボタン作成完了: ${button.name}, 座標: (${button.x}, ${button.y})`);
+    Logger.debug(`テキスト作成完了: ${text.name}, テキスト: "${itemName}", 座標: (${text.x}, ${text.y})`);
     
-    console.log(`アイテムボタン作成完了: ${slot}枠`);
+    Logger.debug(`アイテムボタン作成完了: ${slot}枠`);
   }
 
   /**
@@ -1665,7 +1653,7 @@ export class GameScene extends Phaser.Scene {
         break;
       default:
         // 未実装のアイテム
-        console.log(`アイテム ${item.name} は未実装です`);
+        Logger.debug(`アイテム ${item.name} は未実装です`);
         break;
     }
   }
@@ -1693,7 +1681,7 @@ export class GameScene extends Phaser.Scene {
         this.updateItemButtons();
         
         // メッセージ表示
-        console.log(result.message);
+        Logger.debug(result.message);
       });
     }
   }
@@ -2056,12 +2044,12 @@ export class GameScene extends Phaser.Scene {
   private applyColorChange(x: number, y: number, itemType: 'changeOne' | 'changeArea', color: string, colorHex: number): void {
     let result;
     
-    console.log(`色変更適用: ${itemType}, 座標: (${x}, ${y}), 色: ${color}`);
+    Logger.debug(`色変更適用: ${itemType}, 座標: (${x}, ${y}), 色: ${color}`);
     
     if (itemType === 'changeOne') {
       result = ItemEffectManager.applyChangeOne(this.blocks, {x, y}, color);
       if (result && result.success) {
-        console.log('チェンジワン成功');
+        Logger.debug('チェンジワン成功');
         // 結果を盤面に適用
         if (result.newBlocks) {
           this.blocks = result.newBlocks;
@@ -2074,13 +2062,13 @@ export class GameScene extends Phaser.Scene {
           colorHex
         );
       } else {
-        console.log('チェンジワン失敗:', result?.message);
+        Logger.debug('チェンジワン失敗:', result?.message);
       }
     } else if (itemType === 'changeArea') {
       const connectedBlocks = this.getConnectedBlocksForPreview(x, y);
       result = ItemEffectManager.applyChangeArea(this.blocks, {x, y}, color);
       if (result && result.success) {
-        console.log('チェンジエリア成功');
+        Logger.debug('チェンジエリア成功');
         // 結果を盤面に適用
         if (result.newBlocks) {
           this.blocks = result.newBlocks;
@@ -2095,7 +2083,7 @@ export class GameScene extends Phaser.Scene {
           );
         }
       } else {
-        console.log('チェンジエリア失敗:', result?.message);
+        Logger.debug('チェンジエリア失敗:', result?.message);
       }
     }
 
@@ -2112,7 +2100,7 @@ export class GameScene extends Phaser.Scene {
       // アイテムモードを終了
       this.exitItemMode();
     } else {
-      console.log('色変更に失敗しました:', result?.message);
+      Logger.debug('色変更に失敗しました:', result?.message);
     }
   }
 
@@ -2149,25 +2137,25 @@ export class GameScene extends Phaser.Scene {
    * スワップアイテムの選択処理
    */
   private handleSwapSelection(x: number, y: number): void {
-    console.log(`スワップ選択: (${x}, ${y})`);
+    Logger.debug(`スワップ選択: (${x}, ${y})`);
     
     // ブロックの存在チェック
     if (!this.blocks[y] || !this.blocks[y][x]) {
-      console.log('ブロックが存在しません');
+      Logger.debug('ブロックが存在しません');
       return;
     }
     
     // 岩ブロックと鋼鉄ブロックは選択不可
     const block = this.blocks[y][x];
     if (block.type === 'rock' || block.type === 'steel') {
-      console.log('岩ブロックと鋼鉄ブロックは選択できません');
+      Logger.debug('岩ブロックと鋼鉄ブロックは選択できません');
       return;
     }
     
     if (!this.swapFirstBlock) {
       // 1つ目のブロックを選択
       this.swapFirstBlock = {x, y};
-      console.log(`1つ目のブロックを選択: (${x}, ${y})`);
+      Logger.debug(`1つ目のブロックを選択: (${x}, ${y})`);
       
       // 選択されたブロックをハイライト表示
       this.highlightSwapBlock(x, y, true);
@@ -2176,11 +2164,11 @@ export class GameScene extends Phaser.Scene {
       this.updateItemModeMessage('2つ目のブロックを選択してください');
     } else {
       // 2つ目のブロックを選択
-      console.log(`2つ目のブロックを選択: (${x}, ${y})`);
+      Logger.debug(`2つ目のブロックを選択: (${x}, ${y})`);
       
       // 同じブロックを選択した場合はキャンセル
       if (this.swapFirstBlock.x === x && this.swapFirstBlock.y === y) {
-        console.log('同じブロックが選択されました。選択をキャンセルします');
+        Logger.debug('同じブロックが選択されました。選択をキャンセルします');
         this.cancelSwapSelection();
         return;
       }
@@ -2194,12 +2182,12 @@ export class GameScene extends Phaser.Scene {
    * スワップを実行
    */
   private executeSwap(pos1: {x: number, y: number}, pos2: {x: number, y: number}): void {
-    console.log(`スワップ実行: (${pos1.x}, ${pos1.y}) <-> (${pos2.x}, ${pos2.y})`);
+    Logger.debug(`スワップ実行: (${pos1.x}, ${pos1.y}) <-> (${pos2.x}, ${pos2.y})`);
     
     const result = ItemEffectManager.applySwap(this.blocks, pos1, pos2);
     
     if (result && result.success) {
-      console.log('スワップ成功');
+      Logger.debug('スワップ成功');
       
       // 結果を盤面に適用
       if (result.newBlocks) {
@@ -2207,7 +2195,7 @@ export class GameScene extends Phaser.Scene {
       }
       
       // スワップエフェクトを表示（簡易版）
-      console.log('スワップエフェクト表示');
+      Logger.debug('スワップエフェクト表示');
       // TODO: 後でスワップ専用エフェクトを実装
       
       // アイテムを使用済みに設定
@@ -2225,7 +2213,7 @@ export class GameScene extends Phaser.Scene {
       // アイテムモードを終了
       this.exitItemMode();
     } else {
-      console.log('スワップ失敗:', result?.message);
+      Logger.debug('スワップ失敗:', result?.message);
       this.cancelSwapSelection();
     }
   }
