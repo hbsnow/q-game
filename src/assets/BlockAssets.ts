@@ -4,70 +4,84 @@
  */
 export class BlockAssets {
   /**
-   * 海洋テーマのブロック画像を生成
+   * 海洋テーマのブロック画像を生成（改良版）
    */
   static createOceanBlockTexture(scene: Phaser.Scene, color: string, blockType: string = 'normal'): string {
     const blockSize = 40;
     const graphics = scene.add.graphics();
     
-    // 色別の海洋テーマ設定
-    const oceanThemes: { [key: string]: { name: string; gradient: number[]; pattern: string; accent: number } } = {
-      '#1E5799': { // 深い青
+    // 色別の海洋テーマ設定（より詳細で美しい設定）
+    const oceanThemes: { [key: string]: { 
+      name: string; 
+      gradient: number[]; 
+      pattern: string; 
+      accent: number;
+      shadow: number;
+      highlight: number;
+    } } = {
+      '#1E5799': { // 深い青 - 深海のイメージ
         name: 'deep_blue',
-        gradient: [0x1E5799, 0x2989D8, 0x1E5799],
-        pattern: 'waves',
-        accent: 0x4FC3F7
+        gradient: [0x0D47A1, 0x1E5799, 0x2196F3, 0x1E5799],
+        pattern: 'deep_waves',
+        accent: 0x64B5F6,
+        shadow: 0x0D47A1,
+        highlight: 0x90CAF9
       },
-      '#7DB9E8': { // 水色
+      '#7DB9E8': { // 水色 - 浅瀬の海
         name: 'light_blue', 
-        gradient: [0x7DB9E8, 0xB3E5FC, 0x7DB9E8],
+        gradient: [0x4FC3F7, 0x7DB9E8, 0xB3E5FC, 0x7DB9E8],
         pattern: 'bubbles',
-        accent: 0xFFFFFF
+        accent: 0xE1F5FE,
+        shadow: 0x0288D1,
+        highlight: 0xFFFFFF
       },
-      '#2E8B57': { // 海緑
+      '#2E8B57': { // 海緑 - 海藻のイメージ
         name: 'sea_green',
-        gradient: [0x2E8B57, 0x66BB6A, 0x2E8B57],
+        gradient: [0x1B5E20, 0x2E8B57, 0x4CAF50, 0x2E8B57],
         pattern: 'seaweed',
-        accent: 0x81C784
+        accent: 0x81C784,
+        shadow: 0x1B5E20,
+        highlight: 0xC8E6C9
       },
-      '#FF6347': { // 珊瑚赤
+      '#FF6347': { // 珊瑚赤 - 珊瑚のイメージ
         name: 'coral_red',
-        gradient: [0xFF6347, 0xFF8A65, 0xFF6347],
+        gradient: [0xD32F2F, 0xFF6347, 0xFF8A65, 0xFF6347],
         pattern: 'coral',
-        accent: 0xFFAB91
+        accent: 0xFFAB91,
+        shadow: 0xC62828,
+        highlight: 0xFFCCBC
       },
-      '#F4D03F': { // 砂金色
+      '#F4D03F': { // 砂金色 - 砂浜のイメージ
         name: 'sand_gold',
-        gradient: [0xF4D03F, 0xFFF176, 0xF4D03F],
-        pattern: 'sand',
-        accent: 0xFFF59D
+        gradient: [0xF57F17, 0xF4D03F, 0xFFF176, 0xF4D03F],
+        pattern: 'sand_particles',
+        accent: 0xFFF59D,
+        shadow: 0xE65100,
+        highlight: 0xFFFDE7
       },
-      '#F5F5F5': { // 真珠白
+      '#F5F5F5': { // 真珠白 - 真珠・貝殻のイメージ
         name: 'pearl_white',
-        gradient: [0xF5F5F5, 0xFFFFFF, 0xF5F5F5],
-        pattern: 'pearl',
-        accent: 0xE8EAF6
+        gradient: [0xE0E0E0, 0xF5F5F5, 0xFFFFFF, 0xF5F5F5],
+        pattern: 'pearl_shimmer',
+        accent: 0xE8EAF6,
+        shadow: 0xBDBDBD,
+        highlight: 0xFFFFFF
       }
     };
     
     const theme = oceanThemes[color] || oceanThemes['#7DB9E8'];
     
-    // グラデーション背景
-    this.createGradientBackground(graphics, blockSize, theme.gradient);
+    // より美しいグラデーション背景
+    this.createEnhancedGradientBackground(graphics, blockSize, theme);
     
-    // パターン描画
-    this.drawOceanPattern(graphics, blockSize, theme.pattern, theme.accent);
+    // 詳細なパターン描画
+    this.drawDetailedOceanPattern(graphics, blockSize, theme);
     
-    // 光の反射効果
-    this.addLightReflection(graphics, blockSize);
+    // 立体感のある光の反射効果
+    this.addEnhancedLightReflection(graphics, blockSize, theme);
     
-    // 枠線（水中感を演出）
-    graphics.lineStyle(2, 0x4FC3F7, 0.6);
-    graphics.strokeRoundedRect(1, 1, blockSize - 2, blockSize - 2, 6);
-    
-    // 内側のハイライト
-    graphics.lineStyle(1, 0xFFFFFF, 0.3);
-    graphics.strokeRoundedRect(3, 3, blockSize - 6, blockSize - 6, 4);
+    // 美しい枠線（水中の光の屈折を表現）
+    this.addWaterRefractionBorder(graphics, blockSize, theme);
     
     // テクスチャとして保存
     const key = `ocean_block_${theme.name}`;
@@ -80,73 +94,209 @@ export class BlockAssets {
   }
   
   /**
-   * グラデーション背景を作成
+   * 改良されたグラデーション背景を作成
    */
-  private static createGradientBackground(graphics: Phaser.GameObjects.Graphics, size: number, colors: number[]): void {
-    // 縦方向のグラデーション効果をシミュレート
-    const steps = 8;
-    const stepHeight = size / steps;
+  private static createEnhancedGradientBackground(graphics: Phaser.GameObjects.Graphics, size: number, theme: any): void {
+    const colors = theme.gradient;
+    const centerX = size / 2;
+    const centerY = size / 2;
     
-    for (let i = 0; i < steps; i++) {
-      const ratio = i / (steps - 1);
-      let color: number;
+    // 基本背景
+    graphics.fillStyle(colors[0], 1.0);
+    graphics.fillRoundedRect(0, 0, size, size, 8);
+    
+    // 放射状グラデーション効果（複数層）
+    for (let layer = 0; layer < 3; layer++) {
+      const radius = (size / 2) * (0.8 - layer * 0.2);
+      const colorIndex = Math.min(layer + 1, colors.length - 1);
+      const alpha = 0.6 - (layer * 0.15);
       
-      if (ratio <= 0.5) {
-        // 上半分: colors[0] → colors[1]
-        const localRatio = ratio * 2;
-        color = this.interpolateColor(colors[0], colors[1], localRatio);
-      } else {
-        // 下半分: colors[1] → colors[2]
-        const localRatio = (ratio - 0.5) * 2;
-        color = this.interpolateColor(colors[1], colors[2], localRatio);
-      }
-      
-      graphics.fillStyle(color, 1);
-      graphics.fillRoundedRect(0, i * stepHeight, size, stepHeight + 1, i === 0 ? 8 : 0);
+      graphics.fillStyle(colors[colorIndex], alpha);
+      graphics.fillCircle(centerX, centerY, radius);
     }
+    
+    // 影の効果（下部）
+    graphics.fillStyle(theme.shadow, 0.3);
+    graphics.fillRoundedRect(0, size * 0.7, size, size * 0.3, 4);
+    
+    // ハイライト効果（上部）
+    graphics.fillStyle(theme.highlight, 0.2);
+    graphics.fillRoundedRect(0, 0, size, size * 0.3, 4);
   }
   
   /**
-   * 海洋パターンを描画
+   * 詳細な海洋パターンを描画（改良版）
    */
-  private static drawOceanPattern(graphics: Phaser.GameObjects.Graphics, size: number, pattern: string, accentColor: number): void {
-    graphics.lineStyle(1, accentColor, 0.4);
+  private static drawDetailedOceanPattern(graphics: Phaser.GameObjects.Graphics, size: number, theme: any): void {
+    const pattern = theme.pattern;
+    const accentColor = theme.accent;
     
     switch (pattern) {
-      case 'waves':
-        this.drawWavePattern(graphics, size);
+      case 'deep_waves':
+        this.drawDeepWavePattern(graphics, size, accentColor);
         break;
       case 'bubbles':
-        this.drawBubblePattern(graphics, size, accentColor);
+        this.drawEnhancedBubblePattern(graphics, size, accentColor);
         break;
       case 'seaweed':
-        this.drawSeaweedPattern(graphics, size, accentColor);
+        this.drawDetailedSeaweedPattern(graphics, size, accentColor);
         break;
       case 'coral':
-        this.drawCoralPattern(graphics, size, accentColor);
+        this.drawDetailedCoralPattern(graphics, size, accentColor);
         break;
-      case 'sand':
-        this.drawSandPattern(graphics, size, accentColor);
+      case 'sand_particles':
+        this.drawSandParticlePattern(graphics, size, accentColor);
         break;
-      case 'pearl':
-        this.drawPearlPattern(graphics, size, accentColor);
+      case 'pearl_shimmer':
+        this.drawPearlShimmerPattern(graphics, size, accentColor);
         break;
     }
   }
   
   /**
-   * 波パターン
+   * 深海波パターン（改良版）
    */
-  private static drawWavePattern(graphics: Phaser.GameObjects.Graphics, size: number): void {
-    const waveCount = 3;
-    const amplitude = 3;
+  private static drawDeepWavePattern(graphics: Phaser.GameObjects.Graphics, size: number, accentColor: number): void {
+    graphics.lineStyle(1.5, accentColor, 0.7);
     
-    for (let w = 0; w < waveCount; w++) {
-      const y = (size / (waveCount + 1)) * (w + 1);
+    // 複数の波を重ねて深海感を演出
+    for (let layer = 0; layer < 2; layer++) {
+      const yOffset = size * (0.3 + layer * 0.4);
+      const amplitude = 4 - layer;
+      const frequency = 2 + layer;
       
       graphics.beginPath();
+      for (let x = 0; x <= size; x += 1) {
+        const waveY = yOffset + Math.sin((x / size) * Math.PI * frequency) * amplitude;
+        if (x === 0) {
+          graphics.moveTo(x, waveY);
+        } else {
+          graphics.lineTo(x, waveY);
+        }
+      }
+      graphics.strokePath();
+    }
+    
+    // 水流の線
+    graphics.lineStyle(0.8, accentColor, 0.4);
+    for (let i = 0; i < 3; i++) {
+      const x = size * (0.2 + i * 0.3);
+      graphics.lineBetween(x, size * 0.1, x + size * 0.1, size * 0.9);
+    }
+  }
+
+  /**
+   * 強化された泡パターン
+   */
+  private static drawEnhancedBubblePattern(graphics: Phaser.GameObjects.Graphics, size: number, accentColor: number): void {
+    const bubbles = [
+      { x: size * 0.15, y: size * 0.25, r: 2.5, alpha: 0.8 },
+      { x: size * 0.75, y: size * 0.15, r: 1.8, alpha: 0.9 },
+      { x: size * 0.45, y: size * 0.55, r: 1.2, alpha: 0.7 },
+      { x: size * 0.85, y: size * 0.65, r: 1.5, alpha: 0.6 },
+      { x: size * 0.25, y: size * 0.75, r: 1.0, alpha: 0.8 },
+      { x: size * 0.65, y: size * 0.85, r: 0.8, alpha: 0.9 }
+    ];
+    
+    bubbles.forEach(bubble => {
+      // 泡の外枠
+      graphics.lineStyle(1, accentColor, bubble.alpha);
+      graphics.strokeCircle(bubble.x, bubble.y, bubble.r);
+      
+      // 泡の内側のハイライト
+      graphics.fillStyle(0xFFFFFF, bubble.alpha * 0.3);
+      graphics.fillCircle(bubble.x - bubble.r * 0.3, bubble.y - bubble.r * 0.3, bubble.r * 0.4);
+      
+      // 小さな反射光
+      graphics.fillStyle(0xFFFFFF, bubble.alpha * 0.8);
+      graphics.fillCircle(bubble.x - bubble.r * 0.4, bubble.y - bubble.r * 0.4, bubble.r * 0.15);
+    });
+  }
+
+  /**
+   * 詳細な海藻パターン
+   */
+  private static drawDetailedSeaweedPattern(graphics: Phaser.GameObjects.Graphics, size: number, accentColor: number): void {
+    graphics.lineStyle(1.2, accentColor, 0.6);
+    
+    // 海藻の茎を描画
+    for (let i = 0; i < 2; i++) {
+      const startX = size * (0.2 + i * 0.6);
+      const segments = 8;
+      
+      graphics.beginPath();
+      graphics.moveTo(startX, size);
+      
+      for (let j = 1; j <= segments; j++) {
+        const y = size - (size / segments) * j;
+        const sway = Math.sin(j * 0.5) * (3 + i);
+        const x = startX + sway;
+        graphics.lineTo(x, y);
+      }
+      graphics.strokePath();
+      
+      // 海藻の葉を追加
+      for (let j = 2; j < segments; j += 2) {
+        const y = size - (size / segments) * j;
+        const sway = Math.sin(j * 0.5) * (3 + i);
+        const x = startX + sway;
+        
+        // 左の葉
+        graphics.lineStyle(0.8, accentColor, 0.5);
+        graphics.lineBetween(x, y, x - 3, y - 2);
+        // 右の葉
+        graphics.lineBetween(x, y, x + 3, y - 2);
+      }
+    }
+  }
+
+  /**
+   * 詳細な珊瑚パターン
+   */
+  private static drawDetailedCoralPattern(graphics: Phaser.GameObjects.Graphics, size: number, accentColor: number): void {
+    graphics.lineStyle(1, accentColor, 0.7);
+    
+    // 珊瑚の枝を描画
+    const branches = [
+      { x: size * 0.3, y: size * 0.8, angle: -Math.PI/4, length: size * 0.3 },
+      { x: size * 0.7, y: size * 0.7, angle: -Math.PI/6, length: size * 0.25 },
+      { x: size * 0.5, y: size * 0.9, angle: -Math.PI/3, length: size * 0.2 }
+    ];
+    
+    branches.forEach(branch => {
+      this.drawCoralBranch(graphics, branch.x, branch.y, branch.angle, branch.length, 3, accentColor);
+    });
+    
+    // 珊瑚のポリプ（小さな円）
+    graphics.fillStyle(accentColor, 0.4);
+    for (let i = 0; i < 5; i++) {
+      const x = size * (0.2 + Math.random() * 0.6);
+      const y = size * (0.6 + Math.random() * 0.3);
+      graphics.fillCircle(x, y, 0.8);
+    }
+  }
+
+  /**
+   * 砂粒パターン
+   */
+  private static drawSandParticlePattern(graphics: Phaser.GameObjects.Graphics, size: number, accentColor: number): void {
+    graphics.fillStyle(accentColor, 0.6);
+    
+    // ランダムな砂粒を描画
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const particleSize = 0.5 + Math.random() * 1;
+      graphics.fillCircle(x, y, particleSize);
+    }
+    
+    // 砂の波紋
+    graphics.lineStyle(0.8, accentColor, 0.3);
+    for (let i = 0; i < 3; i++) {
+      const y = size * (0.3 + i * 0.2);
+      graphics.beginPath();
       for (let x = 0; x <= size; x += 2) {
-        const waveY = y + Math.sin((x / size) * Math.PI * 2) * amplitude;
+        const waveY = y + Math.sin((x / size) * Math.PI * 4) * 1;
         if (x === 0) {
           graphics.moveTo(x, waveY);
         } else {
@@ -156,140 +306,122 @@ export class BlockAssets {
       graphics.strokePath();
     }
   }
-  
+
   /**
-   * 泡パターン
+   * 真珠の輝きパターン
    */
-  private static drawBubblePattern(graphics: Phaser.GameObjects.Graphics, size: number, color: number): void {
-    const bubbles = [
-      { x: size * 0.2, y: size * 0.3, r: 2 },
-      { x: size * 0.7, y: size * 0.2, r: 1.5 },
-      { x: size * 0.5, y: size * 0.6, r: 1 },
-      { x: size * 0.8, y: size * 0.7, r: 1.2 },
-      { x: size * 0.3, y: size * 0.8, r: 0.8 }
+  private static drawPearlShimmerPattern(graphics: Phaser.GameObjects.Graphics, size: number, accentColor: number): void {
+    // 真珠の光沢効果
+    const shimmerPoints = [
+      { x: size * 0.2, y: size * 0.3, intensity: 0.8 },
+      { x: size * 0.7, y: size * 0.2, intensity: 0.6 },
+      { x: size * 0.5, y: size * 0.6, intensity: 0.9 },
+      { x: size * 0.8, y: size * 0.8, intensity: 0.5 }
     ];
     
-    bubbles.forEach(bubble => {
-      graphics.lineStyle(1, color, 0.6);
-      graphics.strokeCircle(bubble.x, bubble.y, bubble.r);
-      graphics.lineStyle(0.5, 0xFFFFFF, 0.8);
-      graphics.strokeCircle(bubble.x - bubble.r * 0.3, bubble.y - bubble.r * 0.3, bubble.r * 0.3);
-    });
-  }
-  
-  /**
-   * 海藻パターン
-   */
-  private static drawSeaweedPattern(graphics: Phaser.GameObjects.Graphics, size: number, color: number): void {
-    graphics.lineStyle(1.5, color, 0.5);
-    
-    // 縦に伸びる海藻
-    const seaweedCount = 2;
-    for (let i = 0; i < seaweedCount; i++) {
-      const x = (size / (seaweedCount + 1)) * (i + 1);
-      const segments = 6;
+    shimmerPoints.forEach(point => {
+      // 輝きの中心
+      graphics.fillStyle(0xFFFFFF, point.intensity);
+      graphics.fillCircle(point.x, point.y, 1.5);
       
-      graphics.beginPath();
-      graphics.moveTo(x, size);
-      
-      for (let j = 1; j <= segments; j++) {
-        const y = size - (size / segments) * j;
-        const offsetX = Math.sin(j * 0.8) * 2;
-        graphics.lineTo(x + offsetX, y);
+      // 輝きの放射
+      graphics.lineStyle(0.5, 0xFFFFFF, point.intensity * 0.6);
+      for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
+        const endX = point.x + Math.cos(angle) * 3;
+        const endY = point.y + Math.sin(angle) * 3;
+        graphics.lineBetween(point.x, point.y, endX, endY);
       }
-      graphics.strokePath();
-    }
+    });
+    
+    // 虹色の反射（真珠特有の効果）
+    graphics.lineStyle(1, accentColor, 0.4);
+    graphics.strokeCircle(size * 0.5, size * 0.5, size * 0.3);
   }
   
   /**
-   * 珊瑚パターン
+   * 立体感のある光の反射効果（改良版）
    */
-  private static drawCoralPattern(graphics: Phaser.GameObjects.Graphics, size: number, color: number): void {
-    graphics.lineStyle(1, color, 0.6);
+  private static addEnhancedLightReflection(graphics: Phaser.GameObjects.Graphics, size: number, theme: any): void {
+    // メインの光源（左上から）
+    const lightX = size * 0.25;
+    const lightY = size * 0.25;
+    const lightRadius = size * 0.3;
     
-    // 珊瑚の枝状パターン
-    const centerX = size / 2;
-    const centerY = size / 2;
-    const branches = 6;
+    // 光の反射（グラデーション風）
+    for (let i = 0; i < 5; i++) {
+      const radius = lightRadius * (1 - i * 0.15);
+      const alpha = 0.4 - (i * 0.06);
+      graphics.fillStyle(0xFFFFFF, alpha);
+      graphics.fillCircle(lightX, lightY, radius);
+    }
     
-    for (let i = 0; i < branches; i++) {
-      const angle = (Math.PI * 2 / branches) * i;
-      const length = size * 0.25;
-      
-      graphics.beginPath();
-      graphics.moveTo(centerX, centerY);
-      graphics.lineTo(
-        centerX + Math.cos(angle) * length,
-        centerY + Math.sin(angle) * length
-      );
-      graphics.strokePath();
-      
-      // 小さな枝
-      const subBranchX = centerX + Math.cos(angle) * length * 0.7;
-      const subBranchY = centerY + Math.sin(angle) * length * 0.7;
-      
-      graphics.beginPath();
-      graphics.moveTo(subBranchX, subBranchY);
-      graphics.lineTo(
-        subBranchX + Math.cos(angle + Math.PI / 4) * length * 0.3,
-        subBranchY + Math.sin(angle + Math.PI / 4) * length * 0.3
-      );
-      graphics.strokePath();
+    // 水面の反射効果（右下）
+    const reflectionX = size * 0.75;
+    const reflectionY = size * 0.75;
+    graphics.fillStyle(theme.highlight, 0.2);
+    graphics.fillCircle(reflectionX, reflectionY, size * 0.15);
+    
+    // 光の筋（水中の光線）
+    graphics.lineStyle(1, 0xFFFFFF, 0.3);
+    for (let i = 0; i < 3; i++) {
+      const angle = (Math.PI / 6) + (i * Math.PI / 12);
+      const startX = lightX;
+      const startY = lightY;
+      const endX = startX + Math.cos(angle) * size * 0.4;
+      const endY = startY + Math.sin(angle) * size * 0.4;
+      graphics.lineBetween(startX, startY, endX, endY);
     }
   }
-  
+
   /**
-   * 砂パターン
+   * 美しい枠線（水中の光の屈折を表現）
    */
-  private static drawSandPattern(graphics: Phaser.GameObjects.Graphics, size: number, color: number): void {
-    // 砂粒を表現する小さな点
-    const grains = 15;
+  private static addWaterRefractionBorder(graphics: Phaser.GameObjects.Graphics, size: number, theme: any): void {
+    // 外側の枠線（水の屈折効果）
+    graphics.lineStyle(2, theme.accent, 0.8);
+    graphics.strokeRoundedRect(1, 1, size - 2, size - 2, 8);
     
-    for (let i = 0; i < grains; i++) {
-      const x = Math.random() * size;
-      const y = Math.random() * size;
-      const opacity = 0.3 + Math.random() * 0.4;
-      
-      graphics.fillStyle(color, opacity);
-      graphics.fillCircle(x, y, 0.5 + Math.random() * 0.5);
-    }
-  }
-  
-  /**
-   * 真珠パターン
-   */
-  private static drawPearlPattern(graphics: Phaser.GameObjects.Graphics, size: number, color: number): void {
-    // 真珠の光沢を表現する同心円
-    const centerX = size / 2;
-    const centerY = size / 2;
-    const rings = 4;
+    // 内側のハイライト枠線
+    graphics.lineStyle(1, theme.highlight, 0.6);
+    graphics.strokeRoundedRect(3, 3, size - 6, size - 6, 6);
     
-    for (let i = 0; i < rings; i++) {
-      const radius = (size / 2) * (0.2 + (i / rings) * 0.6);
-      const opacity = 0.1 + (1 - i / rings) * 0.2;
-      
-      graphics.lineStyle(0.5, color, opacity);
-      graphics.strokeCircle(centerX, centerY, radius);
-    }
-  }
-  
-  /**
-   * 光の反射効果
-   */
-  private static addLightReflection(graphics: Phaser.GameObjects.Graphics, size: number): void {
-    // 左上からの光の反射
-    const reflectionSize = size * 0.4;
+    // 影の枠線（下と右）
+    graphics.lineStyle(1.5, theme.shadow, 0.4);
+    graphics.lineBetween(2, size - 2, size - 2, size - 2); // 下
+    graphics.lineBetween(size - 2, 2, size - 2, size - 2); // 右
     
-    graphics.fillStyle(0xFFFFFF, 0.15);
-    graphics.fillEllipse(size * 0.25, size * 0.25, reflectionSize, reflectionSize * 0.6);
+    // 光の枠線（上と左）
+    graphics.lineStyle(1, 0xFFFFFF, 0.5);
+    graphics.lineBetween(2, 2, size - 2, 2); // 上
+    graphics.lineBetween(2, 2, 2, size - 2); // 左
     
-    // 小さなハイライト
+    // 角の装飾（水滴効果）
     graphics.fillStyle(0xFFFFFF, 0.3);
-    graphics.fillCircle(size * 0.2, size * 0.2, 3);
+    graphics.fillCircle(size * 0.15, size * 0.15, 1.5); // 左上
+    graphics.fillCircle(size * 0.85, size * 0.85, 1.2); // 右下
   }
-  
+
   /**
-   * 色の補間
+   * 珊瑚の枝を描画するヘルパーメソッド
+   */
+  private static drawCoralBranch(graphics: Phaser.GameObjects.Graphics, x: number, y: number, angle: number, length: number, depth: number, color: number): void {
+    if (depth <= 0 || length < 2) return;
+    
+    const endX = x + Math.cos(angle) * length;
+    const endY = y + Math.sin(angle) * length;
+    
+    graphics.lineStyle(Math.max(0.5, depth * 0.5), color, 0.7);
+    graphics.lineBetween(x, y, endX, endY);
+    
+    // 分岐
+    if (depth > 1) {
+      const branchLength = length * 0.7;
+      this.drawCoralBranch(graphics, endX, endY, angle - Math.PI/6, branchLength, depth - 1, color);
+      this.drawCoralBranch(graphics, endX, endY, angle + Math.PI/6, branchLength, depth - 1, color);
+    }
+  }
+  /**
+   * 色の補間（ヘルパーメソッド）
    */
   private static interpolateColor(color1: number, color2: number, ratio: number): number {
     const r1 = (color1 >> 16) & 0xFF;

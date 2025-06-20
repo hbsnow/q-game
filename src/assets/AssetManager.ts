@@ -128,22 +128,32 @@ export class AssetManager {
     // 背景
     UIAssets.createOceanBackground(this.scene, 400, 710);
     
-    // アイテム枠
-    const frameSizes = [60, 80, 100];
-    const frameTypes: ('special' | 'normal' | 'empty')[] = ['special', 'normal', 'empty'];
+    // パネルとフレーム
+    const panelSizes = [
+      { width: 200, height: 150 },
+      { width: 300, height: 200 },
+      { width: 400, height: 300 }
+    ];
+    const panelStyles: ('light' | 'dark' | 'transparent')[] = ['light', 'dark', 'transparent'];
     
-    frameSizes.forEach(size => {
-      frameTypes.forEach(type => {
-        UIAssets.createItemFrame(this.scene, size, type);
+    panelSizes.forEach(size => {
+      panelStyles.forEach(style => {
+        UIAssets.createOceanPanel(this.scene, size.width, size.height, style);
       });
     });
     
-    // 宝箱
-    const chestSizes = [80, 100, 120];
-    chestSizes.forEach(size => {
-      UIAssets.createTreasureChest(this.scene, size, false);
-      UIAssets.createTreasureChest(this.scene, size, true);
+    // 装飾枠
+    const frameSizes = [
+      { width: 100, height: 100 },
+      { width: 200, height: 150 },
+      { width: 300, height: 200 }
+    ];
+    frameSizes.forEach(size => {
+      UIAssets.createOceanFrame(this.scene, size.width, size.height, 4);
     });
+    
+    // 背景
+    UIAssets.createOceanBackground(this.scene, 400, 710);
   }
   
   /**
