@@ -47,6 +47,20 @@ export class StageManager {
   }
 
   /**
+   * 現在のステージを設定（デバッグ用）
+   */
+  setCurrentStage(stage: number): boolean {
+    if (!isValidStage(stage)) {
+      console.warn(`Invalid stage number: ${stage}`);
+      return false;
+    }
+    
+    this.progress.currentStage = stage;
+    console.log(`Current stage set to: ${stage}`);
+    return true;
+  }
+
+  /**
    * 現在のステージ設定を取得
    */
   getCurrentStageConfig(): StageConfig | null {

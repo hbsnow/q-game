@@ -10,6 +10,8 @@ export class DebugHelper {
   private isVisible: boolean = true;
   private blocks: Block[][] | null = null;
   private lastClickPosition: {x: number, y: number} | null = null;
+  private debugMenu?: Phaser.GameObjects.Container;
+  private isDebugMenuVisible: boolean = false;
 
   constructor(scene: Phaser.Scene) {
     this.scene = scene;
@@ -111,5 +113,199 @@ export class DebugHelper {
    */
   logBlocksComparison(beforeBlocks: Block[][], afterBlocks: Block[][], label?: string): void {
     BlockAsciiRenderer.logBlocksComparison(beforeBlocks, afterBlocks, label, this.lastClickPosition);
+  }
+
+  /**
+   * デバッグメニューを作成・表示
+   */
+  createDebugMenu(callbacks: {
+    onStageChange?: (stage: number) => void;
+    onGoldAdd?: (amount: number) => void;
+    onClose?: () => void;
+  }): void {
+    if (this.debugMenu) {
+      this.debugMenu.destroy();
+    }
+
+    const centerX = this.scene.cameras.main.width / 2;
+    const centerY = this.scene.cameras.main.height / 2;
+
+    // 背景オーバーレイ
+    const background = this.scene.add.graphics();
+    background.fillStyle(0x000000, 0.8);
+    background.fillRect(0, 0, this.scene.cameras.main.width, this.scene.cameras.main.height);
+    background.setInteractive(new Phaser.Geom.Rectangle(0, 0, this.scene.cameras.main.width, this.scene.cameras.main.height), Phaser.Geom.Rectangle.Contains);
+
+    // メニューパネル
+    const panel = this.scene.add.graphics();
+    panel.fillStyle(0x333333, 1);
+    panel.lineStyle(2, 0xFFFFFF, 1);
+    panel.fillRoundedRect(-150, -220, 300, 440, 10);
+    panel.strokeRoundedRect(-150, -220, 300, 440, 10);
+
+    // タイトル
+    const title = this.scene.add.text(0, -190, 'デバッグメニュー', {
+      fontSize: '20px',
+      color: '#FFFFFF',
+      fontStyle: 'bold'
+    }).setOrigin(0.5);
+
+    // ステージ移動セクション
+    const stageTitle = this.scene.add.text(0, -150, 'ステージ移動', {
+      fontSize: '16px',
+      color: '#FFFF00'
+    }).setOrigin(0.5);
+
+    // ステージボタン（1-20）
+    const stageButtons: Phaser.GameObjects.Text[] = [];
+    for (let i = 1; i <= 20; i++) {
+      const row = Math.floor((i - 1) / 5);
+      const col = (i - 1) % 5;
+      const x = -80 + col * 40;
+      const y = -120 + row * 30;
+
+      const button = this.scene.add.text(x, y, i.toString(), {
+        fontSize: '14px',
+        color: '#FFFFFF',
+        backgroundColor: '#666666',
+        padding: { x: 8, y: 4 }
+      }).setOrigin(0.5).setInteractive();
+
+      button.on('pointerdown', () => {
+        if (callbacks.onStageChange) {
+          callbacks.onStageChange(i);
+        }
+        this.hideDebugMenu();
+      });
+
+      button.on('pointerover', () => {
+        button.setStyle({ backgroundColor: '#888888' });
+      });
+
+      button.on('pointerout', () => {
+        button.setStyle({ backgroundColor: '#666666' });
+      });
+
+      stageButtons.push(button);
+    }
+
+    // ゴールド追加セクション
+    const goldTitle = this.scene.add.text(0, 30, 'ゴールド追加', {
+      fontSize: '16px',
+      color: '#FFFF00'
+    }).setOrigin(0.5);
+
+    const goldAmounts = [100, 500, 1000, 5000];
+    const goldButtons: Phaser.GameObjects.Text[] = [];
+
+    goldAmounts.forEach((amount, index) => {
+      const x = -60 + (index % 2) * 120;
+      const y = 60 + Math.floor(index / 2) * 40;
+
+      const button = this.scene.add.text(x, y, `+${amount}G`, {
+        fontSize: '14px',
+        color: '#FFFFFF',
+        backgroundColor: '#006600',
+        padding: { x: 12, y: 6 }
+      }).setOrigin(0.5).setInteractive();
+
+      button.on('pointerdown', () => {
+        if (callbacks.onGoldAdd) {
+          callbacks.onGoldAdd(amount);
+        }
+      });
+
+      button.on('pointerover', () => {
+        button.setStyle({ backgroundColor: '#008800' });
+      });
+
+      button.on('pointerout', () => {
+        button.setStyle({ backgroundColor: '#006600' });
+      });
+
+      goldButtons.push(button);
+    });
+
+    // 閉じるボタン
+    const closeButton = this.scene.add.text(0, 170, '閉じる', {
+      fontSize: '16px',
+      color: '#FFFFFF',
+      backgroundColor: '#CC0000',
+      padding: { x: 20, y: 8 }
+    }).setOrigin(0.5).setInteractive();
+
+    closeButton.on('pointerdown', () => {
+      this.hideDebugMenu();
+      if (callbacks.onClose) {
+        callbacks.onClose();
+      }
+    });
+
+    closeButton.on('pointerover', () => {
+      closeButton.setStyle({ backgroundColor: '#FF0000' });
+    });
+
+    closeButton.on('pointerout', () => {
+      closeButton.setStyle({ backgroundColor: '#CC0000' });
+    });
+
+    // コンテナに追加
+    this.debugMenu = this.scene.add.container(centerX, centerY, [
+      background,
+      panel,
+      title,
+      stageTitle,
+      ...stageButtons,
+      goldTitle,
+      ...goldButtons,
+      closeButton
+    ]);
+
+    this.debugMenu.setDepth(2000);
+    this.isDebugMenuVisible = true;
+  }
+
+  /**
+   * デバッグメニューを表示
+   */
+  showDebugMenu(callbacks: {
+    onStageChange?: (stage: number) => void;
+    onGoldAdd?: (amount: number) => void;
+    onClose?: () => void;
+  }): void {
+    if (!this.isDebugMenuVisible) {
+      this.createDebugMenu(callbacks);
+    }
+  }
+
+  /**
+   * デバッグメニューを非表示
+   */
+  hideDebugMenu(): void {
+    if (this.debugMenu) {
+      this.debugMenu.destroy();
+      this.debugMenu = undefined;
+      this.isDebugMenuVisible = false;
+    }
+  }
+
+  /**
+   * デバッグメニューが表示されているかどうか
+   */
+  isDebugMenuOpen(): boolean {
+    return this.isDebugMenuVisible;
+  }
+
+  /**
+   * リソースを破棄
+   */
+  destroy(): void {
+    this.debugElements.forEach(element => {
+      if (element && element.destroy) {
+        element.destroy();
+      }
+    });
+    this.debugElements = [];
+    this.hideDebugMenu();
   }
 }

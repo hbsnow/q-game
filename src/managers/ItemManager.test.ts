@@ -11,7 +11,19 @@ describe('ItemManager', () => {
   let itemManager: ItemManager;
 
   beforeEach(() => {
-    itemManager = new ItemManager();
+    // シングルトンインスタンスを取得
+    itemManager = ItemManager.getInstance();
+    
+    // テスト前にインベントリをクリア（プライベートメソッドを使用できないため、リフレクションを使用）
+    (itemManager as any).inventory = {};
+    (itemManager as any).equippedItems = {
+      specialSlot: null,
+      normalSlot: null
+    };
+    (itemManager as any).usageState = {
+      specialSlotUsed: false,
+      normalSlotUsed: false
+    };
   });
 
   describe('アイテム追加・消費', () => {

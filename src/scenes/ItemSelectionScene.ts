@@ -28,16 +28,11 @@ export class ItemSelectionScene extends Phaser.Scene {
   constructor() {
     super({ key: 'ItemSelectionScene' });
     this.stageManager = StageManager.getInstance();
-    this.itemManager = new ItemManager();
+    this.itemManager = ItemManager.getInstance();
   }
 
   init(data: any): void {
     this.currentStage = data.stage || this.stageManager.getCurrentStage();
-    
-    // テスト用：基本アイテムを追加（開発・テスト用）
-    if (GameConfig.DEBUG_MODE) {
-      this.addTestItems();
-    }
     
     // 利用可能なアイテムを取得
     this.loadAvailableItems();
@@ -76,35 +71,6 @@ export class ItemSelectionScene extends Phaser.Scene {
     // テスト用：自動的にアイテムを装備（必ず実行）
     console.log('DEBUG_MODE:', GameConfig.DEBUG_MODE);
     this.autoEquipTestItems();
-  }
-
-  /**
-   * テスト用アイテムを追加（開発・テスト用）
-   */
-  private addTestItems(): void {
-    console.log('addTestItems開始');
-    
-    // 基本アイテムを追加
-    this.itemManager.addItem('swap', 3);
-    this.itemManager.addItem('changeOne', 2);
-    this.itemManager.addItem('miniBomb', 5);
-    this.itemManager.addItem('shuffle', 4);
-    
-    // Phase 7: 中級アイテムを追加
-    this.itemManager.addItem('meltingAgent', 2);
-    this.itemManager.addItem('changeArea', 2);
-    this.itemManager.addItem('counterReset', 3);
-    this.itemManager.addItem('adPlus', 1);
-    
-    // 上級アイテムを追加
-    this.itemManager.addItem('bomb', 1);
-    this.itemManager.addItem('scoreBooster', 1);
-    this.itemManager.addItem('hammer', 2);
-    this.itemManager.addItem('steelHammer', 1);
-    this.itemManager.addItem('specialHammer', 1);
-    
-    console.log('テストアイテム追加完了');
-    console.log('追加後のインベントリ:', this.itemManager.getInventory());
   }
 
   /**

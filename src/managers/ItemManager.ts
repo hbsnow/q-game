@@ -29,9 +29,10 @@ export interface ItemUsageState {
 }
 
 /**
- * アイテム管理クラス
+ * アイテム管理クラス（シングルトン）
  */
 export class ItemManager {
+  private static instance: ItemManager;
   private inventory: ItemInventory = {};
   private equippedItems: EquippedItems = {
     specialSlot: null,
@@ -42,10 +43,30 @@ export class ItemManager {
     normalSlotUsed: false
   };
 
+  private constructor() {
+    // プライベートコンストラクタでシングルトンを保証
+    console.log('[ItemManager] ItemManager初期化');
+    console.log('[ItemManager] 初期インベントリ:', this.inventory);
+  }
+
+  /**
+   * シングルトンインスタンスを取得
+   */
+  public static getInstance(): ItemManager {
+    if (!ItemManager.instance) {
+      ItemManager.instance = new ItemManager();
+    }
+    return ItemManager.instance;
+  }
+
   /**
    * アイテムを追加
    */
   addItem(itemId: string, count: number = 1): void {
+    // デバッグ用ログ出力
+    console.log(`[ItemManager] アイテム追加: ${itemId} x${count}`);
+    console.log(`[ItemManager] 追加前の所持数: ${this.inventory[itemId] || 0}`);
+    
     if (this.inventory[itemId]) {
       this.inventory[itemId] += count;
     } else {
@@ -56,6 +77,9 @@ export class ItemManager {
     if (this.inventory[itemId] > 99) {
       this.inventory[itemId] = 99;
     }
+    
+    console.log(`[ItemManager] 追加後の所持数: ${this.inventory[itemId]}`);
+    console.log(`[ItemManager] 現在のインベントリ:`, this.inventory);
   }
 
   /**

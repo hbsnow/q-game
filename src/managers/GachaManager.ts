@@ -45,7 +45,7 @@ export class GachaManager {
   };
 
   private constructor(itemManager?: ItemManager, stageManager?: StageManager) {
-    this.itemManager = itemManager || new ItemManager();
+    this.itemManager = itemManager || ItemManager.getInstance();
     this.stageManager = stageManager || StageManager.getInstance();
   }
 
@@ -62,13 +62,19 @@ export class GachaManager {
   private getAvailableItems(): Array<{id: string, name: string, rarity: string}> {
     const currentStage = this.stageManager.getCurrentStage();
     
-    return Object.values(ITEM_DATA)
+    const availableItems = Object.values(ITEM_DATA)
       .filter(item => item.unlockStage <= currentStage)
       .map(item => ({
         id: item.id,
         name: item.name,
         rarity: item.rarity
       }));
+    
+    // デバッグ用ログ出力
+    console.log(`[GachaManager] 現在のステージ: ${currentStage}`);
+    console.log(`[GachaManager] 出現可能アイテム:`, availableItems);
+    
+    return availableItems;
   }
 
   /**
@@ -190,7 +196,14 @@ export class GachaManager {
    * 1回ガチャを実行
    */
   public drawSingle(): GachaResult | null {
-    return this.drawItem();
+    const result = this.drawItem();
+    
+    // デバッグ用ログ出力
+    if (result) {
+      console.log(`[GachaManager] ガチャ結果:`, result);
+    }
+    
+    return result;
   }
 
   /**

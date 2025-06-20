@@ -49,11 +49,6 @@ export class MainScene extends Phaser.Scene {
     // 美しい海の背景を作成
     this.backgroundManager.createOceanBackground('light');
     
-    // テスト用：初期ゴールドを追加（開発・テスト用）
-    if (GameConfig.DEBUG_MODE) {
-      this.stageManager.addGold(5000);
-    }
-    
     // StageManagerから現在の状態を取得
     const currentStage = this.stageManager.getCurrentStage();
     const gold = this.stageManager.getCurrentGold();
@@ -190,10 +185,50 @@ export class MainScene extends Phaser.Scene {
     this.tooltipManager.addButtonTooltip(itemButton, '所持しているアイテムを確認できます');
     this.tooltipManager.addButtonTooltip(gachaButton, 'ゴールドを使ってアイテムを獲得できます');
     
+    // デバッグボタン（開発モード時のみ表示）
+    if (GameConfig.DEBUG_MODE) {
+      const debugButton = new SimpleOceanButton(
+        this,
+        width - 60,
+        height - 40,
+        100,
+        30,
+        'デバッグ',
+        'secondary',
+        () => {
+          this.showDebugMenu();
+        }
+      );
+      debugButton.setScale(0.8); // 小さめに表示
+    }
+    
     // デバッグライン
     if (GameConfig.DEBUG_MODE) {
       this.addDebugLines();
     }
+  }
+
+  /**
+   * デバッグメニューを表示
+   */
+  private showDebugMenu(): void {
+    this.debugHelper.showDebugMenu({
+      onStageChange: (stage: number) => {
+        console.log(`デバッグ: ステージ ${stage} に移動`);
+        this.stageManager.setCurrentStage(stage);
+        // 画面を再読み込みして新しいステージ情報を表示
+        this.scene.restart();
+      },
+      onGoldAdd: (amount: number) => {
+        console.log(`デバッグ: ゴールド ${amount} を追加`);
+        this.stageManager.addGold(amount);
+        // 画面を再読み込みしてゴールド表示を更新
+        this.scene.restart();
+      },
+      onClose: () => {
+        console.log('デバッグメニューを閉じました');
+      }
+    });
   }
 
   /**
@@ -304,6 +339,11 @@ export class MainScene extends Phaser.Scene {
    * シーン終了時のクリーンアップ
    */
   shutdown(): void {
+    // デバッグヘルパーをクリーンアップ
+    if (this.debugHelper) {
+      this.debugHelper.destroy();
+    }
+    
     // サウンドマネージャーをクリーンアップ
     if (this.soundManager) {
       this.soundManager.destroy();

@@ -70,7 +70,7 @@ export class GameScene extends Phaser.Scene {
     this.gameStateManager = GameStateManager.getInstance();
     this.blockLogic = new BlockLogic();
     this.stageManager = StageManager.getInstance();
-    this.itemManager = new ItemManager();
+    this.itemManager = ItemManager.getInstance();
   }
 
   init(data: any): void {

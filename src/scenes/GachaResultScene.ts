@@ -34,7 +34,7 @@ export class GachaResultScene extends Phaser.Scene {
     super({ key: 'GachaResultScene' });
     this.gameStateManager = GameStateManager.getInstance();
     this.stageManager = StageManager.getInstance();
-    this.itemManager = new ItemManager();
+    this.itemManager = ItemManager.getInstance();
     this.gachaManager = GachaManager.getInstance(this.itemManager, this.stageManager);
   }
 

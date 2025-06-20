@@ -31,7 +31,7 @@ export class GachaScene extends Phaser.Scene {
     super({ key: 'GachaScene' });
     this.gameStateManager = GameStateManager.getInstance();
     this.stageManager = StageManager.getInstance();
-    this.itemManager = new ItemManager();
+    this.itemManager = ItemManager.getInstance();
     this.gachaManager = GachaManager.getInstance(this.itemManager, this.stageManager);
   }
 
@@ -217,21 +217,24 @@ export class GachaScene extends Phaser.Scene {
     const cost = this.gachaManager.getGachaPrice();
     if (this.currentGold < cost) return;
     
-    // ガチャ実行
-    const result = this.gachaManager.drawSingle();
-    if (!result) return;
-    
-    // ゴールド消費
-    this.stageManager.spendGold(cost);
-    
-    // アイテム追加
-    this.itemManager.addItem(result.itemId, result.count);
-    
-    // ガチャ結果画面に遷移
-    this.scene.start('GachaResultScene', {
-      items: [result],
-      cost: cost,
-      isMulti: false
+    // ガチャ演出を開始
+    this.playGachaAnimation(() => {
+      // ガチャ実行
+      const result = this.gachaManager.drawSingle();
+      if (!result) return;
+      
+      // ゴールド消費
+      this.stageManager.spendGold(cost);
+      
+      // アイテム追加
+      this.itemManager.addItem(result.itemId, result.count);
+      
+      // ガチャ結果画面に遷移
+      this.scene.start('GachaResultScene', {
+        items: [result],
+        cost: cost,
+        isMulti: false
+      });
     });
   }
 
@@ -239,24 +242,144 @@ export class GachaScene extends Phaser.Scene {
     const cost = this.gachaManager.getTenGachaPrice();
     if (this.currentGold < cost) return;
     
-    // ガチャ実行
-    const results = this.gachaManager.drawTen();
-    if (results.length === 0) return;
+    // ガチャ演出を開始（10連は少し長め）
+    this.playGachaAnimation(() => {
+      // ガチャ実行
+      const results = this.gachaManager.drawTen();
+      if (results.length === 0) return;
+      
+      // ゴールド消費
+      this.stageManager.spendGold(cost);
+      
+      // アイテム追加
+      results.forEach(result => {
+        this.itemManager.addItem(result.itemId, result.count);
+      });
+      
+      // ガチャ結果画面に遷移
+      this.scene.start('GachaResultScene', {
+        items: results,
+        cost: cost,
+        isMulti: true
+      });
+    }, true); // 10連フラグ
+  }
+
+  /**
+   * ガチャ演出アニメーション
+   */
+  private playGachaAnimation(onComplete: () => void, isMulti: boolean = false): void {
+    const { width, height } = this.cameras.main;
     
-    // ゴールド消費
-    this.stageManager.spendGold(cost);
+    // 演出用オーバーレイ
+    const overlay = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0.7);
     
-    // アイテム追加
-    results.forEach(result => {
-      this.itemManager.addItem(result.itemId, result.count);
+    // ギフトボックスをGraphicsで描画（絵文字の代わり）
+    const giftBox = this.createGiftBoxGraphics(width / 2, height + 50);
+    
+    // 演出テキスト
+    const animText = this.add.text(width / 2, height / 2 - 60, 
+      isMulti ? 'プレゼントを10個開いています...' : 'プレゼントを開いています...', {
+      fontSize: '16px',
+      color: '#FFFFFF',
+      fontFamily: 'Arial',
+      stroke: '#000000',
+      strokeThickness: 2
+    }).setOrigin(0.5);
+    
+    // 泡エフェクト
+    this.createBubbleEffect(width / 2, height / 2);
+    
+    // ギフト浮上アニメーション
+    this.tweens.add({
+      targets: giftBox,
+      y: height / 2 + 40,
+      duration: 600,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // ギフトが光る演出
+        this.tweens.add({
+          targets: giftBox,
+          scaleX: 1.1,
+          scaleY: 1.1,
+          duration: 200,
+          yoyo: true,
+          repeat: 1,
+          onComplete: () => {
+            // 演出終了、結果画面へ
+            overlay.destroy();
+            giftBox.destroy();
+            animText.destroy();
+            onComplete();
+          }
+        });
+      }
     });
     
-    // ガチャ結果画面に遷移
-    this.scene.start('GachaResultScene', {
-      items: results,
-      cost: cost,
-      isMulti: true
+    // テキストの点滅演出
+    this.tweens.add({
+      targets: animText,
+      alpha: 0.5,
+      duration: 600,
+      yoyo: true,
+      repeat: -1
     });
+  }
+
+  /**
+   * ギフトボックスのGraphicsを作成
+   */
+  private createGiftBoxGraphics(x: number, y: number): Phaser.GameObjects.Graphics {
+    const graphics = this.add.graphics();
+    graphics.x = x;
+    graphics.y = y;
+    
+    // ギフトボックス本体（赤色）
+    graphics.fillStyle(0xFF4444);
+    graphics.fillRect(-20, -15, 40, 30);
+    
+    // リボン（縦）
+    graphics.fillStyle(0xFFD700);
+    graphics.fillRect(-3, -15, 6, 30);
+    
+    // リボン（横）
+    graphics.fillRect(-20, -3, 40, 6);
+    
+    // リボンの結び目
+    graphics.fillStyle(0xFFAA00);
+    graphics.fillCircle(0, -15, 8);
+    
+    // 光沢効果
+    graphics.fillStyle(0xFFFFFF, 0.3);
+    graphics.fillRect(-15, -10, 8, 8);
+    
+    return graphics;
+  }
+
+  /**
+   * 泡エフェクトを作成
+   */
+  private createBubbleEffect(centerX: number, centerY: number): void {
+    for (let i = 0; i < 8; i++) {
+      const bubble = this.add.circle(
+        centerX + (Math.random() - 0.5) * 100,
+        centerY + 50,
+        Math.random() * 8 + 4,
+        0x87CEEB,
+        0.6
+      );
+      
+      this.tweens.add({
+        targets: bubble,
+        y: centerY - 100,
+        alpha: 0,
+        duration: 2000 + Math.random() * 1000,
+        delay: Math.random() * 500,
+        onComplete: () => {
+          bubble.destroy();
+        }
+      });
+    }
   }
 
   private toggleRateDisplay(): void {
@@ -277,49 +400,94 @@ export class GachaScene extends Phaser.Scene {
       .setInteractive()
       .setName('rateOverlay');
     
-    // 確率表示パネル
-    const panel = this.add.rectangle(width / 2, height / 2, width - 40, height - 100, 0x333333)
+    // 確率表示パネル（角丸風の装飾）
+    const panel = this.add.rectangle(width / 2, height / 2, width - 40, height - 100, 0x1E3A8A, 0.95)
+      .setStrokeStyle(3, 0x60A5FA, 0.8)
       .setName('ratePanel');
     
-    // タイトル
-    this.add.text(width / 2, 80, '排出確率', {
-      fontSize: '20px',
+    // パネルに海のテーマの装飾を追加
+    const decorBg = this.add.rectangle(width / 2, height / 2, width - 50, height - 110, 0x1E40AF, 0.3)
+      .setName('rateDecor');
+    
+    // タイトル（美しいスタイル）
+    const titleText = this.add.text(width / 2, 80, '🎰 排出確率 🎰', {
+      fontSize: '22px',
       color: '#FFFFFF',
-      fontFamily: 'Arial'
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 2
     }).setOrigin(0.5).setName('rateTitle');
     
-    // 確率リスト
-    let yOffset = 120;
-    this.dropRates.forEach((rarityData) => {
-      // レア度ヘッダー
-      this.add.text(50, yOffset, `${rarityData.rarity}レア (${rarityData.rate.toFixed(2)}%)`, {
-        fontSize: '16px',
-        color: '#FFFF00',
-        fontFamily: 'Arial'
-      }).setName('rateItem');
-      yOffset += 25;
+    // タイトルに輝きエフェクト
+    this.tweens.add({
+      targets: titleText,
+      alpha: 0.8,
+      duration: 1000,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut'
+    });
+    
+    // スクロール可能エリアの設定
+    const scrollAreaTop = 110;
+    const scrollAreaHeight = height - 220;
+    
+    // 確率リスト（改善されたデザイン）
+    let yOffset = scrollAreaTop;
+    this.dropRates.forEach((rarityData, index) => {
+      if (yOffset > height - 120) return; // 表示領域を超える場合はスキップ
       
-      // そのレア度のアイテム一覧
-      rarityData.items.forEach((itemName) => {
-        if (yOffset < height - 100) {
-          this.add.text(70, yOffset, `• ${itemName}`, {
-            fontSize: '14px',
-            color: '#FFFFFF',
-            fontFamily: 'Arial'
-          }).setName('rateItem');
-          yOffset += 20;
-        }
-      });
+      // レア度カード背景
+      const rarityColor = this.getRarityColorForDisplay(rarityData.rarity);
+      const cardBg = this.add.rectangle(width / 2, yOffset + 15, width - 80, 30, rarityColor, 0.4)
+        .setStrokeStyle(2, rarityColor, 0.8)
+        .setName('rateItem');
+      
+      // レア度ヘッダー（改善されたスタイル）
+      const rarityHeader = this.add.text(width / 2, yOffset + 15, 
+        `${rarityData.rarity}レア (${rarityData.rate.toFixed(2)}%)`, {
+        fontSize: '16px',
+        color: '#FFFFFF',
+        fontFamily: 'Arial',
+        fontStyle: 'bold',
+        stroke: '#000000',
+        strokeThickness: 1
+      }).setOrigin(0.5).setName('rateItem');
+      
+      yOffset += 40;
+      
+      // そのレア度のアイテム一覧（コンパクト表示）
+      const itemsText = rarityData.items.join(', ');
+      if (itemsText.length > 0 && yOffset < height - 120) {
+        this.add.text(width / 2, yOffset, itemsText, {
+          fontSize: '12px',
+          color: '#E5E7EB',
+          fontFamily: 'Arial',
+          wordWrap: { width: width - 100 },
+          align: 'center'
+        }).setOrigin(0.5).setName('rateItem');
+        yOffset += 25;
+      }
+      
       yOffset += 10; // レア度間のスペース
     });
     
-    // 閉じるボタン
+    // 注意書き
+    this.add.text(width / 2, height - 90, '※ 現在のステージで出現可能なアイテムのみ表示', {
+      fontSize: '10px',
+      color: '#9CA3AF',
+      fontFamily: 'Arial',
+      align: 'center'
+    }).setOrigin(0.5).setName('rateItem');
+    
+    // 閉じるボタン（改善されたデザイン）
     const closeButton = new SimpleOceanButton(
       this,
       width / 2,
       height - 50,
-      100,
-      35,
+      120,
+      40,
       '閉じる',
       'secondary',
       () => this.hideRateDisplay()
@@ -430,6 +598,19 @@ export class GachaScene extends Phaser.Scene {
       fontFamily: 'Arial',
       fontStyle: 'bold'
     }).setOrigin(0, 0.5);
+  }
+
+  private getRarityColorForDisplay(rarity: string): number {
+    switch (rarity) {
+      case 'S': return 0xFFD700; // 金色
+      case 'A': return 0xFF0000; // 赤色
+      case 'B': return 0x800080; // 紫色
+      case 'C': return 0x0000FF; // 青色
+      case 'D': return 0x008000; // 緑色
+      case 'E': return 0x808080; // 灰色
+      case 'F': return 0x654321; // 茶色
+      default: return 0x808080;
+    }
   }
 
   private addDebugLines(): void {

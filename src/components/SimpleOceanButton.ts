@@ -317,6 +317,10 @@ export class SimpleOceanButton extends Phaser.GameObjects.Container {
    * ホバーエフェクトを追加
    */
   private addHoverEffects(): void {
+    if (!this.scene || !this.scene.tweens) {
+      return;
+    }
+    
     this.scene.tweens.add({
       targets: this,
       scaleX: 1.05,
@@ -330,6 +334,10 @@ export class SimpleOceanButton extends Phaser.GameObjects.Container {
    * ホバーエフェクトを削除
    */
   private removeHoverEffects(): void {
+    if (!this.scene || !this.scene.tweens) {
+      return;
+    }
+    
     this.scene.tweens.add({
       targets: this,
       scaleX: 1,
@@ -343,6 +351,10 @@ export class SimpleOceanButton extends Phaser.GameObjects.Container {
    * プレスエフェクトを追加
    */
   private addPressEffects(): void {
+    if (!this.scene || !this.scene.tweens) {
+      return;
+    }
+    
     this.scene.tweens.add({
       targets: this,
       scaleX: 0.95,
@@ -356,6 +368,10 @@ export class SimpleOceanButton extends Phaser.GameObjects.Container {
    * プレスエフェクトを削除
    */
   private removePressEffects(): void {
+    if (!this.scene || !this.scene.tweens) {
+      return;
+    }
+    
     this.scene.tweens.add({
       targets: this,
       scaleX: 1.05,
@@ -369,6 +385,12 @@ export class SimpleOceanButton extends Phaser.GameObjects.Container {
    * クリックエフェクトを追加
    */
   private addClickEffects(): void {
+    // シーンが存在しない場合は何もしない
+    if (!this.scene || !this.scene.add || !this.scene.tweens) {
+      console.warn('SimpleOceanButton: Scene is not available for click effects');
+      return;
+    }
+
     // 波紋エフェクト
     const ripple = this.scene.add.graphics();
     ripple.lineStyle(3, 0xFFFFFF, 0.8);
@@ -424,7 +446,9 @@ export class SimpleOceanButton extends Phaser.GameObjects.Container {
    * ボタンの破棄
    */
   public destroy(): void {
-    this.scene.tweens.killTweensOf(this);
+    if (this.scene && this.scene.tweens) {
+      this.scene.tweens.killTweensOf(this);
+    }
     super.destroy();
   }
 }

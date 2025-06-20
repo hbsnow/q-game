@@ -114,7 +114,7 @@ export class AdvancedDebugHelper {
    */
   private getDebugInfoText(): string {
     const stageManager = StageManager.getInstance();
-    const itemManager = new ItemManager();
+    const itemManager = ItemManager.getInstance();
     const equippedItems = itemManager.getEquippedItems();
     
     return [
@@ -184,7 +184,7 @@ export class AdvancedDebugHelper {
    */
   private logCompleteGameState(): void {
     const stageManager = StageManager.getInstance();
-    const itemManager = new ItemManager();
+    const itemManager = ItemManager.getInstance();
     const gachaManager = GachaManager.getInstance(itemManager, stageManager);
     
     console.group('🎮 Complete Game State Debug Log');
@@ -367,7 +367,7 @@ class CheatCodeManager {
 
   private executeCheatCode(code: string): void {
     const stageManager = StageManager.getInstance();
-    const itemManager = new ItemManager();
+    const itemManager = ItemManager.getInstance();
 
     switch (code.toLowerCase()) {
       case 'gold1000':
@@ -404,7 +404,7 @@ class CheatCodeManager {
   }
 
   addAllItems(): void {
-    const itemManager = new ItemManager();
+    const itemManager = ItemManager.getInstance();
     const allItemIds = [
       'swap', 'changeOne', 'miniBomb', 'shuffle',
       'meltingAgent', 'changeArea', 'counterReset', 'adPlus',
@@ -428,7 +428,7 @@ class CheatCodeManager {
 
   resetGame(): void {
     const stageManager = StageManager.getInstance();
-    const itemManager = new ItemManager();
+    const itemManager = ItemManager.getInstance();
     
     // ゲーム状態をリセット（簡略化）
     console.log('Game reset to initial state (simplified)');
