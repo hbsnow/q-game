@@ -442,42 +442,95 @@ export class GameScene extends Phaser.Scene {
     container.on('pointerover', () => {
       if (this.isProcessing) return;
       
-      // 色弱対応：スケールと透明度の変化で視覚的フィードバック
-      this.tweens.add({
-        targets: container,
-        scale: originalScale * 1.1,
-        alpha: 0.8,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
+      // ブロックの座標を取得
+      const blockX = Math.floor((container.x - this.boardX) / GameConfig.BLOCK_SIZE);
+      const blockY = Math.floor((container.y - this.boardY) / GameConfig.BLOCK_SIZE);
       
-      // 脈動エフェクト（妨害ブロック以外）
-      if (block.type === BlockType.NORMAL || block.type === 'normal') {
+      // 消去対象となる隣接ブロックを取得
+      const connectedBlocks = this.getConnectedBlocksForPreview(blockX, blockY);
+      
+      // 消去対象が2個以上の場合のみ演出を適用
+      if (connectedBlocks.length >= 2) {
+        // 全ての消去対象ブロックに演出を適用
+        connectedBlocks.forEach(pos => {
+          const targetSprite = this.blockSprites[pos.y]?.[pos.x];
+          if (targetSprite) {
+            // 色弱対応：スケールと透明度の変化で視覚的フィードバック
+            this.tweens.add({
+              targets: targetSprite,
+              scale: originalScale * 1.1,
+              alpha: 0.8,
+              duration: GameConfig.ANIMATION.HOVER_DURATION,
+              ease: 'Power2'
+            });
+            
+            // 脈動エフェクト（妨害ブロック以外）
+            const targetBlock = this.blocks[pos.y]?.[pos.x];
+            if (targetBlock && (targetBlock.type === BlockType.NORMAL || targetBlock.type === 'normal')) {
+              this.tweens.add({
+                targets: targetSprite,
+                scaleX: originalScale * 1.05,
+                scaleY: originalScale * 1.05,
+                duration: GameConfig.ANIMATION.PULSE_DURATION,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+              });
+            }
+          }
+        });
+      } else {
+        // 消去対象が1個以下の場合は通常の演出（薄く表示）
         this.tweens.add({
           targets: container,
-          scaleX: originalScale * 1.05,
-          scaleY: originalScale * 1.05,
-          duration: GameConfig.ANIMATION.PULSE_DURATION,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut'
+          scale: originalScale * 1.05,
+          alpha: 0.6,
+          duration: GameConfig.ANIMATION.HOVER_DURATION,
+          ease: 'Power2'
         });
       }
     });
     
     // ホバー終了時のエフェクト
     container.on('pointerout', () => {
-      // 全てのTweenを停止
-      this.tweens.killTweensOf(container);
+      // ブロックの座標を取得
+      const blockX = Math.floor((container.x - this.boardX) / GameConfig.BLOCK_SIZE);
+      const blockY = Math.floor((container.y - this.boardY) / GameConfig.BLOCK_SIZE);
       
-      // 元の状態に戻す
-      this.tweens.add({
-        targets: container,
-        scale: originalScale,
-        alpha: originalAlpha,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
+      // 消去対象となる隣接ブロックを取得
+      const connectedBlocks = this.getConnectedBlocksForPreview(blockX, blockY);
+      
+      // 全ての関連ブロックのTweenを停止して元に戻す
+      if (connectedBlocks.length >= 2) {
+        connectedBlocks.forEach(pos => {
+          const targetSprite = this.blockSprites[pos.y]?.[pos.x];
+          if (targetSprite) {
+            // 全てのTweenを停止
+            this.tweens.killTweensOf(targetSprite);
+            
+            // 元の状態に戻す
+            this.tweens.add({
+              targets: targetSprite,
+              scale: originalScale,
+              alpha: originalAlpha,
+              duration: GameConfig.ANIMATION.HOVER_DURATION,
+              ease: 'Power2'
+            });
+          }
+        });
+      } else {
+        // 全てのTweenを停止
+        this.tweens.killTweensOf(container);
+        
+        // 元の状態に戻す
+        this.tweens.add({
+          targets: container,
+          scale: originalScale,
+          alpha: originalAlpha,
+          duration: GameConfig.ANIMATION.HOVER_DURATION,
+          ease: 'Power2'
+        });
+      }
     });
   }
   
@@ -493,42 +546,95 @@ export class GameScene extends Phaser.Scene {
     sprite.on('pointerover', () => {
       if (this.isProcessing) return;
       
-      // 色弱対応：スケールと透明度の変化で視覚的フィードバック
-      this.tweens.add({
-        targets: sprite,
-        scale: originalScale * 1.1,
-        alpha: 0.8,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
+      // ブロックの座標を取得
+      const blockX = Math.floor((sprite.x - this.boardX) / GameConfig.BLOCK_SIZE);
+      const blockY = Math.floor((sprite.y - this.boardY) / GameConfig.BLOCK_SIZE);
       
-      // 脈動エフェクト（妨害ブロック以外）
-      if (block.type === BlockType.NORMAL || block.type === 'normal') {
+      // 消去対象となる隣接ブロックを取得
+      const connectedBlocks = this.getConnectedBlocksForPreview(blockX, blockY);
+      
+      // 消去対象が2個以上の場合のみ演出を適用
+      if (connectedBlocks.length >= 2) {
+        // 全ての消去対象ブロックに演出を適用
+        connectedBlocks.forEach(pos => {
+          const targetSprite = this.blockSprites[pos.y]?.[pos.x];
+          if (targetSprite) {
+            // 色弱対応：スケールと透明度の変化で視覚的フィードバック
+            this.tweens.add({
+              targets: targetSprite,
+              scale: originalScale * 1.1,
+              alpha: 0.8,
+              duration: GameConfig.ANIMATION.HOVER_DURATION,
+              ease: 'Power2'
+            });
+            
+            // 脈動エフェクト（妨害ブロック以外）
+            const targetBlock = this.blocks[pos.y]?.[pos.x];
+            if (targetBlock && (targetBlock.type === BlockType.NORMAL || targetBlock.type === 'normal')) {
+              this.tweens.add({
+                targets: targetSprite,
+                scaleX: originalScale * 1.05,
+                scaleY: originalScale * 1.05,
+                duration: GameConfig.ANIMATION.PULSE_DURATION,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+              });
+            }
+          }
+        });
+      } else {
+        // 消去対象が1個以下の場合は通常の演出（薄く表示）
         this.tweens.add({
           targets: sprite,
-          scaleX: originalScale * 1.05,
-          scaleY: originalScale * 1.05,
-          duration: GameConfig.ANIMATION.PULSE_DURATION,
-          yoyo: true,
-          repeat: -1,
-          ease: 'Sine.easeInOut'
+          scale: originalScale * 1.05,
+          alpha: 0.6,
+          duration: GameConfig.ANIMATION.HOVER_DURATION,
+          ease: 'Power2'
         });
       }
     });
     
     // ホバー終了時のエフェクト
     sprite.on('pointerout', () => {
-      // 全てのTweenを停止
-      this.tweens.killTweensOf(sprite);
+      // ブロックの座標を取得
+      const blockX = Math.floor((sprite.x - this.boardX) / GameConfig.BLOCK_SIZE);
+      const blockY = Math.floor((sprite.y - this.boardY) / GameConfig.BLOCK_SIZE);
       
-      // 元の状態に戻す
-      this.tweens.add({
-        targets: sprite,
-        scale: originalScale,
-        alpha: originalAlpha,
-        duration: GameConfig.ANIMATION.HOVER_DURATION,
-        ease: 'Power2'
-      });
+      // 消去対象となる隣接ブロックを取得
+      const connectedBlocks = this.getConnectedBlocksForPreview(blockX, blockY);
+      
+      // 全ての関連ブロックのTweenを停止して元に戻す
+      if (connectedBlocks.length >= 2) {
+        connectedBlocks.forEach(pos => {
+          const targetSprite = this.blockSprites[pos.y]?.[pos.x];
+          if (targetSprite) {
+            // 全てのTweenを停止
+            this.tweens.killTweensOf(targetSprite);
+            
+            // 元の状態に戻す
+            this.tweens.add({
+              targets: targetSprite,
+              scale: originalScale,
+              alpha: originalAlpha,
+              duration: GameConfig.ANIMATION.HOVER_DURATION,
+              ease: 'Power2'
+            });
+          }
+        });
+      } else {
+        // 全てのTweenを停止
+        this.tweens.killTweensOf(sprite);
+        
+        // 元の状態に戻す
+        this.tweens.add({
+          targets: sprite,
+          scale: originalScale,
+          alpha: originalAlpha,
+          duration: GameConfig.ANIMATION.HOVER_DURATION,
+          ease: 'Power2'
+        });
+      }
     });
   }
   
