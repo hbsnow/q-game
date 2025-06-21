@@ -1,4 +1,4 @@
-import { GameConfig } from '../config/GameConfig';
+import { GameConfig } from "../config/gameConfig";
 
 /**
  * デバッグログ用のユーティリティクラス

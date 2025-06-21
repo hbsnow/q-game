@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Block, BlockType } from "../types/Block";
 import { BlockLogic } from "../utils/BlockLogic";
-import { GameConfig } from "../config/GameConfig";
+import { GameConfig } from "../config/gameConfig";
 
 const RED = GameConfig.BLOCK_COLORS.CORAL_RED;
 const BLUE = GameConfig.BLOCK_COLORS.DEEP_BLUE;

@@ -1,5 +1,5 @@
-import { GameState } from '../types/GameState';
-import { GameConfig } from '../config/GameConfig';
+import { GameState } from "../types/GameState";
+import { GameConfig } from "../config/gameConfig";
 
 /**
  * ゲーム状態を管理するシングルトンクラス
@@ -7,7 +7,7 @@ import { GameConfig } from '../config/GameConfig';
 export class GameStateManager {
   private static instance: GameStateManager;
   private gameState: GameState;
-  
+
   private constructor() {
     // 初期状態
     this.gameState = {
@@ -15,10 +15,10 @@ export class GameStateManager {
       gold: 0,
       score: 0,
       targetScore: GameConfig.TARGET_SCORE,
-      usedItems: []
+      usedItems: [],
     };
   }
-  
+
   /**
    * シングルトンインスタンスを取得
    */
@@ -28,14 +28,14 @@ export class GameStateManager {
     }
     return GameStateManager.instance;
   }
-  
+
   /**
    * 現在のステージを取得
    */
   public getCurrentStage(): number {
     return this.gameState.currentStage;
   }
-  
+
   /**
    * 現在のステージを設定
    */
@@ -47,7 +47,7 @@ export class GameStateManager {
     }
     this.gameState.currentStage = stage;
   }
-  
+
   /**
    * 次のステージに進む
    */
@@ -56,14 +56,14 @@ export class GameStateManager {
       this.gameState.currentStage++;
     }
   }
-  
+
   /**
    * 所持ゴールドを取得
    */
   public getGold(): number {
     return this.gameState.gold;
   }
-  
+
   /**
    * ゴールドを追加
    */
@@ -81,7 +81,7 @@ export class GameStateManager {
     }
     return false;
   }
-  
+
   /**
    * ゴールドを消費
    */
@@ -92,81 +92,81 @@ export class GameStateManager {
     }
     return false;
   }
-  
+
   /**
    * 現在のスコアを取得
    */
   public getScore(): number {
     return this.gameState.score;
   }
-  
+
   /**
    * スコアを設定
    */
   public setScore(score: number): void {
     this.gameState.score = score;
   }
-  
+
   /**
    * スコアを追加
    */
   public addScore(points: number): void {
     this.gameState.score += points;
   }
-  
+
   /**
    * 目標スコアを取得
    */
   public getTargetScore(): number {
     return this.gameState.targetScore;
   }
-  
+
   /**
    * 使用済みアイテムを追加
    */
   public addUsedItem(itemId: string): void {
     this.gameState.usedItems.push(itemId);
   }
-  
+
   /**
    * アイテムが使用済みかどうか確認
    */
   public isItemUsed(itemId: string): boolean {
     return this.gameState.usedItems.includes(itemId);
   }
-  
+
   /**
    * 使用済みアイテムリストをリセット
    */
   public resetUsedItems(): void {
     this.gameState.usedItems = [];
   }
-  
+
   /**
    * ステージクリア時の処理
    */
   public onStageClear(): void {
     // スコアに応じたゴールドを獲得
     this.addGold(this.gameState.score);
-    
+
     // 使用済みアイテムリストをリセット
     this.resetUsedItems();
-    
+
     // スコアをリセット
     this.setScore(0);
   }
-  
+
   /**
    * ステージリトライ時の処理
    */
   public onStageRetry(): void {
     // 使用済みアイテムリストをリセット
     this.resetUsedItems();
-    
+
     // スコアをリセット
     this.setScore(0);
   }
-  
+
   /**
    * ゲーム状態をリセット
    */
@@ -176,7 +176,7 @@ export class GameStateManager {
       gold: 0,
       score: 0,
       targetScore: GameConfig.TARGET_SCORE,
-      usedItems: []
+      usedItems: [],
     };
   }
 
